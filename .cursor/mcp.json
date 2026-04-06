@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "figma": {
+      "command": "zsh",
+      "args": ["-lc", "source ~/.zshrc && unset FIGMA_OAUTH_TOKEN && npx -y figma-developer-mcp --stdio"]
+    }
+  }
+}
