@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
-const BORDER_W = 0.5;
+const BORDER_W = 1;
 export const CARD_FILL = 'rgba(32, 32, 40, 0.4)';
 
 // expo-linear-gradient를 직접 사용하는 파일(CircuitCard, RaceScreen)용 상수
@@ -59,9 +59,9 @@ export default function GradientCardBorder({
         >
           <Defs>
             <SvgLinearGradient id="cardBorderGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
             </SvgLinearGradient>
           </Defs>
           <Rect

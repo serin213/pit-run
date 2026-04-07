@@ -126,12 +126,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad1)" strokeWidth={0.5} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad1)" strokeWidth={1} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
@@ -157,12 +157,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad2)" strokeWidth={0.5} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad2)" strokeWidth={1} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
@@ -188,12 +188,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad3)" strokeWidth={0.5} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad3)" strokeWidth={1} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}

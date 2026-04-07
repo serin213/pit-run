@@ -156,7 +156,7 @@ function GradPill({ left, top, width, height }: {
         rx={12}
         fill={`url(#${id})`}
         stroke="rgba(255,255,255,0.2)"
-        strokeWidth={0.5}
+        strokeWidth={1}
       />
     </Svg>
   );
@@ -612,12 +612,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLG id="homeCircuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
                 <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
               </SvgLG>
             </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke="url(#homeCircuitBorderGrad)" strokeWidth={0.5} />
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke="url(#homeCircuitBorderGrad)" strokeWidth={1} />
           </Svg>
           <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
           <Text style={s.circuitName} numberOfLines={1}>
