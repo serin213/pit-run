@@ -10,8 +10,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, {
+  Defs,
+  LinearGradient as SvgLG,
   Path,
   Rect,
+  Stop,
 } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -280,12 +283,20 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           viewBox={`0 0 ${cardSvgW} 393`}
           style={StyleSheet.absoluteFill}
         >
+          <Defs>
+            <SvgLG id="profileCardBorderGrad" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
+              <Stop offset="50%" stopColor="#E03A3E" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#E03A3E" stopOpacity="1" />
+            </SvgLG>
+          </Defs>
           <Path
             d={cardPath}
             fill="#202028"
-            stroke={profile.nameTagAccentColor}
+            fillOpacity={0.4}
+            stroke="url(#profileCardBorderGrad)"
             strokeOpacity={0.3}
-            strokeWidth={4}
+            strokeWidth={1}
           />
         </Svg>
 
