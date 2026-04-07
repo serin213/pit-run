@@ -2,7 +2,7 @@
  * HomeScreen v4
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -398,9 +398,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const streakSet = useMemo(() => calcStreakSet(activityDates), [activityDates]);
   const streakDays = streakSet.size;
 
+  // 인스턴스 고유 ID (여러 HomeScreen 인스턴스의 gradient ID 충돌 방지)
+  const rawId = useId();
+  const idBase = rawId.replace(/[^a-zA-Z0-9]/g, '_');
+
   const [calExpanded, setCalExpanded] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [devTestActive, setDevTestActive] = useState(false);
+  const [svgKey, setSvgKey] = useState(0);
   const calHeightAnim = useRef(new Animated.Value(CAL_H_WEEK)).current;
   const cardTransY = useRef(new Animated.Value(0)).current;
 
@@ -501,6 +506,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       Animated.spring(barAnim,
         { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 },
       ).start();
+      setSvgKey(k => k + 1);
     }, [barAnim]),
   );
 
@@ -609,15 +615,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             transform: [{ translateY: cardTransY }],
           }}
         >
-          <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg key={svgKey} width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
-              <SvgLG id="homeCircuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
+              <SvgLG id={`hcbg_${idBase}_${svgKey}`} x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
                 <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
                 <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
               </SvgLG>
             </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke="url(#homeCircuitBorderGrad)" strokeWidth={1} />
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
           </Svg>
           <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
           <Text style={s.circuitName} numberOfLines={1}>

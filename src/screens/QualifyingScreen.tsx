@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -25,6 +25,7 @@ import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
 import type { QualifyingResult } from '../store/appStore';
 import type { QualifyingScreenProps } from '../navigation/types';
+import { BlurView } from 'expo-blur';
 
 // Figma design reference size (horizontal only — vertical uses fixed values)
 const FW = 402;
@@ -471,6 +472,11 @@ type RetireConfirmProps = {
 function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
   const modalRadius = 24;
   const innerPad = 28;
+  const { width: windowW } = useWindowDimensions();
+  const rawRetireId = useId();
+  const retireGradId = `retireCard${rawRetireId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const cardWidth = windowW - 40;
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
 
   // Animation: slide up from bottom on mount, slide down on dismiss
   const slideAnim = useRef(new Animated.Value(400)).current;
@@ -518,7 +524,24 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           st.retireCard,
           { borderRadius: modalRadius, transform: [{ translateY: slideAnim }] },
         ]}
+        onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
       >
+        <View style={[StyleSheet.absoluteFillObject, { borderRadius: modalRadius, overflow: 'hidden' }]}>
+          <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.30)' }]} />
+        </View>
+        {cardHeight && (
+          <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+            <Defs>
+              <SvgLinearGradient id={retireGradId} x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              </SvgLinearGradient>
+            </Defs>
+            <Rect x={0.5} y={0.5} width={cardWidth - 1} height={cardHeight - 1} rx={23.5} ry={23.5} fill="none" stroke={`url(#${retireGradId})`} strokeWidth={0.5} />
+          </Svg>
+        )}
         {/* Title — paddingTop:32 은 retireCard에 */}
         <Text style={[st.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
           Are you sure?
@@ -771,12 +794,16 @@ const st = StyleSheet.create({
 
   // ── Retire confirm ──
   retireOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
   retireCard: {
-    backgroundColor: '#202028',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 20,
     marginHorizontal: 20,
     marginBottom: 26,
     paddingTop: 32,
@@ -813,7 +840,7 @@ const st = StyleSheet.create({
     paddingVertical: 16,
   },
   retireContinueBtn: {
-    backgroundColor: '#34343F',
+    backgroundColor: '#202028',
   },
   retireRetireBtn: {
     backgroundColor: 'rgba(224,58,62,0.3)',

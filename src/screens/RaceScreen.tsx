@@ -3,7 +3,7 @@
  * Practice / Qualifying / Grand Prix 세 가지 모드 선택
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -99,6 +99,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     return <Path key={i} d={`M${xl1} ${y1}H${xr1}L${xr2} ${y2}H${xl2}Z`} fill={`rgba(224,58,62,${op})`} />;
   }), [glowW, glowHalf, tabH]);
 
+  // 인스턴스 고유 ID (여러 RaceScreen 인스턴스의 gradient ID 충돌 방지)
+  const rawId = useId();
+  const idBase = rawId.replace(/[^a-zA-Z0-9]/g, '_');
+
   // SVG gradient key — 포커스 시마다 증가해 웹에서 url() 참조를 강제 재등록
   const [svgKey, setSvgKey] = useState(0);
 
@@ -129,13 +133,13 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12 }}>
         <Svg key={svgKey} width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0" x2="1" y2="1">
+            <SvgLinearGradient id={`rbg1_${idBase}_${svgKey}`} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad1)" strokeWidth={1} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke={`url(#rbg1_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
@@ -160,13 +164,13 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12 }}>
         <Svg key={svgKey} width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0" x2="1" y2="1">
+            <SvgLinearGradient id={`rbg2_${idBase}_${svgKey}`} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad2)" strokeWidth={1} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke={`url(#rbg2_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
@@ -191,13 +195,13 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12 }}>
         <Svg key={svgKey} width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0" x2="1" y2="1">
+            <SvgLinearGradient id={`rbg3_${idBase}_${svgKey}`} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad3)" strokeWidth={1} />
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke={`url(#rbg3_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}

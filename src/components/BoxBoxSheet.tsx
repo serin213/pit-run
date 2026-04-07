@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 interface Props {
@@ -43,6 +44,8 @@ export default function BoxBoxSheet({
   mode = 'boxbox',
 }: Props) {
   const { width: windowW } = useWindowDimensions();
+  const rawId = useId();
+  const gradId = `bbBorderGrad${rawId.replace(/[^a-zA-Z0-9]/g, '_')}`;
   const [waveTime, setWaveTime] = useState(0);
   const rafRef = useRef<number | null>(null);
   const waveStartRef = useRef<number>(0);
@@ -110,6 +113,19 @@ export default function BoxBoxSheet({
     <View style={s.root} pointerEvents="box-none">
       <Pressable style={s.overlay} onPress={onClose} />
       <View style={[s.sheet, { height: sheetHeight }]}>
+        <BlurView intensity={50} tint="dark" style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: 'hidden' }]}>
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.30)' }]} />
+        </BlurView>
+        <Svg width={sheetWidth} height={sheetHeight} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <Defs>
+            <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            </LinearGradient>
+          </Defs>
+          <Rect x={0.5} y={0.5} width={sheetWidth - 1} height={sheetHeight - 1} rx={23.5} ry={23.5} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
+        </Svg>
         <Text
           style={[
             s.driver,
@@ -130,7 +146,7 @@ export default function BoxBoxSheet({
                 <Stop offset="100%" stopColor={waveEndColor} />
               </LinearGradient>
               <LinearGradient id="waveLeftFade" x1="0" y1="32" x2={WAVE_SIDE_FADE_WIDTH} y2="32" gradientUnits="userSpaceOnUse">
-                <Stop offset="7%" stopColor="#202028" />
+                <Stop offset="7%" stopColor="rgba(23,23,28,0.30)" />
                 <Stop offset="100%" stopColor="rgba(32,32,40,0)" />
               </LinearGradient>
               <LinearGradient
@@ -142,7 +158,7 @@ export default function BoxBoxSheet({
                 gradientUnits="userSpaceOnUse"
               >
                 <Stop offset="7%" stopColor="rgba(32,32,40,0)" />
-                <Stop offset="100%" stopColor="#202028" />
+                <Stop offset="100%" stopColor="rgba(23,23,28,0.30)" />
               </LinearGradient>
             </Defs>
 
@@ -204,13 +220,16 @@ export default function BoxBoxSheet({
 
 const s = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     marginHorizontal: 20,
     marginBottom: 26,
     borderRadius: 24,
-    backgroundColor: '#202028',
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 20,
   },
   driver: {
     position: 'absolute',
