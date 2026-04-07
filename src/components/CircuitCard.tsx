@@ -236,7 +236,7 @@ export default function CircuitCard({
           ry={11.75}
           fill="none"
           stroke={`url(#${gradId})`}
-          strokeWidth={1}
+          strokeWidth={0.5}
         />
       </Svg>
       <Pressable

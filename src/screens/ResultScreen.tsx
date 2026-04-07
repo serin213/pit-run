@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -10,7 +10,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Polygon, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
@@ -20,6 +20,7 @@ import { fmtTime, fmtPace } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
+import { BlurView } from 'expo-blur';
 
 
 const FASTEST_COLOR = '#8528C5';
@@ -195,6 +196,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   // ─── Evaluation sheet ──────────────────────────────────────────────────────
 
+  const rawSheetId = useId();
+  const sheetGradId = `resultSheet${rawSheetId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const [sheetLayout, setSheetLayout] = useState<{ w: number; h: number } | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -475,9 +479,26 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           <Animated.View
             style={[
               styles.sheet,
-              { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16 },
+              { transform: [{ translateY: sheetTranslateY }], paddingBottom: 0 },
             ]}
+            onLayout={(e) => setSheetLayout({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
           >
+            <View style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: 'hidden' }]}>
+              <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.30)' }]} />
+            </View>
+            {sheetLayout && (
+              <Svg width={sheetLayout.w} height={sheetLayout.h} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                <Defs>
+                  <LinearGradient id={sheetGradId} x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                    <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+                    <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                  </LinearGradient>
+                </Defs>
+                <Rect x={0.5} y={0.5} width={sheetLayout.w - 1} height={sheetLayout.h - 1} rx={23.5} ry={23.5} fill="none" stroke={`url(#${sheetGradId})`} strokeWidth={0.5} />
+              </Svg>
+            )}
             <Text style={styles.sheetTitle}>How was it?</Text>
 
             {/* Emoji scale */}
@@ -507,12 +528,16 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             </View>
 
             {/* Confirm */}
-            <Pressable
-              style={[styles.confirmBtn, selectedDiff && styles.confirmBtnActive]}
-              onPress={selectedDiff ? handleConfirm : undefined}
-            >
-              <Text style={styles.confirmBtnText}>Confirm</Text>
-            </Pressable>
+            <GradientCtaButton
+              width={screenW - 80}
+              height={58}
+              label="Confirm"
+              enabled={!!selectedDiff}
+              onPress={handleConfirm}
+              gradientStart={topTheme.line}
+              gradientEnd={topTheme.text}
+              style={{ marginLeft: -8, marginBottom: 20 }}
+            />
           </Animated.View>
         </Animated.View>
       )}
@@ -712,14 +737,19 @@ const styles = StyleSheet.create({
   // ── Sheet ──
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
     zIndex: 500,
   },
   sheet: {
-    backgroundColor: '#202028',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
+    marginHorizontal: 20,
+    marginBottom: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 20,
     paddingHorizontal: 28,
     paddingTop: 32,
   },
@@ -785,13 +815,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    backgroundColor: '#34343F',
+    backgroundColor: '#202028',
     opacity: 0.3,
-    marginBottom: 8,
+    marginHorizontal: -8,
+    marginBottom: 20,
   },
   confirmBtnActive: {
     opacity: 1,
-    backgroundColor: '#34343F',
+    backgroundColor: '#202028',
   },
   confirmBtnText: {
     fontFamily: 'Formula1-Bold',
