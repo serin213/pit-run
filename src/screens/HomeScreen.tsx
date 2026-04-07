@@ -27,8 +27,7 @@ import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
-import GradientCardBorder, { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from '../components/GradientCardBorder';
-import { LinearGradient } from 'expo-linear-gradient';
+import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
 import type { HomeScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -610,14 +609,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             transform: [{ translateY: cardTransY }],
           }}
         >
-          <LinearGradient
-            colors={GRAD_COLORS}
-            locations={GRAD_LOCS}
-            start={GRAD_START}
-            end={GRAD_END}
-            style={{ flex: 1, borderRadius: 12, padding: 0.5 }}
-          >
-          <View style={{ flex: 1, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+          <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              <SvgLG id="homeCircuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              </SvgLG>
+            </Defs>
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke="url(#homeCircuitBorderGrad)" strokeWidth={0.5} />
+          </Svg>
+          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
           <Text style={s.circuitName} numberOfLines={1}>
             {circuit.displayName.toUpperCase()}
           </Text>
@@ -655,7 +657,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Text style={s.startBtnTxt}>START</Text>
           </Pressable>
           </View>
-          </LinearGradient>
         </Animated.View>
       )}
 
