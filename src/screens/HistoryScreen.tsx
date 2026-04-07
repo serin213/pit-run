@@ -27,6 +27,7 @@ import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import type { HistoryScreenProps } from '../navigation/types';
+import GradientCardBorder from '../components/GradientCardBorder';
 
 // ─── Tab icon paths (공유) ───────────────────────────────────────────────────
 
@@ -434,7 +435,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 16, gap: 12 }}>
           {gpSorted.map((gp) => (
-            <View key={gp.sortKey} style={s.gpCard}>
+            <GradientCardBorder key={gp.sortKey} style={s.gpCardOuter} innerStyle={s.gpCardInner}>
               <View style={s.gpTextCol}>
                 <Text style={s.gpDate}>{gp.dateDisplay}</Text>
                 <Text style={s.gpVenue}>{gp.venue}</Text>
@@ -450,7 +451,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   <Path d={monaco.trackPath} stroke="#FFFFFF" strokeWidth={4} fill="none" />
                 </Svg>
               </View>
-            </View>
+            </GradientCardBorder>
           ))}
         </View>
       </ScrollView>
@@ -621,13 +622,13 @@ const s = StyleSheet.create({
     lineHeight: 16,
     color: '#E03A3E',
   },
-  gpCard: {
+  gpCardOuter: {
+    borderRadius: 12,
+  },
+  gpCardInner: {
     flexDirection: 'row',
     alignItems: 'stretch',
     minHeight: 140,
-    backgroundColor: '#202028',
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   gpTextCol: {
     flex: 1,

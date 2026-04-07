@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 
 import { getDriverCode } from '../utils/driverCode';
 import GradientCtaButton from '../components/GradientCtaButton';
+import GradientCardBorder from '../components/GradientCardBorder';
 import { useAppStore } from '../store/appStore';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 
@@ -271,13 +272,13 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
         <View style={styles.previewSection}>
           <Text style={styles.previewLabel}>Preview</Text>
-          <View style={styles.previewBox}>
+          <GradientCardBorder style={styles.previewBoxOuter} innerStyle={styles.previewBoxInner}>
             <View style={styles.previewRow}>
               <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
               <Text style={styles.previewName}>{previewCode}</Text>
             </View>
             <Text style={styles.previewNumber}>#{previewNumber}</Text>
-          </View>
+          </GradientCardBorder>
         </View>
       </View>
 
@@ -437,11 +438,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     includeFontPadding: false,
   },
-  previewBox: {
+  previewBoxOuter: {
     width: '100%',
     borderRadius: 16,
+  },
+  previewBoxInner: {
     padding: 20,
-    backgroundColor: '#202028',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

@@ -19,6 +19,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import GradientCtaButton from '../components/GradientCtaButton';
+import GradientCardBorder from '../components/GradientCardBorder';
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
@@ -438,11 +439,11 @@ function StepCard({
   borderRadius, paddingV, paddingHStart, paddingHEnd,
 }: StepCardProps) {
   return (
-    <View
-      style={[
+    <GradientCardBorder
+      style={{ borderRadius }}
+      innerStyle={[
         st.stepCard,
         {
-          borderRadius,
           paddingVertical: paddingV,
           paddingLeft: paddingHStart,
           paddingRight: paddingHEnd,
@@ -458,7 +459,7 @@ function StepCard({
       <Text style={st.stepCardMeta} allowFontScaling={false}>
         {meta}
       </Text>
-    </View>
+    </GradientCardBorder>
   );
 }
 
@@ -642,7 +643,6 @@ const st = StyleSheet.create({
     width: '100%',
   },
   stepCard: {
-    backgroundColor: '#202028',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

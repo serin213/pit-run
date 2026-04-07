@@ -17,6 +17,7 @@ import { useAppStore } from '../store/appStore';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
+import GradientCardBorder from '../components/GradientCardBorder';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -310,13 +311,13 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           {/* Preview nametag */}
           <View style={s.previewSection}>
             <Text style={s.previewLabel}>Preview</Text>
-            <View style={[s.previewBox, { width: contentWidth }]}>
+            <GradientCardBorder style={[s.previewBoxOuter, { width: contentWidth }]} innerStyle={s.previewBoxInner}>
               <View style={s.previewRow}>
                 <View style={[s.previewAccent, { backgroundColor: previewColor }]} />
                 <Text style={s.previewName}>{previewCode}</Text>
               </View>
               <Text style={s.previewNumber}>#{previewNumber}</Text>
-            </View>
+            </GradientCardBorder>
           </View>
         </View>
       </ScrollView>
@@ -469,9 +470,10 @@ const s = StyleSheet.create({
     letterSpacing: 20 * -0.01,
     includeFontPadding: false,
   },
-  previewBox: {
-    backgroundColor: '#202028',
+  previewBoxOuter: {
     borderRadius: 16,
+  },
+  previewBoxInner: {
     paddingHorizontal: 20,
     paddingVertical: 20,
     flexDirection: 'row',

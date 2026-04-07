@@ -20,6 +20,8 @@ import Svg, {
 } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from '../components/GradientCardBorder';
 import type { RaceScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -118,8 +120,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <Text style={[s.title, { left: cardLeft, top: py(86) }]}>Race</Text>
 
       {/* ── Practice 카드 ── */}
+      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
+        style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12, padding: 0.5 }}>
       <Pressable
-        style={[s.card, { left: cardLeft, top: py(153), width: cardW, height: 138 }]}
+        style={[s.cardInner, { flex: 1 }]}
         onPress={() => navigation.navigate('Setup')}
       >
         <Image
@@ -135,10 +139,13 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           </Svg>
         </View>
       </Pressable>
+      </LinearGradient>
 
       {/* ── Qualifying 카드 ── */}
+      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
+        style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12, padding: 0.5 }}>
       <Pressable
-        style={[s.card, { left: cardLeft, top: py(304), width: cardW, height: 137 }]}
+        style={[s.cardInner, { flex: 1 }]}
         onPress={() => navigation.navigate('Qualifying')}
       >
         <Image
@@ -154,10 +161,13 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           </Svg>
         </View>
       </Pressable>
+      </LinearGradient>
 
       {/* ── Grand Prix 카드 ── */}
+      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
+        style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12, padding: 0.5 }}>
       <Pressable
-        style={[s.card, { left: cardLeft, top: py(455), width: cardW, height: 141 }]}
+        style={[s.cardInner, { flex: 1 }]}
         onPress={() => navigation.navigate('Setup')}
       >
         <Image
@@ -173,6 +183,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           </Svg>
         </View>
       </Pressable>
+      </LinearGradient>
 
       {/* ── 그라데이션 페이드 — Defs 없이 Rect 단계별 렌더 ── */}
       <Svg
@@ -284,10 +295,9 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     includeFontPadding: false,
   },
-  card: {
-    position: 'absolute',
-    backgroundColor: '#202028',
-    borderRadius: 12,
+  cardInner: {
+    borderRadius: 11.5,
+    backgroundColor: CARD_FILL,
     overflow: 'hidden',
   },
   cardTitle: {

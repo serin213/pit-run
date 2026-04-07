@@ -5,6 +5,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 import type { CircuitDefinition } from '../config/circuits';
 import SvgButton from '../components/SvgButton';
 import GradientCtaButton from '../components/GradientCtaButton';
+import GradientCardBorder from '../components/GradientCardBorder';
 
 type UserProfile = {
   displayName: string;
@@ -51,7 +52,7 @@ export default function ReadyScreen({
       <Text style={styles.title}>PIT RUN</Text>
       <Text style={styles.subtitle}>러닝 기록 시작 전에 서킷을 선택하세요</Text>
 
-      <View style={styles.card}>
+      <GradientCardBorder style={styles.cardOuter} innerStyle={styles.cardInner}>
         <Text style={styles.sectionTitle}>유저</Text>
         <Text style={styles.userText}>드라이버 코드: {profile.displayName}</Text>
         <Text style={styles.userText}>선수 번호: #{profile.raceNumber}</Text>
@@ -60,9 +61,9 @@ export default function ReadyScreen({
           <View style={[styles.colorDot, { backgroundColor: profile.nameTagAccentColor }]} />
           <Text style={styles.userText}>{profile.nameTagAccentColor}</Text>
         </View>
-      </View>
+      </GradientCardBorder>
 
-      <View style={styles.card}>
+      <GradientCardBorder style={styles.cardOuter} innerStyle={styles.cardInner}>
         <Text style={styles.sectionTitle}>QUALIFYING</Text>
         {qualifyingResult ? (
           <>
@@ -73,9 +74,9 @@ export default function ReadyScreen({
         ) : (
           <Text style={styles.userText}>첫 러닝 전 QUALIFYING을 완료해 주세요.</Text>
         )}
-      </View>
+      </GradientCardBorder>
 
-      <View style={styles.card}>
+      <GradientCardBorder style={styles.cardOuter} innerStyle={styles.cardInner}>
         <Text style={styles.sectionTitle}>서킷 선택</Text>
         <View style={styles.circuitList}>
           {circuits.map((circuit) => {
@@ -103,7 +104,7 @@ export default function ReadyScreen({
             );
           })}
         </View>
-      </View>
+      </GradientCardBorder>
 
       {/* Bottom CTA area — absolute overlay with fade gradient */}
       <View style={[styles.ctaContainer, { height: ctaContainerH }]} pointerEvents="box-none">
@@ -157,11 +158,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 14,
   },
-  card: {
+  cardOuter: {
     borderRadius: 14,
-    backgroundColor: '#202028',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  cardInner: {
     padding: 14,
     gap: 10,
   },

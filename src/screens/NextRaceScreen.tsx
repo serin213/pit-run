@@ -16,6 +16,7 @@ import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
 import type { NextRaceScreenProps } from '../navigation/types';
+import GradientCardBorder from '../components/GradientCardBorder';
 
 const H_PAD = 28;
 const FIGMA_CARD_W = 346;
@@ -93,7 +94,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           Picked for your qualifying pace.
         </Text>
 
-        <View style={[styles.card, { width: cardW, height: cardHeight }]}>
+        <GradientCardBorder style={[styles.card, { width: cardW, height: cardHeight }]}>
           <Text style={styles.circuitName} allowFontScaling={false}>
             {circuit.displayName.toUpperCase()}
           </Text>
@@ -137,7 +138,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
               height={trackH}
             />
           </View>
-        </View>
+        </GradientCardBorder>
       </ScrollView>
 
       <View style={[styles.ctaContainer, { height: CTA_AREA_H }]} pointerEvents="box-none">
@@ -214,9 +215,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginTop: 36,
-    backgroundColor: '#202028',
     borderRadius: 12,
-    overflow: 'hidden',
   },
   circuitName: {
     position: 'absolute',

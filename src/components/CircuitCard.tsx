@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { CircuitDefinition } from '../config/circuits';
+import { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from './GradientCardBorder';
 
 export type CircuitTagType = 'Sprint' | 'Mixed' | 'Tempo';
 
@@ -106,17 +108,11 @@ export default function CircuitCard({
   const distanceLabel =
     isFeatured && estimatedMinutes != null ? `${kmPart} · ${estimatedMinutes}min` : kmPart;
 
-  return (
-    <Pressable
-      onPress={isDisabled ? undefined : onPress}
-      style={[
-        styles.card,
-        { width: cardWidth, height: cardHeight },
-        isSelected && styles.cardSelected,
-        isDisabled && styles.cardDisabled,
-        isDimmed && styles.cardDimmed,
-      ]}
-    >
+  const outerOpacity = isDisabled || isDimmed ? 0.3 : 1;
+
+  /** 카드 내부 콘텐츠 (선택 여부 무관하게 동일) */
+  const content = (
+    <>
       {/* 트랙은 먼저 그려 텍스트가 위에 오도록 */}
       <View
         style={[styles.trackWrap, { right: trackInset, bottom: trackInset, width: trackW, height: trackH }]}
@@ -199,30 +195,47 @@ export default function CircuitCard({
           {tag}
         </Text>
       </View>
-    </Pressable>
+    </>
+  );
+
+  /* ── Selected: 빨간 테두리 유지 ── */
+  if (isSelected) {
+    return (
+      <View
+        style={{ width: cardWidth, height: cardHeight, borderRadius: 12, padding: 1.5, backgroundColor: '#E03A3E', opacity: outerOpacity }}
+      >
+        <Pressable
+          onPress={isDisabled ? undefined : onPress}
+          style={{ flex: 1, borderRadius: 10.5, backgroundColor: '#44252C', overflow: 'hidden' }}
+        >
+          {content}
+        </Pressable>
+      </View>
+    );
+  }
+
+  /* ── Default: 그라디언트 테두리 ── */
+  return (
+    <LinearGradient
+      colors={GRAD_COLORS}
+      locations={GRAD_LOCS}
+      start={GRAD_START}
+      end={GRAD_END}
+      style={{ width: cardWidth, height: cardHeight, borderRadius: 12, padding: 0.5, opacity: outerOpacity }}
+    >
+      <Pressable
+        onPress={isDisabled ? undefined : onPress}
+        style={{ flex: 1, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}
+      >
+        {content}
+      </Pressable>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#202028',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
   trackWrap: {
     position: 'absolute',
-  },
-  cardSelected: {
-    backgroundColor: '#44252C',
-    borderColor: '#E03A3E',
-  },
-  cardDisabled: {
-    opacity: 0.3,
-  },
-  cardDimmed: {
-    opacity: 0.3,
   },
   name: {
     position: 'absolute',

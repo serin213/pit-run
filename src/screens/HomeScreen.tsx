@@ -27,6 +27,8 @@ import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
+import GradientCardBorder, { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from '../components/GradientCardBorder';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { HomeScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -185,7 +187,7 @@ function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
   ));
 
   return (
-    <View style={s.calCard}>
+    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }}>
       {/* 요일 레이블 (top=16) */}
       {WEEK_LABELS.map((label, col) => (
         <Text key={`wl-${col}`} style={[s.calLabel, { left: colX[col] }]}>
@@ -222,7 +224,7 @@ function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
           </Text>
         );
       })}
-    </View>
+    </GradientCardBorder>
   );
 }
 
@@ -262,7 +264,7 @@ function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNext }: Mo
   }
 
   return (
-    <View style={s.monthCard}>
+    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }}>
       {/* 월 이름 */}
       <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
 
@@ -351,7 +353,7 @@ function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNext }: Mo
           </React.Fragment>
         );
       })}
-    </View>
+    </GradientCardBorder>
   );
 }
 
@@ -604,12 +606,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             top: py(258),
             width: cardW,
             height: cardH,
-            backgroundColor: '#202028',
             borderRadius: 12,
-            overflow: 'hidden',
             transform: [{ translateY: cardTransY }],
           }}
         >
+          <LinearGradient
+            colors={GRAD_COLORS}
+            locations={GRAD_LOCS}
+            start={GRAD_START}
+            end={GRAD_END}
+            style={{ flex: 1, borderRadius: 12, padding: 0.5 }}
+          >
+          <View style={{ flex: 1, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
           <Text style={s.circuitName} numberOfLines={1}>
             {circuit.displayName.toUpperCase()}
           </Text>
@@ -646,6 +654,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           >
             <Text style={s.startBtnTxt}>START</Text>
           </Pressable>
+          </View>
+          </LinearGradient>
         </Animated.View>
       )}
 
@@ -796,15 +806,11 @@ const s = StyleSheet.create({
   // 캘린더 카드
   calCard: {
     flex: 1,
-    backgroundColor: '#202028',
     borderRadius: 12,
-    overflow: 'hidden',
   },
   monthCard: {
     flex: 1,
-    backgroundColor: '#202028',
     borderRadius: 12,
-    overflow: 'hidden',
   },
   monthTitle: {
     position: 'absolute',
