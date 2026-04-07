@@ -3,7 +3,7 @@
  * Practice / Qualifying / Grand Prix 세 가지 모드 선택
  */
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -99,6 +99,9 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     return <Path key={i} d={`M${xl1} ${y1}H${xr1}L${xr2} ${y2}H${xl2}Z`} fill={`rgba(224,58,62,${op})`} />;
   }), [glowW, glowHalf, tabH]);
 
+  // SVG gradient key — 포커스 시마다 증가해 웹에서 url() 참조를 강제 재등록
+  const [svgKey, setSvgKey] = useState(0);
+
   // 탭바 바 애니메이션
   const barAnim = useRef(new Animated.Value(0)).current;
   const barTranslateX = useMemo(
@@ -112,6 +115,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       Animated.spring(barAnim,
         { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 },
       ).start();
+      setSvgKey(k => k + 1);
     }, [barAnim]),
   );
 
@@ -123,12 +127,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
 
       {/* ── Practice 카드 ── */}
       <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12 }}>
-        <Svg width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg key={svgKey} width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad1)" strokeWidth={1} />
@@ -154,12 +158,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
 
       {/* ── Qualifying 카드 ── */}
       <View style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12 }}>
-        <Svg width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg key={svgKey} width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad2)" strokeWidth={1} />
@@ -185,12 +189,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
 
       {/* ── Grand Prix 카드 ── */}
       <View style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12 }}>
-        <Svg width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg key={svgKey} width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad3)" strokeWidth={1} />

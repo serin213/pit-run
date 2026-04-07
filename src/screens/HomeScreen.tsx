@@ -612,9 +612,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLG id="homeCircuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
                 <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
               </SvgLG>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={11.75} ry={11.75} fill="none" stroke="url(#homeCircuitBorderGrad)" strokeWidth={1} />
