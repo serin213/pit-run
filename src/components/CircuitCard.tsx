@@ -222,9 +222,9 @@ export default function CircuitCard({
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
             <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
           </SvgLinearGradient>
         </Defs>
         <Rect
