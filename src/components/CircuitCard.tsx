@@ -1,9 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CircuitDefinition } from '../config/circuits';
-import { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from './GradientCardBorder';
+import { CARD_FILL } from './GradientCardBorder';
 
 export type CircuitTagType = 'Sprint' | 'Mixed' | 'Tempo';
 
@@ -214,22 +213,36 @@ export default function CircuitCard({
     );
   }
 
-  /* ── Default: 그라디언트 테두리 ── */
+  /* ── Default: 그라디언트 테두리 (SVG stroke-only — fill에 영향 없음) ── */
   return (
-    <LinearGradient
-      colors={GRAD_COLORS}
-      locations={GRAD_LOCS}
-      start={GRAD_START}
-      end={GRAD_END}
-      style={{ width: cardWidth, height: cardHeight, borderRadius: 12, padding: 0.5, opacity: outerOpacity }}
-    >
+    <View style={{ width: cardWidth, height: cardHeight, borderRadius: 12, opacity: outerOpacity }}>
+      <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <SvgLinearGradient id="circuitBorderGrad" x1="0" y1="0.5" x2="1" y2="0.5">
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+          </SvgLinearGradient>
+        </Defs>
+        <Rect
+          x={0.25}
+          y={0.25}
+          width={cardWidth - 0.5}
+          height={cardHeight - 0.5}
+          rx={11.75}
+          ry={11.75}
+          fill="none"
+          stroke="url(#circuitBorderGrad)"
+          strokeWidth={0.5}
+        />
+      </Svg>
       <Pressable
         onPress={isDisabled ? undefined : onPress}
-        style={{ flex: 1, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}
+        style={{ flex: 1, margin: 0.5, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}
       >
         {content}
       </Pressable>
-    </LinearGradient>
+    </View>
   );
 }
 

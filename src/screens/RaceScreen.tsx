@@ -15,13 +15,15 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
+  Defs,
+  LinearGradient as SvgLinearGradient,
   Path,
   Rect,
+  Stop,
 } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRAD_COLORS, GRAD_LOCS, GRAD_START, GRAD_END, CARD_FILL } from '../components/GradientCardBorder';
+import { CARD_FILL } from '../components/GradientCardBorder';
 import type { RaceScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -120,70 +122,97 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <Text style={[s.title, { left: cardLeft, top: py(86) }]}>Race</Text>
 
       {/* ── Practice 카드 ── */}
-      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
-        style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12, padding: 0.5 }}>
-      <Pressable
-        style={[s.cardInner, { flex: 1 }]}
-        onPress={() => navigation.navigate('Setup')}
-      >
-        <Image
-          source={STOPWATCH_ICON}
-          style={{ position: 'absolute', left: 20, top: 20, width: 29, height: 33 }}
-          resizeMode="contain"
-        />
-        <Text style={[s.cardTitle, { top: 63 }]}>Practice</Text>
-        <Text style={[s.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
-        <View style={s.arrowWrap}>
-          <Svg width={10} height={16} viewBox="0 0 10 16">
-            <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
-          </Svg>
-        </View>
-      </Pressable>
-      </LinearGradient>
+      <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12 }}>
+        <Svg width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0.5" x2="1" y2="0.5">
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad1)" strokeWidth={0.5} />
+        </Svg>
+        <Pressable
+          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          onPress={() => navigation.navigate('Setup')}
+        >
+          <Image
+            source={STOPWATCH_ICON}
+            style={{ position: 'absolute', left: 20, top: 20, width: 29, height: 33 }}
+            resizeMode="contain"
+          />
+          <Text style={[s.cardTitle, { top: 63 }]}>Practice</Text>
+          <Text style={[s.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
+          <View style={s.arrowWrap}>
+            <Svg width={10} height={16} viewBox="0 0 10 16">
+              <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
+            </Svg>
+          </View>
+        </Pressable>
+      </View>
 
       {/* ── Qualifying 카드 ── */}
-      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
-        style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12, padding: 0.5 }}>
-      <Pressable
-        style={[s.cardInner, { flex: 1 }]}
-        onPress={() => navigation.navigate('Qualifying')}
-      >
-        <Image
-          source={TROPHY_ICON}
-          style={{ position: 'absolute', left: 20, top: 20, width: 31, height: 32 }}
-          resizeMode="contain"
-        />
-        <Text style={[s.cardTitle, { top: 62 }]}>Qualifying</Text>
-        <Text style={[s.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
-        <View style={s.arrowWrap}>
-          <Svg width={10} height={16} viewBox="0 0 10 16">
-            <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
-          </Svg>
-        </View>
-      </Pressable>
-      </LinearGradient>
+      <View style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12 }}>
+        <Svg width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0.5" x2="1" y2="0.5">
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad2)" strokeWidth={0.5} />
+        </Svg>
+        <Pressable
+          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          onPress={() => navigation.navigate('Qualifying')}
+        >
+          <Image
+            source={TROPHY_ICON}
+            style={{ position: 'absolute', left: 20, top: 20, width: 31, height: 32 }}
+            resizeMode="contain"
+          />
+          <Text style={[s.cardTitle, { top: 62 }]}>Qualifying</Text>
+          <Text style={[s.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
+          <View style={s.arrowWrap}>
+            <Svg width={10} height={16} viewBox="0 0 10 16">
+              <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
+            </Svg>
+          </View>
+        </Pressable>
+      </View>
 
       {/* ── Grand Prix 카드 ── */}
-      <LinearGradient colors={GRAD_COLORS} locations={GRAD_LOCS} start={GRAD_START} end={GRAD_END}
-        style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12, padding: 0.5 }}>
-      <Pressable
-        style={[s.cardInner, { flex: 1 }]}
-        onPress={() => navigation.navigate('Setup')}
-      >
-        <Image
-          source={FLAG_ICON}
-          style={{ position: 'absolute', left: 20, top: 20, width: 36, height: 36 }}
-          resizeMode="contain"
-        />
-        <Text style={[s.cardTitle, { top: 66 }]}>Grand Prix</Text>
-        <Text style={[s.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
-        <View style={s.arrowWrap}>
-          <Svg width={10} height={16} viewBox="0 0 10 16">
-            <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
-          </Svg>
-        </View>
-      </Pressable>
-      </LinearGradient>
+      <View style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12 }}>
+        <Svg width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0.5" x2="1" y2="0.5">
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={11.75} ry={11.75} fill="none" stroke="url(#raceBorderGrad3)" strokeWidth={0.5} />
+        </Svg>
+        <Pressable
+          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          onPress={() => navigation.navigate('Setup')}
+        >
+          <Image
+            source={FLAG_ICON}
+            style={{ position: 'absolute', left: 20, top: 20, width: 36, height: 36 }}
+            resizeMode="contain"
+          />
+          <Text style={[s.cardTitle, { top: 66 }]}>Grand Prix</Text>
+          <Text style={[s.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
+          <View style={s.arrowWrap}>
+            <Svg width={10} height={16} viewBox="0 0 10 16">
+              <Path d={ARROW_PATH} stroke="white" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.5} />
+            </Svg>
+          </View>
+        </Pressable>
+      </View>
 
       {/* ── 그라데이션 페이드 — Defs 없이 Rect 단계별 렌더 ── */}
       <Svg
