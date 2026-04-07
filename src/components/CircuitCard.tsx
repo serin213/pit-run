@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CircuitDefinition } from '../config/circuits';
@@ -86,6 +86,9 @@ export default function CircuitCard({
   onPress,
   cardWidth,
 }: CircuitCardProps) {
+  const rawId = useId();
+  const gradId = `circuitBorderGrad${rawId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
   const isFeatured = layout === 'featured';
   const refW = isFeatured ? FEATURED_FIGMA_W : GRID_FIGMA_W;
   const scaleX = cardWidth / refW;
@@ -218,7 +221,7 @@ export default function CircuitCard({
     <View style={{ width: cardWidth, height: cardHeight, borderRadius: 12, opacity: outerOpacity }}>
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
-          <SvgLinearGradient id="circuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
+          <SvgLinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
             <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
             <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
@@ -232,7 +235,7 @@ export default function CircuitCard({
           rx={11.75}
           ry={11.75}
           fill="none"
-          stroke="url(#circuitBorderGrad)"
+          stroke={`url(#${gradId})`}
           strokeWidth={1}
         />
       </Svg>

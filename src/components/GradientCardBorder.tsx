@@ -3,7 +3,7 @@
  * 카드 박스 공통 래퍼 — fill: #202028 40%, stroke: 0.5px 좌→중→우 white 그라디언트
  * SVG stroke-only 방식: 그라데이션이 border 영역에만 그려져 fill에 영향 없음
  */
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
@@ -35,6 +35,8 @@ export default function GradientCardBorder({
   borderRadius = 12,
   children,
 }: Props) {
+  const rawId = useId();
+  const gradId = `cardBorderGrad${rawId.replace(/[^a-zA-Z0-9]/g, '_')}`;
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   return (
@@ -58,7 +60,7 @@ export default function GradientCardBorder({
           pointerEvents="none"
         >
           <Defs>
-            <SvgLinearGradient id="cardBorderGrad" x1="0" y1="0" x2="1" y2="1">
+            <SvgLinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
@@ -72,7 +74,7 @@ export default function GradientCardBorder({
             rx={borderRadius - BORDER_W / 2}
             ry={borderRadius - BORDER_W / 2}
             fill="none"
-            stroke="url(#cardBorderGrad)"
+            stroke={`url(#${gradId})`}
             strokeWidth={BORDER_W}
           />
         </Svg>
