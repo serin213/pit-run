@@ -58,7 +58,7 @@ export default function GradientCardBorder({
           pointerEvents="none"
         >
           <Defs>
-            <SvgLinearGradient id="cardBorderGrad" x1="0" y1="0.5" x2="1" y2="0.5">
+            <SvgLinearGradient id="cardBorderGrad" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />

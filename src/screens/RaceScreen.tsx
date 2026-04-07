@@ -125,7 +125,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 12 }}>
         <Svg width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0.5" x2="1" y2="0.5">
+            <SvgLinearGradient id="raceBorderGrad1" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
@@ -156,7 +156,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(304), width: cardW, height: 137, borderRadius: 12 }}>
         <Svg width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0.5" x2="1" y2="0.5">
+            <SvgLinearGradient id="raceBorderGrad2" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
@@ -187,7 +187,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       <View style={{ position: 'absolute', left: cardLeft, top: py(455), width: cardW, height: 141, borderRadius: 12 }}>
         <Svg width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
-            <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0.5" x2="1" y2="0.5">
+            <SvgLinearGradient id="raceBorderGrad3" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
               <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />

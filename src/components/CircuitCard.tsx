@@ -218,7 +218,7 @@ export default function CircuitCard({
     <View style={{ width: cardWidth, height: cardHeight, borderRadius: 12, opacity: outerOpacity }}>
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
-          <SvgLinearGradient id="circuitBorderGrad" x1="0" y1="0.5" x2="1" y2="0.5">
+          <SvgLinearGradient id="circuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
             <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
             <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
