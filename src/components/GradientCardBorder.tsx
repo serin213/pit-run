@@ -14,15 +14,6 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 const STROKE_W = 0.5;
 export const CARD_FILL = 'rgba(32, 32, 40, 0.4)';
 
-// 다른 파일에서 직접 expo-linear-gradient 쓸 때 참조용 (레거시)
-export const GRAD_COLORS = [
-  'rgba(255,255,255,0.15)',
-  'rgba(255,255,255,0)',
-  'rgba(255,255,255,0.15)',
-] as const;
-export const GRAD_LOCS = [0, 0.5, 1] as const;
-export const GRAD_START = { x: 0, y: 0.5 };
-export const GRAD_END = { x: 1, y: 0.5 };
 
 type Props = {
   style?: ViewStyle | ViewStyle[] | any;
@@ -76,10 +67,10 @@ export default function GradientCardBorder({
         >
           <Defs>
             <SvgLinearGradient id="cardBorderGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={size.width} y2={size.height}>
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
             </SvgLinearGradient>
           </Defs>
           <Rect

@@ -480,7 +480,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + cardH + 42;
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
+    <View style={StyleSheet.absoluteFill}>
 
       {/* ── 스크롤 가능한 메인 콘텐츠 영역 ── */}
       <Animated.ScrollView
@@ -623,21 +623,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
       </Animated.ScrollView>
 
-      {/* ── 그라데이션 페이드 (탭바 위에 고정) ── */}
-      <Svg
-        width={windowW}
-        height={48}
-        style={{ position: 'absolute', bottom: tabH, left: 0 }}
-        pointerEvents="none"
-      >
-        <Defs>
-          <SvgLG id="gfade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor="#17171C" stopOpacity="0" />
-            <Stop offset="87.5%" stopColor="#17171C" stopOpacity="1" />
-          </SvgLG>
-        </Defs>
-        <Rect x={0} y={0} width={windowW} height={48} fill="url(#gfade)" />
-      </Svg>
 
       {/* ── 데브 버튼 (달린 날 테스트 데이터 토글) ── */}
       {__DEV__ && (
