@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   Animated,
   Pressable,
@@ -360,6 +361,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
 
       {/* BackButton — 다른 화면과 동일하게 절대위치, 마지막에 렌더해 최상단에 표시 */}
       <BackButton onPress={() => navigation.goBack()} />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
     </View>
   );
 }
@@ -372,7 +374,7 @@ const s = StyleSheet.create({
     backgroundColor: '#17171C',
   },
   scrollContent: {
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingBottom: 24,
     gap: 36,
   },
@@ -383,6 +385,7 @@ const s = StyleSheet.create({
     letterSpacing: 36 * 0.05,
     color: '#FFFFFF',
     includeFontPadding: false,
+    marginLeft: 4,
   },
   formWrap: {
     gap: 48,

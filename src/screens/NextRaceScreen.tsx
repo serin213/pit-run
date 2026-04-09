@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   ScrollView,
   StyleSheet,
@@ -12,22 +13,19 @@ import BackButton from '../components/BackButton';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
 import GradientCtaButton from '../components/GradientCtaButton';
+import { CARD_FILL } from '../components/GradientCardBorder';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
 import type { NextRaceScreenProps } from '../navigation/types';
-import GradientCardBorder from '../components/GradientCardBorder';
 
-const H_PAD = 28;
-const FIGMA_CARD_W = 346;
-const TIRE_ROW_TOP = 266;
-/** 타이어 설명 줄과 서킷 트랙 사이 */
-const GAP_TYRE_TO_TRACK = 52;
-/** 트랙과 카드 하단 */
-const TRACK_BOTTOM_INSET = 48;
+const H_PAD = 20;
 const CTA_AREA_H = 164;
 /** 스페이서로 safeTop 처리 후 — 퀄리파잉 인트로 타이틀과 동일하게 safeTop+63 */
 const TITLE_TOP_PADDING = 63;
+
+// 홈 서킷 카드와 동일한 내부 상수
+const CIRCUIT_TOP_IN_CARD = 315; // TireIcon bottom(246+41=287) + 28px gap
 
 const TIRE_COPY: Record<TireType, string> = {
   soft: 'Short run, Long rest',
@@ -39,6 +37,9 @@ const TIRE_COPY: Record<TireType, string> = {
 export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
+
+  const rawId = useId();
+  const gradId = rawId.replace(/[^a-zA-Z0-9]/g, '_');
 
   const selectedCircuitId = useAppStore((s) => s.selectedCircuitId);
   const selectedTire = useAppStore((s) => s.selectedTire);
@@ -65,16 +66,15 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
 
   const cardW = windowW - H_PAD * 2;
   const ctaRowW = cardW;
-  const scale = cardW / FIGMA_CARD_W;
-  const trackW = 253 * scale;
-  const trackH = 102.22 * scale;
+
+  // 홈과 동일한 서킷 SVG 크기 계산
+  const circuitSvgLeft = 45;
+  const circuitW = cardW - 90;
   const circuitVB = circuit.viewBox ?? { width: 286, height: 185 };
+  const circuitH = Math.round(circuitW * circuitVB.height / circuitVB.width);
+  const cardH = CIRCUIT_TOP_IN_CARD + circuitH + 24;
 
   const tireLine = TIRE_COPY[selectedTire] ?? TIRE_COPY.soft;
-
-  const [tireRowH, setTireRowH] = useState(41);
-  const trackTop = TIRE_ROW_TOP + tireRowH + GAP_TYRE_TO_TRACK;
-  const cardHeight = trackTop + trackH + TRACK_BOTTOM_INSET;
 
   return (
     <View style={styles.root}>
@@ -85,7 +85,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           styles.scrollContent,
           { paddingHorizontal: H_PAD, paddingTop: TITLE_TOP_PADDING, paddingBottom: CTA_AREA_H + 24 },
         ]}
-        showsVerticalScrollIndicator
+        showsVerticalScrollIndicator={false}
       >
         <Text style={styles.screenTitle} allowFontScaling={false}>
           Next race
@@ -94,51 +94,52 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           Picked for your qualifying pace.
         </Text>
 
-        <GradientCardBorder style={[styles.card, { width: cardW, height: cardHeight }]}>
-          <Text style={styles.circuitName} allowFontScaling={false}>
-            {circuit.displayName.toUpperCase()}
-          </Text>
+        {/* ── 서킷 카드 (홈과 동일 구조, 버튼 제외) ── */}
+        <View style={{ width: cardW, height: cardH, borderRadius: 16, marginTop: 36 }}>
+          <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
+                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              </SvgLinearGradient>
+            </Defs>
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
+          </Svg>
+          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
 
-          <Text style={[styles.statLabel, { top: 100 }]} allowFontScaling={false}>
-            DISTANCE
-          </Text>
-          <Text style={[styles.statValue, { top: 122 }]} allowFontScaling={false}>
-            {circuit.distanceKm.toFixed(1)}km
-          </Text>
-
-          <Text style={[styles.statLabel, { top: 170 }]} allowFontScaling={false}>
-            RACE TIME
-          </Text>
-          <Text style={[styles.statValue, { top: 192 }]} allowFontScaling={false}>
-            {raceTimeStr}
-          </Text>
-
-          <Text style={[styles.statLabel, { top: 240 }]} allowFontScaling={false}>
-            TYRE
-          </Text>
-
-          <View
-            style={styles.tireRow}
-            onLayout={(e) => {
-              const h = e.nativeEvent.layout.height;
-              if (Math.abs(h - tireRowH) > 0.5) setTireRowH(h);
-            }}
-          >
-            <TireIcon type={selectedTire} />
-            <Text style={styles.tireDesc} allowFontScaling={false}>
-              {tireLine}
+            <Text style={styles.circuitName} numberOfLines={1} allowFontScaling={false}>
+              {circuit.displayName.toUpperCase()}
             </Text>
-          </View>
 
-          <View style={[styles.trackBox, { left: 44, top: trackTop, width: trackW, height: trackH }]}>
-            <CircuitMini
-              trackPath={circuit.trackPath}
-              viewBox={circuitVB}
-              width={trackW}
-              height={trackH}
-            />
+            <Text style={[styles.statLabel, { top: 88 }]} allowFontScaling={false}>DISTANCE</Text>
+            <Text style={[styles.statValue, { top: 110 }]} allowFontScaling={false}>
+              {circuit.distanceKm.toFixed(1)}km
+            </Text>
+
+            <Text style={[styles.statLabel, { top: 154 }]} allowFontScaling={false}>RACE TIME</Text>
+            <Text style={[styles.statValue, { top: 176 }]} allowFontScaling={false}>
+              {raceTimeStr}
+            </Text>
+
+            <Text style={[styles.statLabel, { top: 220 }]} allowFontScaling={false}>TYRE</Text>
+
+            <View style={{ position: 'absolute', left: 26, top: 246 }}>
+              <TireIcon type={selectedTire} />
+            </View>
+
+            <View style={{ position: 'absolute', left: circuitSvgLeft, top: CIRCUIT_TOP_IN_CARD, width: circuitW, height: circuitH }}>
+              <CircuitMini
+                trackPath={circuit.trackPath}
+                viewBox={circuitVB}
+                width={circuitW}
+                height={circuitH}
+              />
+            </View>
+
           </View>
-        </GradientCardBorder>
+        </View>
       </ScrollView>
 
       <View style={[styles.ctaContainer, { height: CTA_AREA_H }]} pointerEvents="box-none">
@@ -157,7 +158,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           </Defs>
           <Rect x={0} y={0} width={windowW} height={CTA_AREA_H} fill="url(#nextRaceFade)" />
         </Svg>
-        <View style={[styles.ctaRowWrap, { left: H_PAD, right: H_PAD, bottom: 34 }]}>
+        <View style={[styles.ctaRowWrap, { left: H_PAD, right: H_PAD, bottom: 40 }]}>
           <GradientCtaButton
             variant="dual"
             width={ctaRowW}
@@ -168,18 +169,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
       </View>
 
       <BackButton onPress={() => navigation.navigate('Home')} />
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: safeTop + 63,
-          backgroundColor: '#17171C',
-          zIndex: 1000,
-        }}
-      />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
     </View>
   );
 }
@@ -202,9 +192,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 1.8,
     includeFontPadding: false,
+    marginLeft: 4,
   },
   screenSub: {
     marginTop: 12,
+    marginLeft: 4,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
@@ -213,14 +205,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     includeFontPadding: false,
   },
-  card: {
-    marginTop: 36,
-    borderRadius: 12,
-  },
   circuitName: {
     position: 'absolute',
-    left: 28,
-    top: 32,
+    left: 24,
+    top: 24,
     fontFamily: 'Formula1-Bold',
     fontSize: 30,
     lineHeight: 36,
@@ -230,7 +218,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     position: 'absolute',
-    left: 28,
+    left: 24,
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
@@ -241,35 +229,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     position: 'absolute',
-    left: 28,
+    left: 24,
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
     color: '#FFFFFF',
     includeFontPadding: false,
-  },
-  tireRow: {
-    position: 'absolute',
-    left: 32,
-    right: 28,
-    top: TIRE_ROW_TOP,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  tireDesc: {
-    flex: 1,
-    flexShrink: 1,
-    fontFamily: 'Formula1-Regular',
-    fontSize: 20,
-    lineHeight: 24,
-    letterSpacing: -0.4,
-    color: '#FFFFFF',
-    opacity: 0.45,
-    includeFontPadding: false,
-  },
-  trackBox: {
-    position: 'absolute',
   },
   ctaContainer: {
     position: 'absolute',

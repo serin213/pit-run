@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   Animated,
   Image,
@@ -518,18 +519,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       )}
 
       {/* Safe area blocker top */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: safeTop,
-          backgroundColor: '#17171C',
-          zIndex: 1000,
-        }}
-      />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 1000 }} pointerEvents="none" />
     </View>
   );
 }
@@ -551,7 +541,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingVertical: 14,
   },
   headerLeft: {
@@ -596,7 +586,7 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   hero: {
-    paddingLeft: 28,
+    paddingLeft: 20,
     paddingTop: 48,
     paddingBottom: 0,
     minHeight: 290,
@@ -687,7 +677,7 @@ const styles = StyleSheet.create({
 
   // ── Share ──
   shareBtn: {
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: 'flex-start',
   },
@@ -705,7 +695,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: CTA_H,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     justifyContent: 'flex-end',
   },
 
@@ -720,7 +710,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#202028',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingTop: 32,
   },
   sheetTitle: {

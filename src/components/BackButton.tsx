@@ -37,7 +37,7 @@ export default function BackButton({ onPress }: Props) {
 const styles = StyleSheet.create({
   btn: {
     position: 'absolute',
-    left: 28,
+    left: 20,
     zIndex: 1001,
     padding: 4,
   },

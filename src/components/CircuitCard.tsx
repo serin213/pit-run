@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CircuitDefinition } from '../config/circuits';
@@ -27,6 +27,7 @@ const GRID_FIGMA_W = 167;
 const FEATURED_FIGMA_W = 346;
 /** 세로는 디바이스와 무관하게 Figma와 동일 pt로 고정 */
 const CARD_FIXED_HEIGHT = 182;
+const CARD_RADIUS = 16;
 /** see all 그리드 카드: 트랙 우·하단 여백 (고정 pt, scale 없음) */
 const TRACK_EDGE_INSET_GRID = 18;
 /** Best Match 넓은 카드 */
@@ -57,10 +58,10 @@ const GRID_TEXT = {
 } as const;
 
 const FEATURED_TEXT = {
-  nameTop: 24,
+  nameTop: 20,
   nameLeft: 24,
   distTop: 57,
-  tagTop: 85,
+  tagTop: 89,
   fontName: 24,
   lineName: 29,
   fontDist: 17,
@@ -86,6 +87,9 @@ export default function CircuitCard({
   onPress,
   cardWidth,
 }: CircuitCardProps) {
+  const rawId = useId();
+  const gradId = `circuitBorderGrad${rawId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
   const isFeatured = layout === 'featured';
   const refW = isFeatured ? FEATURED_FIGMA_W : GRID_FIGMA_W;
   const scaleX = cardWidth / refW;
@@ -197,15 +201,33 @@ export default function CircuitCard({
     </>
   );
 
-  /* ── Selected: 빨간 테두리 유지 ── */
+  /* ── Selected: E03A3E 그라디언트 테두리 + 10% 배경 ── */
   if (isSelected) {
     return (
-      <View
-        style={{ width: cardWidth, height: cardHeight, borderRadius: 12, padding: 1.5, backgroundColor: '#E03A3E', opacity: outerOpacity }}
-      >
+      <View style={{ width: cardWidth, height: cardHeight, borderRadius: CARD_RADIUS, opacity: outerOpacity }}>
+        <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <SvgLinearGradient id={`${gradId}_sel`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardWidth} y2={cardHeight}>
+              <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
+              <Stop offset="50%" stopColor="#E03A3E" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#E03A3E" stopOpacity="1" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect
+            x={0.25}
+            y={0.25}
+            width={cardWidth - 0.5}
+            height={cardHeight - 0.5}
+            rx={CARD_RADIUS - 0.25}
+            ry={CARD_RADIUS - 0.25}
+            fill="none"
+            stroke={`url(#${gradId}_sel)`}
+            strokeWidth={0.5}
+          />
+        </Svg>
         <Pressable
           onPress={isDisabled ? undefined : onPress}
-          style={{ flex: 1, borderRadius: 10.5, backgroundColor: '#44252C', overflow: 'hidden' }}
+          style={{ flex: 1, margin: 0.5, borderRadius: CARD_RADIUS - 0.5, backgroundColor: 'rgba(224,58,62,0.1)', overflow: 'hidden' }}
         >
           {content}
         </Pressable>
@@ -215,13 +237,14 @@ export default function CircuitCard({
 
   /* ── Default: 그라디언트 테두리 (SVG stroke-only — fill에 영향 없음) ── */
   return (
-    <View style={{ width: cardWidth, height: cardHeight, borderRadius: 12, opacity: outerOpacity }}>
+    <View style={{ width: cardWidth, height: cardHeight, borderRadius: CARD_RADIUS, opacity: outerOpacity }}>
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
-          <SvgLinearGradient id="circuitBorderGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-            <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
+          <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardWidth} y2={cardHeight}>
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
+            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
           </SvgLinearGradient>
         </Defs>
         <Rect
@@ -229,16 +252,16 @@ export default function CircuitCard({
           y={0.25}
           width={cardWidth - 0.5}
           height={cardHeight - 0.5}
-          rx={11.75}
-          ry={11.75}
+          rx={CARD_RADIUS - 0.25}
+          ry={CARD_RADIUS - 0.25}
           fill="none"
-          stroke="url(#circuitBorderGrad)"
-          strokeWidth={1}
+          stroke={`url(#${gradId})`}
+          strokeWidth={0.5}
         />
       </Svg>
       <Pressable
         onPress={isDisabled ? undefined : onPress}
-        style={{ flex: 1, margin: 0.5, borderRadius: 11.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}
+        style={{ flex: 1, margin: 0.5, borderRadius: CARD_RADIUS - 0.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}
       >
         {content}
       </Pressable>

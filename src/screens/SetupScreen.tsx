@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
@@ -25,7 +26,7 @@ import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
 import type { SetupScreenProps } from '../navigation/types';
 
-const H_PAD = 28;
+const H_PAD = 20;
 const CARD_GAP = 12;
 
 // 4 tire rows, each 59pt tall. New icons are 44×41 — all rows use equal height.
@@ -34,9 +35,9 @@ const TIRE_EXPANDED_H = 4 * TIRE_ROW_H; // 236 — all 4 rows fully visible
 const TIRE_COLLAPSED_H = TIRE_ROW_H;    // 59 — full selected row visible
 
 // Gap between title bottom and tire section (from Figma: y:169 - (y:74 + h:43) = 52)
-const TITLE_TO_TIRE_GAP = 52;
+const TITLE_TO_TIRE_GAP = 32;
 // Gap between tire section and circuit section (from Figma: y:256 - y:204 = 52)
-const TIRE_TO_CIRCUIT_GAP = 52;
+const TIRE_TO_CIRCUIT_GAP = 24;
 
 const CTA_CONTAINER_H = 164; // fade + START (treadmill row spec’d out for v1)
 
@@ -179,18 +180,9 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
           circuitGridOpacity.setValue(1);
           (storeSetCircuit as (id: string | null) => void)(null);
         } else {
-          Animated.timing(circuitGridOpacity, {
-            toValue: 0,
-            duration: 80,
-            useNativeDriver: true,
-          }).start(({ finished }) => {
-            if (finished) {
-              setSelectedCircuitId(null);
-              setLastSeeAllCircuitId(null);
-              (storeSetCircuit as (id: string | null) => void)(null);
-              circuitGridOpacity.setValue(1);
-            }
-          });
+          setSelectedCircuitId(null);
+          setLastSeeAllCircuitId(null);
+          (storeSetCircuit as (id: string | null) => void)(null);
         }
       } else {
         // Local card tap (slots 1-3 or Best Match grid): clear see-all pin
@@ -411,7 +403,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
 
             {/* Best Match: two full-width cards; slot 0 may use cross-dissolve */}
             <View style={styles.bestMatchCardColumn}>
-              {displayedCircuits.map((circuit, index) => {
+              {displayedCircuits.map((circuit) => {
                 const cfg = CIRCUIT_CARD_CONFIG[circuit.id] ?? {
                   tag: 'Mixed' as CircuitTagType,
                   svgX: 65, svgY: 115, svgW: 80, svgH: 50,
@@ -420,48 +412,6 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                 const eta = estimatedMinutesForCircuit(circuit.distanceKm);
                 const isSelected = circuit.id === selectedCircuitId;
                 const isDimmed = selectedCircuitId !== null && !isSelected;
-
-                if (index === 0 && lastSeeAllCircuitId !== null && !isSeeAllInBase) {
-                  const bgCircuit = baseCircuits[0];
-                  const bgCfg = CIRCUIT_CARD_CONFIG[bgCircuit.id] ?? {
-                    tag: 'Mixed' as CircuitTagType,
-                    svgX: 65, svgY: 115, svgW: 80, svgH: 50,
-                  };
-                  const bgFeat = featuredTrackSize(bgCfg);
-                  const bgEta = estimatedMinutesForCircuit(bgCircuit.distanceKm);
-                  return (
-                    <View key={`slot0-${circuit.id}`} style={{ width: BEST_MATCH_CARD_W }}>
-                      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                        <CircuitCard
-                          layout="featured"
-                          circuit={bgCircuit}
-                          tag={bgCfg.tag}
-                          svgDisplayW={bgFeat.w}
-                          svgDisplayH={bgFeat.h}
-                          estimatedMinutes={bgEta}
-                          isSelected={false}
-                          isDimmed={false}
-                          onPress={() => {}}
-                          cardWidth={BEST_MATCH_CARD_W}
-                        />
-                      </View>
-                      <Animated.View style={{ opacity: circuitGridOpacity }} collapsable={false}>
-                        <CircuitCard
-                          layout="featured"
-                          circuit={circuit}
-                          tag={cfg.tag}
-                          svgDisplayW={feat.w}
-                          svgDisplayH={feat.h}
-                          estimatedMinutes={eta}
-                          isSelected={isSelected}
-                          isDimmed={isDimmed}
-                          onPress={() => handleCircuitPress(circuit.id)}
-                          cardWidth={BEST_MATCH_CARD_W}
-                        />
-                      </Animated.View>
-                    </View>
-                  );
-                }
 
                 return (
                   <CircuitCard
@@ -522,7 +472,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
       {/* BackButton rendered last so it appears above scroll content and CTA */}
       <BackButton onPress={() => navigation.goBack()} />
       {/* Safe-area blockers: inside the native screen view → reliably cover scroll content */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, backgroundColor: '#17171C', zIndex: 1000 }} />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
       <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: safeBottom, backgroundColor: '#17171C', zIndex: 1000 }} />
     </View>
   );
@@ -547,6 +497,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     includeFontPadding: false,
     marginBottom: TITLE_TO_TIRE_GAP,
+    marginLeft: 4,
   },
   tireSection: {
     overflow: 'hidden',
@@ -557,6 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginLeft: 2,
   },
   tireRowDimmed: {
     opacity: 0.35,
@@ -584,6 +536,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     marginLeft: 4,
+    marginRight: 4,
   },
   bestMatchLabel: {
     fontFamily: 'Formula1-Regular',

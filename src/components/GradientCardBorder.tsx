@@ -1,16 +1,20 @@
 /**
  * GradientCardBorder
- * 카드 박스 공통 래퍼 — fill: #202028 40%, stroke: 0.5px 좌→중→우 white 그라디언트
- * SVG stroke-only 방식: 그라데이션이 border 영역에만 그려져 fill에 영향 없음
+ * 카드 박스 공통 래퍼 — fill: #202028 40%, stroke: 1px 대각선(↖→↘) white 그라디언트
+ *
+ * 구조: 내부 fill View 먼저 → SVG stroke를 맨 위에 렌더링
+ *   - SVG가 나중에 오면 CSS stacking 상 항상 위에 그려짐 (z-index 없이도)
+ *   - fill에 그라데이션이 비치는 문제 없음 (fill:none stroke-only)
+ *   - 탭 전환 시 사라지는 문제 없음 (SVG가 항상 최상위)
  */
 import React, { useState } from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
-const BORDER_W = 1;
+const STROKE_W = 0.5;
 export const CARD_FILL = 'rgba(32, 32, 40, 0.4)';
 
-// expo-linear-gradient를 직접 사용하는 파일(CircuitCard, RaceScreen)용 상수
+// 다른 파일에서 직접 expo-linear-gradient 쓸 때 참조용 (레거시)
 export const GRAD_COLORS = [
   'rgba(255,255,255,0.15)',
   'rgba(255,255,255,0)',
@@ -21,9 +25,7 @@ export const GRAD_START = { x: 0, y: 0.5 };
 export const GRAD_END = { x: 1, y: 0.5 };
 
 type Props = {
-  /** 외부 레이아웃 스타일 (position, width, height, flex, margin …) */
   style?: ViewStyle | ViewStyle[] | any;
-  /** 내부 콘텐츠 스타일 (padding, flexDirection, gap …) */
   innerStyle?: ViewStyle | ViewStyle[] | any;
   borderRadius?: number;
   children: React.ReactNode;
@@ -49,42 +51,12 @@ export default function GradientCardBorder({
         );
       }}
     >
-      {/* SVG gradient border — stroke only, fill:none → fill 영역에 그라데이션 없음 */}
-      {size.width > 0 && (
-        <Svg
-          width={size.width}
-          height={size.height}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLinearGradient id="cardBorderGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-              <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.4" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect
-            x={BORDER_W / 2}
-            y={BORDER_W / 2}
-            width={size.width - BORDER_W}
-            height={size.height - BORDER_W}
-            rx={borderRadius - BORDER_W / 2}
-            ry={borderRadius - BORDER_W / 2}
-            fill="none"
-            stroke="url(#cardBorderGrad)"
-            strokeWidth={BORDER_W}
-          />
-        </Svg>
-      )}
-
-      {/* 내부 콘텐츠 — fill color, 그라데이션 영향 없음 */}
+      {/* 내부 fill — margin 없이 카드 전체를 채움 */}
       <View
         style={[
           {
             flex: 1,
-            margin: BORDER_W,
-            borderRadius: borderRadius - BORDER_W,
+            borderRadius,
             backgroundColor: CARD_FILL,
             overflow: 'hidden',
           },
@@ -93,6 +65,36 @@ export default function GradientCardBorder({
       >
         {children}
       </View>
+
+      {/* SVG stroke — 컨텐츠 다음에 렌더링 → CSS stacking 상 항상 최상위 */}
+      {size.width > 0 && (
+        <Svg
+          width={size.width}
+          height={size.height}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Defs>
+            <SvgLinearGradient id="cardBorderGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={size.width} y2={size.height}>
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
+              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect
+            x={STROKE_W / 2}
+            y={STROKE_W / 2}
+            width={size.width - STROKE_W}
+            height={size.height - STROKE_W}
+            rx={borderRadius - STROKE_W / 2}
+            ry={borderRadius - STROKE_W / 2}
+            fill="none"
+            stroke="url(#cardBorderGrad)"
+            strokeWidth={STROKE_W}
+          />
+        </Svg>
+      )}
     </View>
   );
 }

@@ -41,11 +41,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Home"
         component={HomeScreen}
-        options={{ gestureEnabled: false }}
+        options={{ gestureEnabled: false, animation: 'none' }}
       />
-      <Stack.Screen name="Race" component={RaceScreen} />
-      <Stack.Screen name="History" component={HistoryScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Race" component={RaceScreen} options={{ animation: 'none' }} />
+      <Stack.Screen name="History" component={HistoryScreen} options={{ animation: 'none' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
       <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="Qualifying" component={QualifyingScreen} />
       <Stack.Screen name="QualifyingPost" component={QualifyingPostScreen} />

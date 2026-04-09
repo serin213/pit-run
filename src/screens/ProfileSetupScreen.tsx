@@ -4,7 +4,6 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 
 import { getDriverCode } from '../utils/driverCode';
 import GradientCtaButton from '../components/GradientCtaButton';
-import GradientCardBorder from '../components/GradientCardBorder';
 import { useAppStore } from '../store/appStore';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 
@@ -12,6 +11,7 @@ const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04
 const NAME_MAX_LEN = 20;
 const RACER_NUMBER_MAX_LEN = 5;
 const PREVIEW_DEFAULT_COLOR = '#7C7C88';
+const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 
 function toDriverNameCase(value: string) {
   return value
@@ -27,7 +27,7 @@ function toDriverNameCase(value: string) {
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
   const { profile: initialProfile, setProfile } = useAppStore();
   const { width: windowW } = useWindowDimensions();
-  const contentWidth = Math.max(0, windowW - 56);
+  const contentWidth = Math.max(0, windowW - 40);
   const ctaContainerH = 164;
   const ctaHeight = 54;
   const nameRef = useRef<TextInput | null>(null);
@@ -272,13 +272,38 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
         <View style={styles.previewSection}>
           <Text style={styles.previewLabel}>Preview</Text>
-          <GradientCardBorder style={styles.previewBoxOuter} innerStyle={styles.previewBoxInner}>
-            <View style={styles.previewRow}>
-              <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
-              <Text style={styles.previewName}>{previewCode}</Text>
+          <View style={[styles.previewCard, { width: contentWidth }]}>
+            <Svg
+              width={contentWidth}
+              height={PREVIEW_CARD_H}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            >
+              <Defs>
+                <SvgLinearGradient id="previewCardBorder" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={contentWidth} y2={PREVIEW_CARD_H}>
+                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+                  <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
+                  <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
+                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                </SvgLinearGradient>
+              </Defs>
+              <Rect
+                x={0.5} y={0.5}
+                width={contentWidth - 1} height={PREVIEW_CARD_H - 1}
+                rx={11.5} ry={11.5}
+                fill="none"
+                stroke="url(#previewCardBorder)"
+                strokeWidth={0.5}
+              />
+            </Svg>
+            <View style={styles.previewCardInner}>
+              <View style={styles.previewRow}>
+                <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
+                <Text style={styles.previewName}>{previewCode}</Text>
+              </View>
+              <Text style={styles.previewNumber}>#{previewNumber}</Text>
             </View>
-            <Text style={styles.previewNumber}>#{previewNumber}</Text>
-          </GradientCardBorder>
+          </View>
         </View>
       </View>
 
@@ -325,7 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#17171C',
     paddingTop: 100,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     justifyContent: 'space-between',
   },
   ctaContainer: {
@@ -438,12 +463,19 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     includeFontPadding: false,
   },
-  previewBoxOuter: {
-    width: '100%',
-    borderRadius: 16,
+  previewCard: {
+    height: PREVIEW_CARD_H,
+    borderRadius: 12,
   },
-  previewBoxInner: {
-    padding: 20,
+  previewCardInner: {
+    position: 'absolute',
+    top: 1,
+    left: 1,
+    right: 1,
+    bottom: 1,
+    borderRadius: 11,
+    backgroundColor: 'rgba(32,32,40,0.4)',
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

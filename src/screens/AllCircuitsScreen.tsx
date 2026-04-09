@@ -1,4 +1,5 @@
 import React from 'react';
+import { BlurView } from 'expo-blur';
 import {
   ScrollView,
   StyleSheet,
@@ -72,7 +73,7 @@ export default function AllCircuitsScreen({ navigation, route }: AllCircuitsScre
       {/* BackButton rendered last so it appears above scroll content */}
       <BackButton />
       {/* Safe-area blockers: inside the native screen view → reliably cover scroll content */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, backgroundColor: '#17171C', zIndex: 1000 }} />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
       <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: safeBottom, backgroundColor: '#17171C', zIndex: 1000 }} />
     </View>
   );
@@ -100,6 +101,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     includeFontPadding: false,
     marginBottom: 24,
+    marginLeft: -4,
   },
   grid: {
     flexDirection: 'row',
