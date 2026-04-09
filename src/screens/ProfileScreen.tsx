@@ -20,7 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { useAppStore } from '../store/appStore';
-import TabBar, { useTabBarTotalHeight } from '../components/TabBar';
+import { useTabBarTotalHeight } from '../components/TabBar';
 import type { ProfileScreenProps } from '../navigation/types';
 
 // ─── Card SVG path generator ──────────────────────────────────────────────────
@@ -353,7 +353,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         ))}
       </Svg>
 
-      <TabBar activeTab={3} />
+
     </View>
   );
 }

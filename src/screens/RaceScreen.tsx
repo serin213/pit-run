@@ -24,7 +24,7 @@ import Svg, {
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { CARD_FILL } from '../components/GradientCardBorder';
-import TabBar, { useTabBarTotalHeight } from '../components/TabBar';
+import { useTabBarTotalHeight } from '../components/TabBar';
 import type { RaceScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -169,7 +169,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         ))}
       </Svg>
 
-      <TabBar activeTab={1} />
+
     </View>
   );
 }

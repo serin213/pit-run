@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/RootNavigator';
+import { navigationRef, syncTabFromRoute } from './src/navigation/navigationRef';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -24,7 +25,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#17171C" />
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => syncTabFromRoute(navigationRef.current?.getCurrentRoute()?.name ?? '')}
+        onStateChange={(state) => syncTabFromRoute(state?.routes[state.index]?.name ?? '')}
+      >
         <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>

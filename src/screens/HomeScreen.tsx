@@ -29,7 +29,7 @@ import { useAppStore } from '../store/appStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
-import TabBar, { useTabBarTotalHeight } from '../components/TabBar';
+import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -660,7 +660,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </Pressable>
       )}
 
-      <TabBar activeTab={0} />
+
       <View
         pointerEvents="none"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 1000 }}

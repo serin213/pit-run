@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
@@ -16,6 +16,8 @@ import AllCircuitsScreen from '../screens/AllCircuitsScreen';
 import CountdownScreen from '../screens/CountdownScreen';
 import RunningScreen from '../screens/RunningScreen';
 import ResultScreen from '../screens/ResultScreen';
+import TabBar from '../components/TabBar';
+import { useActiveTab } from './navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -28,45 +30,51 @@ function getInitialRouteName(): keyof RootStackParamList {
 }
 
 export default function RootNavigator() {
+  const activeTab = useActiveTab();
+  const showTabBar = activeTab !== undefined;
+
   return (
-    <Stack.Navigator
-      initialRouteName={getInitialRouteName()}
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: '#17171C' },
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ gestureEnabled: false, animation: 'none' }}
-      />
-      <Stack.Screen name="Race" component={RaceScreen} options={{ animation: 'none' }} />
-      <Stack.Screen name="History" component={HistoryScreen} options={{ animation: 'none' }} />
-      <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
-      <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
-      <Stack.Screen name="Qualifying" component={QualifyingScreen} />
-      <Stack.Screen name="QualifyingPost" component={QualifyingPostScreen} />
-      <Stack.Screen name="NextRace" component={NextRaceScreen} />
-      <Stack.Screen name="Setup" component={SetupScreen} />
-      <Stack.Screen name="AllCircuits" component={AllCircuitsScreen} />
-      <Stack.Screen
-        name="Countdown"
-        component={CountdownScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="Running"
-        component={RunningScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="Result"
-        component={ResultScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
-      />
-    </Stack.Navigator>
+    <View style={{ flex: 1 }}>
+      <Stack.Navigator
+        initialRouteName={getInitialRouteName()}
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#17171C' },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ gestureEnabled: false, animation: 'none' }}
+        />
+        <Stack.Screen name="Race" component={RaceScreen} options={{ animation: 'none' }} />
+        <Stack.Screen name="History" component={HistoryScreen} options={{ animation: 'none' }} />
+        <Stack.Screen name="Profile" component={ProfileScreen} options={{ animation: 'none' }} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+        <Stack.Screen name="Qualifying" component={QualifyingScreen} />
+        <Stack.Screen name="QualifyingPost" component={QualifyingPostScreen} />
+        <Stack.Screen name="NextRace" component={NextRaceScreen} />
+        <Stack.Screen name="Setup" component={SetupScreen} />
+        <Stack.Screen name="AllCircuits" component={AllCircuitsScreen} />
+        <Stack.Screen
+          name="Countdown"
+          component={CountdownScreen}
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Running"
+          component={RunningScreen}
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Result"
+          component={ResultScreen}
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
+      </Stack.Navigator>
+      {showTabBar && <TabBar activeTab={activeTab} />}
+    </View>
   );
 }

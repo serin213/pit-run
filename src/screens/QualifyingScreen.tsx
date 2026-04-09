@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import {
   Animated,
@@ -27,9 +27,6 @@ import { useAppStore } from '../store/appStore';
 import type { QualifyingResult } from '../store/appStore';
 import type { QualifyingScreenProps } from '../navigation/types';
 
-// Figma design reference size (horizontal only — vertical uses fixed values)
-const FW = 402;
-
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
 const LICENSE_TROPHY_ICON = require('../../assets/race-trophy.png');
@@ -45,7 +42,6 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const trialDistKm = 0;
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
-  const sx = windowW / FW; // used only for fill items (timerFontSize)
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [warmupLeftSec, setWarmupLeftSec] = useState(RECOMMENDED_WARMUP_MINUTES * 60);
@@ -143,15 +139,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
     setTrialElapsedMs(0);
   };
 
-  // Timer font size — measurement-based (same approach as RunningScreen distance)
-  const [warmupSampleW, setWarmupSampleW] = useState(0);
-  const [qualSampleW, setQualSampleW] = useState(0);
-  const availTimerW = windowW - 72; // 36pt margins each side
-  const timerFontSize = useMemo(() => {
-    const maxW = Math.max(warmupSampleW, qualSampleW);
-    if (maxW <= 0) return Math.round(sx * 115);
-    return Math.round(Math.min(1, availTimerW / maxW) * 115);
-  }, [warmupSampleW, qualSampleW, availTimerW, sx]);
+  const timerFontSize = 120;
 
   // --- INTRO ---
   if (phase === 'intro') {
@@ -186,43 +174,16 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const timerLineHeight = timerFontSize * 1.2;
   const timerGroupBottom = badgeGroupTop + badgeHeight + 8 + timerLineHeight;
 
-  // Progress bar — width matches actual rendered qualifying timer text width
+  // Progress bar — fixed 24pt margins from screen edges
   const barH = 12;
-  // qualSampleW is measured at fontSize 115; scale to current timerFontSize to get actual text width
-  const barTrackW = qualSampleW > 0
-    ? Math.round(qualSampleW * timerFontSize / 115)
-    : windowW - 72;
-  const barLeft = Math.round((windowW - barTrackW) / 2);
+  const barLeft = 24;
+  const barTrackW = windowW - 48;
   const barFillW = Math.round(barTrackW * Math.min(1, Math.max(0, effectiveDistKm)));
   const barTrackTop = Math.max(465, Math.round(timerGroupBottom + 64));
   const distLabelTop = barTrackTop + barH + 8;
 
   return (
     <View style={st.container}>
-      {/* Hidden sample texts — measure actual rendered width to size the timer font correctly */}
-      <Text
-        style={[st.timerMeasure, { fontSize: 115 }]}
-        allowFontScaling={false}
-        numberOfLines={1}
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w > 0 && Math.abs(w - warmupSampleW) > 0.5) setWarmupSampleW(w);
-        }}
-      >
-        5:00
-      </Text>
-      <Text
-        style={[st.timerMeasure, { fontSize: 115 }]}
-        allowFontScaling={false}
-        numberOfLines={1}
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w > 0 && Math.abs(w - qualSampleW) > 0.5) setQualSampleW(w);
-        }}
-      >
-        {`9'59"`}
-      </Text>
-
       {/* Badge + timer grouped — 8pt gap between them */}
       <View style={[st.timerGroup, { top: badgeGroupTop }]}>
         <View style={st.labelBadge}>
@@ -631,7 +592,7 @@ function fmtQualTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
-  return `${min}'${sec < 10 ? '0' : ''}${sec}"`;
+  return `${min}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
 // ─────────────────────────────────────────────
@@ -736,15 +697,7 @@ const st = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     letterSpacing: 5,
     includeFontPadding: false,
-  },
-  timerMeasure: {
-    position: 'absolute',
-    opacity: 0,
-    left: -9999,
-    top: -9999,
-    fontFamily: 'Formula1-Black',
-    letterSpacing: 5,
-    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
   },
   barTrack: {
     position: 'absolute',

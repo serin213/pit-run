@@ -129,6 +129,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const distFrameWidth = DIST_RIGHT - DIST_LEFT;
 
   const [distRenderWidth, setDistRenderWidth] = useState<number>(0);
+  const [distanceWidth, setDistanceWidth] = useState<number>(0);
   const {
     fontSize: distFontSize,
     lineHeight: distLineHeight,
@@ -147,10 +148,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const [paceMaxWidth, setPaceMaxWidth] = useState<number>(0);
   const [paceCurrentWidth, setPaceCurrentWidth] = useState<number>(0);
   const paceTextWidth = (paceMaxWidth > 0 ? paceMaxWidth : 84) + 2;
-  const paceCurrentStartOffset = paceCurrentWidth > 0 ? paceCurrentWidth : (paceMaxWidth > 0 ? paceMaxWidth : 84);
   const paceRight = distRenderWidth > 0 ? distEndX : DIST_RIGHT;
   const paceLeft = paceRight - paceTextWidth;
-  const paceLabelLeft = paceRight - paceCurrentStartOffset;
+
 
   const baseCircuitW = s(280.21);
   const baseCircuitH = t(180);
@@ -264,8 +264,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           onLayout={(e) => {
             const w = e.nativeEvent.layout.width;
             if (w > 0 && Math.abs(w - distRenderWidth) > 0.5) setDistRenderWidth(w);
+            if (w > 0 && Math.abs(w - distanceWidth) > 0.5) setDistanceWidth(w);
           }}
-          style={[st.dist, { color: displayTheme.start, fontSize: distFontSize, lineHeight: distLineHeight }]}
+          style={[st.dist, { color: displayTheme.start, fontSize: 120, lineHeight: distLineHeight, alignSelf: 'center' }]}
         >
           {fmtDist(distKm)}
         </Text>
@@ -288,28 +289,25 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         {distFitSample}
       </Text>
 
-      <Text style={[st.lbl, { left: distStartX, top: statsLabelTop, fontSize: 13, lineHeight: 13 }]}>TIME</Text>
-      <Text style={[st.val, { left: distStartX, top: statsValueTop, fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}>{fmtTime(elapsedMs)}</Text>
-
-      <Text style={[st.lbl, { left: paceLabelLeft, top: statsLabelTop, fontSize: 13, lineHeight: 13 }]}>PACE</Text>
-      <Text
-        numberOfLines={1}
-        ellipsizeMode="clip"
-        allowFontScaling={false}
-        style={[
-          st.val,
-          {
-            left: paceLeft,
-            top: statsValueTop,
-            width: paceTextWidth,
-            textAlign: 'right',
-            fontSize: 30,
-            lineHeight: STAT_VALUE_LINE_HEIGHT,
-          },
-        ]}
-      >
-        {paceValue}
-      </Text>
+      {distanceWidth > 0 && (
+        <View style={{ position: 'absolute', top: statsLabelTop, width: distanceWidth, alignSelf: 'center' }}>
+          <Text style={[st.lbl, { left: 0, top: 0, fontSize: 13, lineHeight: 13 }]}>TIME</Text>
+          <Text style={[st.val, { left: 0, top: statsValueTop - statsLabelTop, fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}>{fmtTime(elapsedMs)}</Text>
+          <View style={{ position: 'absolute', right: 0, top: 0, alignItems: 'flex-start' }}>
+            <Text style={[st.lbl, { position: 'relative', fontSize: 13, lineHeight: 13, marginLeft: 1 }]}>PACE</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: baseValueGap }}>
+              <Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
+                {paceValue.split("'")[0]}
+              </Text>
+              <View><Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{"'"}</Text></View>
+              <Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
+                {(paceValue.split("'")[1] ?? '').replace('"', '')}
+              </Text>
+              <View><Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{'"'}</Text></View>
+            </View>
+          </View>
+        </View>
+      )}
 
       <Text
         numberOfLines={1}
@@ -522,6 +520,7 @@ const st = StyleSheet.create({
     letterSpacing: 6.5,
     includeFontPadding: false,
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   lbl: {
     position: 'absolute',
@@ -535,6 +534,7 @@ const st = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     color: '#FFFFFF',
     includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
   },
   hiddenMeasure: {
     position: 'absolute',

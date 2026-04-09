@@ -29,7 +29,7 @@ import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import type { HistoryScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
-import TabBar, { useTabBarTotalHeight } from '../components/TabBar';
+import { useTabBarTotalHeight } from '../components/TabBar';
 
 
 /** 툴팁 우측 셰브론 — SVG, #FFFFFF 50% (PNG보다 정확한 알파) */
@@ -417,7 +417,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         ))}
       </Svg>
 
-      <TabBar activeTab={2} />
+
     </View>
   );
 }
