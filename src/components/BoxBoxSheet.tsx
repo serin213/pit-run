@@ -163,20 +163,13 @@ export default function BoxBoxSheet({
                 <Stop offset="0%" stopColor={waveEndColor} stopOpacity={0} />
                 <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
               </LinearGradient>
-              <LinearGradient id="waveLeftFade" x1="0" y1="0" x2={WAVE_SIDE_FADE_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
-                <Stop offset="0%" stopColor="#202028" stopOpacity="1" />
-                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
-              </LinearGradient>
-              <LinearGradient
-                id="waveRightFade"
-                x1={waveWidth - WAVE_SIDE_FADE_WIDTH}
-                y1="0"
-                x2={waveWidth}
-                y2="0"
-                gradientUnits="userSpaceOnUse"
-              >
+              <LinearGradient id="waveColLeft" x1="0" y1="1" x2="1" y2="0">
                 <Stop offset="0%" stopColor={waveEndColor} stopOpacity="0" />
-                <Stop offset="100%" stopColor="#202028" stopOpacity="1" />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="1" />
+              </LinearGradient>
+              <LinearGradient id="waveColRight" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
               </LinearGradient>
             </Defs>
 
@@ -187,7 +180,7 @@ export default function BoxBoxSheet({
                 y={col.y}
                 width={col.width + WAVE_COLUMN_OVERLAP}
                 height={col.animatedHeight}
-                fill="url(#waveColumn)"
+                fill={col.x < WAVE_SIDE_FADE_WIDTH ? "url(#waveColLeft)" : col.x >= waveWidth - WAVE_SIDE_FADE_WIDTH ? "url(#waveColRight)" : "url(#waveColumn)"}
               />
             ))}
             <Rect x={0} y={WAVE_BASE_Y_IN_GROUP} width={waveWidth} height={WAVE_BASE_HEIGHT} fill={teamColor} />
