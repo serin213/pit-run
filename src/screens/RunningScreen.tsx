@@ -482,8 +482,8 @@ const st = StyleSheet.create({
   },
   topInfoRow: {
     position: 'absolute',
-    left: 22,
-    right: 21,
+    left: 20,
+    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -491,7 +491,7 @@ const st = StyleSheet.create({
   topInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   flagWrap: {
     width: 22,
