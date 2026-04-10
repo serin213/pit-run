@@ -140,7 +140,7 @@ export default function BoxBoxSheet({
     <View style={s.root} pointerEvents="box-none">
       <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
       <BlurView intensity={30} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Text
           style={[
