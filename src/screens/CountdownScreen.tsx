@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Asset } from 'expo-asset';
-import { useDistanceDisplayFont } from '../hooks/useDistanceDisplayFont';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TextChevronButton from '../components/TextChevronButton';
 import type { CountdownScreenProps } from '../navigation/types';
@@ -69,7 +68,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dissolveOpacity = useRef(new Animated.Value(1)).current;
   const finishCalledRef = useRef(false);
-  const { lineHeight, sampleText, onSampleLayout } = useDistanceDisplayFont(screenWidth);
+  const lineHeight = 156;
 
   const finishCountdown = () => {
     if (finishCalledRef.current) return;
@@ -98,7 +97,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (!assetsReady || lineHeight <= 0) return;
+    if (!assetsReady) return;
 
     setCount(5);
     setPreviousCount(null);
@@ -135,7 +134,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
       }
       dissolveOpacity.stopAnimation();
     };
-  }, [assetsReady, lineHeight, dissolveOpacity, onFinish]);
+  }, [assetsReady, dissolveOpacity, onFinish]);
 
   const renderNumberLayer = useMemo(
     () => (value: CountdownValue, opacity: number | Animated.AnimatedInterpolation<number>) => {
@@ -165,7 +164,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
         </Animated.View>
       );
     },
-    [lineHeight, screenHeight, screenWidth]
+    [screenHeight, screenWidth]
   );
 
   const currentSignalLayer = useMemo(() => {
@@ -190,7 +189,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
         resizeMode="contain"
       />
     );
-  }, [count, lineHeight, screenHeight, screenWidth]);
+  }, [count, screenHeight, screenWidth]);
 
   const previousOpacity = dissolveOpacity.interpolate({
     inputRange: [0, 1],
@@ -199,14 +198,6 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
 
   return (
     <View style={styles.container}>
-      <Text
-        numberOfLines={1}
-        allowFontScaling={false}
-        onLayout={onSampleLayout}
-        style={styles.hiddenMeasure}
-      >
-        {sampleText}
-      </Text>
       {assetsReady && (
         <>
           {/* Pre-render all images off-screen to warm GPU texture cache before transitions */}
@@ -249,17 +240,6 @@ const styles = StyleSheet.create({
   signalImage: {
     position: 'absolute',
     left: 0,
-  },
-  hiddenMeasure: {
-    position: 'absolute',
-    opacity: 0,
-    left: -9999,
-    top: -9999,
-    includeFontPadding: false,
-    fontFamily: 'Formula1-Black',
-    fontSize: 130.2486572265625,
-    lineHeight: 156,
-    letterSpacing: 6.5,
   },
   skipButton: {
     position: 'absolute',
