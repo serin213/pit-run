@@ -157,7 +157,7 @@ export default function BoxBoxSheet({
         </Text>
 
         <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
-          <Svg width="100%" height="100%" viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
+          <Svg width={waveWidth} height={WAVE_GROUP_HEIGHT} viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
             <Defs>
               <LinearGradient id="waveColumn" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={WAVE_GROUP_HEIGHT}>
                 <Stop offset="0%" stopColor={waveStartColor} />
