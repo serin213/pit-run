@@ -167,28 +167,14 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
     [screenHeight, screenWidth]
   );
 
-  const currentSignalLayer = useMemo(() => {
+  const signalStyle = useMemo(() => {
     const targetDigitHeight = lineHeight * COUNTDOWN_NUMBER_HEIGHT_MULTIPLIER;
     const numberHeight = targetDigitHeight / DIGIT_OCCUPANCY_Y;
     const targetDigitTop = (screenHeight * RUNNING_DISTANCE_TOP) / DESIGN_SCREEN_HEIGHT;
     const numberTop = targetDigitTop - numberHeight * DIGIT_TOP_IN_PNG_RATIO;
     const signalWidth = screenWidth;
     const signalHeight = signalWidth / SIGNAL_ASPECT_RATIO;
-
-    return (
-      <Image
-        source={SIGNAL_SOURCE[count]}
-        style={[
-          styles.signalImage,
-          {
-            width: signalWidth,
-            height: signalHeight,
-            top: numberTop + numberHeight,
-          },
-        ]}
-        resizeMode="contain"
-      />
-    );
+    return { width: signalWidth, height: signalHeight, top: numberTop + numberHeight, left: 0, position: 'absolute' as const };
   }, [screenHeight, screenWidth]);
 
   const previousOpacity = dissolveOpacity.interpolate({
@@ -209,7 +195,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
               </React.Fragment>
             ))}
           </View>
-          {currentSignalLayer}
+          <Image source={SIGNAL_SOURCE[count]} style={signalStyle} resizeMode="contain" />
           {previousCount !== null && renderNumberLayer(previousCount, previousOpacity)}
           {renderNumberLayer(count, dissolveOpacity)}
         </>
