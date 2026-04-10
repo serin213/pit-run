@@ -116,7 +116,7 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.55)' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.2)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Text
           style={[
