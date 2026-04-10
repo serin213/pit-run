@@ -126,8 +126,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       ? { line: '#FFFFFF', text: '#FFFFFF' }
       : getCircuitTheme(circuitLabel);
   const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : 'RACING';
-  const topInfoTop = safeTop + 24;
-  const topLineTop = safeTop + 58;
+  const topInfoTop = safeTop + 14;
+  const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
   const boxBoxDriverName = getDriverDisplayName(profile?.displayName ?? '');
