@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
-import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import GradientCardBorder from './GradientCardBorder';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onVisibilityChange?: (visible: boolean) => void;
   driverName?: string;
   teamColor?: string;
   mode?: 'boxbox' | 'fullPush';
@@ -18,30 +16,24 @@ const SHEET_TOP_TO_DRIVER = 32;
 const DRIVER_LINE_HEIGHT = 43;
 const WAVE_GROUP_HEIGHT = 58;
 const WAVE_BASE_Y_IN_GROUP = 54;
-const WAVE_BASE_HEIGHT = 4;
 const WAVE_GROUP_TOP = 84;
 const WAVE_BASE_TOP = WAVE_GROUP_TOP + WAVE_BASE_Y_IN_GROUP;
 const WAVE_BASE_SIDE = 28;
 const WAVE_BASE_TO_TITLE_GAP = 16;
-const TITLE_TOP = WAVE_BASE_TOP + WAVE_BASE_HEIGHT + WAVE_BASE_TO_TITLE_GAP;
-const TITLE_LINE_HEIGHT = 36;
+const TITLE_TOP = WAVE_BASE_TOP + 4 + WAVE_BASE_TO_TITLE_GAP;
 const DETAIL_TOP = 250;
 const DETAIL_TEXT_TOP = 242;
-const DESC_LINE_HEIGHT = 24;
-const DESC_LINES = 2;
 const PROGRESS_TOP = 310;
 const LABEL_TOP = 328;
 const SHEET_BOTTOM_PADDING = 36;
 const BOXBOX_BASE_SHEET_HEIGHT = 380;
 const FULL_PUSH_BASE_SHEET_HEIGHT = 218;
-const WAVE_TARGET_COLUMN_WIDTH = 32;
-const WAVE_SIDE_FADE_WIDTH = 38;
+const WAVE_MIN_COLUMN_WIDTH = 32;
 const WAVE_COLUMN_OVERLAP = 0.2;
 
 export default function BoxBoxSheet({
   visible,
   onClose,
-  onVisibilityChange,
   driverName = 'LECLERC',
   teamColor = '#E03A3E',
   mode = 'boxbox',
@@ -50,10 +42,11 @@ export default function BoxBoxSheet({
   const [waveTime, setWaveTime] = useState(0);
   const rafRef = useRef<number | null>(null);
   const waveStartRef = useRef<number>(0);
-  const slideAnim = useRef(new Animated.Value(500)).current;
-  const [isMounted, setIsMounted] = useState(visible);
   const sheetWidth = windowW - 40;
   const waveWidth = Math.max(1, sheetWidth - WAVE_BASE_SIDE * 2);
+  const colCount = Math.max(1, Math.floor(waveWidth / WAVE_MIN_COLUMN_WIDTH));
+  const colWidth = waveWidth / colCount;
+  const fadeWidth = colWidth * 2;
   const isFullPush = mode === 'fullPush';
   const sheetHeight = isFullPush
     ? FULL_PUSH_BASE_SHEET_HEIGHT
@@ -68,9 +61,7 @@ export default function BoxBoxSheet({
   );
   const waveColumns = useMemo(
     () => {
-      const count = Math.max(1, Math.round(waveWidth / WAVE_TARGET_COLUMN_WIDTH));
-      const columnWidth = waveWidth / count;
-      return Array.from({ length: count }, (_, idx) => {
+      return Array.from({ length: colCount }, (_, idx) => {
         const baseHeight = BAR_HEIGHTS[idx % BAR_HEIGHTS.length];
         const seed = barSeeds[idx % barSeeds.length];
         const pace = 5.8 + seed * 2.1;
@@ -79,44 +70,16 @@ export default function BoxBoxSheet({
         const energy = 0.85 + 0.15 * Math.sin(waveTime * 1.2);
         const mod = (0.5 + localWave * 0.36 + harmonic * 0.14) * energy;
         const animatedHeight = Math.max(12, Math.min(WAVE_BASE_Y_IN_GROUP, baseHeight * mod));
-        const x = idx * columnWidth;
-        const fadeOpacity = x < WAVE_SIDE_FADE_WIDTH / 2 ? x / (WAVE_SIDE_FADE_WIDTH / 2) : x > waveWidth - WAVE_SIDE_FADE_WIDTH / 2 ? (waveWidth - x) / (WAVE_SIDE_FADE_WIDTH / 2) : 1;
         return {
-          x,
-          width: columnWidth,
+          x: idx * colWidth,
+          width: colWidth,
           animatedHeight,
           y: WAVE_BASE_Y_IN_GROUP - animatedHeight,
-          fadeOpacity,
         };
       });
     },
-    [barSeeds, waveTime, waveWidth],
+    [barSeeds, waveTime, colCount, colWidth],
   );
-
-  useEffect(() => {
-    onVisibilityChange?.(visible);
-  }, [visible, onVisibilityChange]);
-
-  useEffect(() => {
-    if (visible) {
-      setIsMounted(true);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        friction: 26,
-        tension: 300,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: 500,
-        duration: 250,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setIsMounted(false);
-      });
-    }
-  }, [visible, slideAnim]);
 
   useEffect(() => {
     if (!visible) return;
@@ -135,108 +98,101 @@ export default function BoxBoxSheet({
     };
   }, [visible]);
 
-  const waveStartColor = `rgba(${Number.parseInt(teamColor.slice(1, 3), 16)},${Number.parseInt(teamColor.slice(3, 5), 16)},${Number.parseInt(teamColor.slice(5, 7), 16)},0)`;
-  const waveEndColor = `rgba(${Number.parseInt(teamColor.slice(1, 3), 16)},${Number.parseInt(teamColor.slice(3, 5), 16)},${Number.parseInt(teamColor.slice(5, 7), 16)},1)`;
+  const r = Number.parseInt(teamColor.slice(1, 3), 16);
+  const g = Number.parseInt(teamColor.slice(3, 5), 16);
+  const b = Number.parseInt(teamColor.slice(5, 7), 16);
+  const waveEndColor = `rgba(${r},${g},${b},1)`;
 
-  if (!isMounted) return null;
+  if (!visible) return null;
 
   return (
     <View style={s.root} pointerEvents="box-none">
-      <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
-      <GradientCardBorder style={[s.sheet, { height: sheetHeight }]} borderRadius={36} innerStyle={{ backgroundColor: 'transparent', overflow: 'visible' }}>
-        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)' }}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <Text
-          style={[
-            s.driver,
-            {
-              color: teamColor,
-              top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER,
-            },
-          ]}
-        >
-          {driverName}
-        </Text>
+      <Pressable style={s.overlay} onPress={onClose} />
+      <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.55)' }}>
+          <Text style={[s.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
+            {driverName}
+          </Text>
 
-        <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
-          <Svg width={waveWidth} height={WAVE_GROUP_HEIGHT} viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
-            <Defs>
-              <LinearGradient id="waveColumn" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor={waveEndColor} stopOpacity={0} />
-                <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
-              </LinearGradient>
-              <LinearGradient id="waveBase" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="0" />
-                <Stop offset="10%" stopColor={waveEndColor} stopOpacity="1" />
-                <Stop offset="90%" stopColor={waveEndColor} stopOpacity="1" />
-                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
-              </LinearGradient>
-            </Defs>
-
-            {waveColumns.map((col, idx) => (
-              <Rect
-                key={`wave-col-${idx}`}
-                x={Math.max(0, col.x - WAVE_COLUMN_OVERLAP / 2)}
-                y={col.y}
-                width={col.width + WAVE_COLUMN_OVERLAP}
-                height={col.animatedHeight}
-                fill="url(#waveColumn)"
-                opacity={col.fadeOpacity}
-              />
-            ))}
-            <Rect x={0} y={WAVE_BASE_Y_IN_GROUP} width={waveWidth} height={WAVE_BASE_HEIGHT} fill="url(#waveBase)" />
-          </Svg>
-        </View>
-
-        <Text style={[s.title, { top: isFullPush ? 150 : TITLE_TOP }]}>
-          {isFullPush ? '“FULL PUSH”' : '“BOX BOX”'}
-        </Text>
-
-        {!isFullPush && (
-          <>
-            <View style={s.warningWrap}>
-              <Svg width={44} height={41} viewBox="0 0 44 42" fill="none">
-                <Path
-                  d="M15.0204 3.00073C7.98038 5.75483 3 12.552 3 20.5007C3 28.4495 7.98038 35.2466 15.0204 38.0007M28.9796 38.0007C36.0196 35.2466 41 28.4495 41 20.5007C41 12.552 36.0196 5.75483 28.9796 3.00073"
-                  stroke="#FCB827"
-                  strokeWidth={6}
-                  strokeLinecap="round"
+          <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
+            <Svg width="100%" height="100%" viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
+              <Defs>
+                <LinearGradient id="waveColumn" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor={waveEndColor} stopOpacity={0} />
+                  <Stop offset="5%" stopColor={waveEndColor} stopOpacity={0} />
+                  <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
+                </LinearGradient>
+                <LinearGradient id="fadeLeft" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={fadeWidth} y2="0">
+                  <Stop offset="0%" stopColor="#18181d" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#18181d" stopOpacity={0} />
+                </LinearGradient>
+                <LinearGradient id="fadeRight" gradientUnits="userSpaceOnUse" x1={waveWidth} y1="0" x2={waveWidth - fadeWidth} y2="0">
+                  <Stop offset="0%" stopColor="#18181d" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#18181d" stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              {waveColumns.map((col, idx) => (
+                <Rect
+                  key={`wave-col-${idx}`}
+                  x={Math.max(0, col.x - WAVE_COLUMN_OVERLAP / 2)}
+                  y={col.y}
+                  width={col.width + WAVE_COLUMN_OVERLAP}
+                  height={col.animatedHeight}
+                  fill="url(#waveColumn)"
                 />
-              </Svg>
-              <Text style={s.warningMark}>M</Text>
-            </View>
-            <Text style={s.desc}>Pace got slower{'\n'}Need Recovery</Text>
+              ))}
+              <Rect x={0} y={0} width={fadeWidth} height={WAVE_GROUP_HEIGHT} fill="url(#fadeLeft)" />
+              <Rect x={waveWidth - fadeWidth} y={0} width={fadeWidth} height={WAVE_GROUP_HEIGHT} fill="url(#fadeRight)" />
+            </Svg>
+          </View>
 
-            <View style={s.progressTrack}>
-              <Svg width="100%" height="100%" viewBox="0 0 306 12" preserveAspectRatio="none" fill="none">
-                <Rect x="0" y="0" width="306" height="12" rx="6" fill="rgba(255,255,255,0.1)" />
-                <Defs>
-                  <LinearGradient id="boxboxProgress" x1="0" y1="6" x2="62" y2="6" gradientUnits="userSpaceOnUse">
-                    <Stop offset="0%" stopColor="#E03A3E" />
-                    <Stop offset="100%" stopColor="#FCB827" />
-                  </LinearGradient>
-                </Defs>
-                <Rect x="0" y="0" width="62" height="12" rx="6" fill="url(#boxboxProgress)" />
-              </Svg>
-            </View>
-            <Text style={s.critical}>Critical</Text>
-            <Text style={s.good}>Good</Text>
-          </>
-        )}
+          <Text style={[s.title, { top: isFullPush ? 150 : TITLE_TOP }]}>
+            {isFullPush ? '"FULL PUSH"' : '"BOX BOX"'}
+          </Text>
+
+          {!isFullPush && (
+            <>
+              <View style={s.warningWrap}>
+                <Svg width={44} height={41} viewBox="0 0 44 42" fill="none">
+                  <Path
+                    d="M15.0204 3.00073C7.98038 5.75483 3 12.552 3 20.5007C3 28.4495 7.98038 35.2466 15.0204 38.0007M28.9796 38.0007C36.0196 35.2466 41 28.4495 41 20.5007C41 12.552 36.0196 5.75483 28.9796 3.00073"
+                    stroke="#FCB827"
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+                <Text style={s.warningMark}>M</Text>
+              </View>
+              <Text style={s.desc}>Pace got slower{'\n'}Need Recovery</Text>
+              <View style={s.progressTrack}>
+                <Svg width="100%" height="100%" viewBox="0 0 306 12" preserveAspectRatio="none" fill="none">
+                  <Rect x="0" y="0" width="306" height="12" rx="6" fill="rgba(255,255,255,0.1)" />
+                  <Defs>
+                    <LinearGradient id="boxboxProgress" x1="0" y1="6" x2="62" y2="6" gradientUnits="userSpaceOnUse">
+                      <Stop offset="0%" stopColor="#E03A3E" />
+                      <Stop offset="100%" stopColor="#FCB827" />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect x="0" y="0" width="62" height="12" rx="6" fill="url(#boxboxProgress)" />
+                </Svg>
+              </View>
+              <Text style={s.critical}>Critical</Text>
+              <Text style={s.good}>Good</Text>
+            </>
+          )}
         </View>
-      </GradientCardBorder>
-      </Animated.View>
+      </BlurView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)' },
   sheet: {
     marginHorizontal: 20,
     marginBottom: 26,
-    borderRadius: 36,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   driver: {
@@ -270,7 +226,7 @@ const s = StyleSheet.create({
   },
   warningWrap: {
     position: 'absolute',
-    left: 28,
+    left: 31,
     top: DETAIL_TOP,
     width: 44,
     height: 41,
@@ -288,7 +244,7 @@ const s = StyleSheet.create({
   },
   desc: {
     position: 'absolute',
-    left: 80,
+    left: 89,
     top: DETAIL_TEXT_TOP,
     color: 'rgba(255,255,255,0.5)',
     fontFamily: 'Formula1-Italic',
@@ -299,14 +255,14 @@ const s = StyleSheet.create({
   },
   progressTrack: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 31,
+    right: 31,
     top: PROGRESS_TOP,
     height: 12,
   },
   critical: {
     position: 'absolute',
-    left: 28,
+    left: 30,
     top: LABEL_TOP,
     color: 'rgba(255,255,255,0.3)',
     fontFamily: 'Formula1-Regular',
@@ -317,7 +273,7 @@ const s = StyleSheet.create({
   },
   good: {
     position: 'absolute',
-    right: 28,
+    right: 30,
     top: LABEL_TOP,
     color: 'rgba(255,255,255,0.3)',
     fontFamily: 'Formula1-Regular',
