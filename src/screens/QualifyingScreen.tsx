@@ -414,10 +414,10 @@ function StepCard({
       <Svg width={width} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={width} y2={cardH}>
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
           </SvgLinearGradient>
         </Defs>
         <Rect x={0.25} y={0.25} width={width - 0.5} height={cardH - 0.5} rx={borderRadius - 0.25} ry={borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />

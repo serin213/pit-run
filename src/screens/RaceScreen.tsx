@@ -76,10 +76,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg key={svgKey} width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id={`rbg1_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={138}>
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg1_${idBase}_${svgKey})`} strokeWidth={0.5} />
@@ -103,10 +103,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg key={svgKey} width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id={`rbg2_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={137}>
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg2_${idBase}_${svgKey})`} strokeWidth={0.5} />
@@ -130,10 +130,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         <Svg key={svgKey} width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id={`rbg3_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={141}>
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
             </SvgLinearGradient>
           </Defs>
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg3_${idBase}_${svgKey})`} strokeWidth={0.5} />

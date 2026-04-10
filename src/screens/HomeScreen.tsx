@@ -477,14 +477,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const startBtnW = cardW - 40;
 
   // 스크롤 콘텐츠 높이: 달력 접힘/펼침 상태에 따라 동적으로 계산, 카드 바깥 하단 여백 42px
-  const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + cardH + 42;
+  const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + cardH + tabH + 24;
 
   return (
     <View style={StyleSheet.absoluteFill}>
 
       {/* ── 스크롤 가능한 메인 콘텐츠 영역 ── */}
       <Animated.ScrollView
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: tabH }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         contentContainerStyle={{ height: scrollContentH }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
@@ -572,10 +572,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Svg key={svgKey} width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLG id={`hcbg_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
               </SvgLG>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />

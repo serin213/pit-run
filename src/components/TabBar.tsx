@@ -1,7 +1,7 @@
-import React, { useCallback, useId, useMemo, useRef } from 'react';
+import React, { useCallback, useId, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient as SvgLG, Path, Rect, Stop } from 'react-native-svg';
 import { useSafeBottom } from '../hooks/useSafeBottom';
@@ -11,7 +11,6 @@ import type { RootStackParamList } from '../navigation/types';
 
 export const TAB_BAR_H = 78;
 export const TAB_BAR_SIDE = 20;
-const TAB_ICON_PADDING = 36;
 const TAB_BAR_BOTTOM_GAP = 8;
 
 export function useTabBarTotalHeight(): number {
@@ -37,6 +36,10 @@ const USER_P1 =
 const USER_P2 =
   'M16.2337 15.9277C20.8402 15.9277 24.7494 19.0025 26.1316 23.2679C26.7914 25.3041 25.5482 27.4024 23.5367 28.1342C18.0726 30.122 12.643 29.33 8.95714 28.0687C6.93196 27.3756 5.67601 25.3041 6.33586 23.2679C7.71806 19.0025 11.6272 15.9277 16.2337 15.9277Z';
 
+// ─── Animated SVG Path ────────────────────────────────────────────────────────
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type Props = { activeTab: 0 | 1 | 2 | 3 };
@@ -49,55 +52,59 @@ export default function TabBar({ activeTab }: Props) {
 
   const tabBarW = windowW - TAB_BAR_SIDE * 2;
   const tabBarBottom = safeBottom + TAB_BAR_BOTTOM_GAP;
-  const iconSpacing = (tabBarW - TAB_ICON_PADDING * 2) / 3;
   const iconTop = Math.round((TAB_BAR_H - 32) / 2);
-  const iconLefts = [0, 1, 2, 3].map(i => Math.round(TAB_ICON_PADDING - 16 + iconSpacing * i));
+  const iconLefts = [0, 1, 2, 3].map(i => Math.round(16 + (tabBarW - 32) / 4 * i + (tabBarW - 32) / 8 - 16));
+  const iconCenters = iconLefts.map(x => x + 16);
 
-  const glowW = Math.round(tabBarW / 4);
-  const glowHalf = Math.max(0, (glowW - 64) / 2);
-  const glowPositions = useMemo(
-    () => [0, 1, 2, 3].map(i => {
-      const center = TAB_ICON_PADDING + Math.round(i * iconSpacing);
-      return center - glowW / 2;
-    }),
-    [iconSpacing, glowW],
-  );
-
-  const glowSlices = useMemo(() => Array.from({ length: 8 }, (_, i) => {
-    const xl1 = glowHalf * (8 - i) / 8;
-    const xr1 = glowW - xl1;
-    const xl2 = glowHalf * (7 - i) / 8;
-    const xr2 = glowW - xl2;
-    const y1 = i * TAB_BAR_H / 8;
-    const y2 = (i + 1) * TAB_BAR_H / 8;
-    const op = ((7 - i) / 7 * 0.2).toFixed(3);
-    return <Path key={i} d={`M${xl1} ${y1}H${xr1}L${xr2} ${y2}H${xl2}Z`} fill={`rgba(224,58,62,${op})`} />;
-  }), [glowW, glowHalf]);
-
-  const barAnim = useRef(new Animated.Value(0)).current;
-  const glowX = useRef(new Animated.Value(glowPositions[activeTab])).current;
-
-  useFocusEffect(useCallback(() => {
-    barAnim.setValue(0);
-    glowX.setValue(glowPositions[activeTab]);
-    Animated.spring(barAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 }).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barAnim, glowX, activeTab]));
+  const pillX = useRef(new Animated.Value(iconCenters[activeTab])).current;
+  const scaleXAnim = useRef(new Animated.Value(1)).current;
+  const scaleYAnim = useRef(new Animated.Value(1)).current;
+  const iconColorAnims = useRef([0, 1, 2, 3].map(i => new Animated.Value(i === activeTab ? 1 : 0))).current;
 
   const navigateTo = useCallback((tab: number) => {
-    Animated.spring(glowX, {
-      toValue: glowPositions[tab],
+    // 출발: stretch → 바로 복귀 (pillX 이동과 독립)
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(scaleXAnim, { toValue: 1.3, duration: 80, useNativeDriver: true }),
+        Animated.timing(scaleYAnim, { toValue: 0.8, duration: 80, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(scaleXAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+        Animated.timing(scaleYAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+      ]),
+    ]).start();
+
+    // 색상 전환: pill 도착과 동시
+    Animated.timing(iconColorAnims[activeTab], { toValue: 0, duration: 150, delay: 200, useNativeDriver: false }).start();
+    Animated.timing(iconColorAnims[tab], { toValue: 1, duration: 150, delay: 200, useNativeDriver: false }).start();
+
+    // 이동
+    Animated.timing(pillX, {
+      toValue: iconCenters[tab],
+      duration: 250,
       useNativeDriver: true,
-      friction: 8,
-      tension: 80,
-    }).start();
+    }).start(() => {
+      // 도착: squash → spring 복귀
+      Animated.parallel([
+        Animated.timing(scaleXAnim, { toValue: 0.85, duration: 80, useNativeDriver: true }),
+        Animated.timing(scaleYAnim, { toValue: 1.2, duration: 80, useNativeDriver: true }),
+      ]).start(() => {
+        Animated.parallel([
+          Animated.spring(scaleXAnim, { toValue: 1, useNativeDriver: true, friction: 5, tension: 180 }),
+          Animated.spring(scaleYAnim, { toValue: 1, useNativeDriver: true, friction: 5, tension: 180 }),
+        ]).start();
+      });
+    });
+
     if (tab === 0) navigation.navigate('Home');
     else if (tab === 1) navigation.navigate('Race');
     else if (tab === 2) navigation.navigate('History');
     else navigation.navigate('Profile');
-  }, [glowX, glowPositions, navigation]);
+  }, [scaleXAnim, scaleYAnim, pillX, iconCenters, iconColorAnims, activeTab, navigation]);
 
-  const c = (tab: number) => activeTab === tab ? '#E03A3E' : '#FFFFFF';
+  const strokeColors = iconColorAnims.map(anim =>
+    anim.interpolate({ inputRange: [0, 1], outputRange: ['#FFFFFF', '#E03A3E'] }),
+  );
   const [hL, pL, tL, uL] = iconLefts;
 
   return (
@@ -108,16 +115,17 @@ export default function TabBar({ activeTab }: Props) {
         left: TAB_BAR_SIDE,
         width: tabBarW,
         height: TAB_BAR_H,
-        borderRadius: 50,
+        borderRadius: TAB_BAR_H / 2,
+        overflow: 'hidden',
       }}
     >
       {/* 글래스: 블러 + rgba 오버레이 */}
       <BlurView
         intensity={50}
         tint="dark"
-        style={[StyleSheet.absoluteFillObject, { borderRadius: 50, overflow: 'hidden' }]}
+        style={[StyleSheet.absoluteFillObject, { borderRadius: TAB_BAR_H / 2, overflow: 'hidden' }]}
       >
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.30)' }]} />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.55)' }]} />
       </BlurView>
 
       {/* 글래스 테두리 */}
@@ -125,58 +133,57 @@ export default function TabBar({ activeTab }: Props) {
         <Defs>
           <SvgLG id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={tabBarW} y2={TAB_BAR_H}>
             <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
+            <Stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.03" />
+            <Stop offset="70%" stopColor="#FFFFFF" stopOpacity="0.03" />
             <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
           </SvgLG>
         </Defs>
-        <Rect x={0.5} y={0.5} width={tabBarW - 1} height={TAB_BAR_H - 1} rx={49.5} ry={49.5} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
+        <Rect x={0.5} y={0.5} width={tabBarW - 1} height={TAB_BAR_H - 1} rx={TAB_BAR_H / 2 - 0.5} ry={TAB_BAR_H / 2 - 0.5} fill="none" stroke={`url(#${gradId})`} strokeWidth={1} />
       </Svg>
 
-      {/* 사다리꼴 글로우 */}
+      {/* pill */}
       <Animated.View
-        style={{
-          position: 'absolute', top: 0,
-          width: glowW, height: TAB_BAR_H,
-          transform: [{ translateX: glowX }],
-          opacity: barAnim,
-        }}
         pointerEvents="none"
-      >
-        <Svg width={glowW} height={TAB_BAR_H} viewBox={`0 0 ${glowW} ${TAB_BAR_H}`}>
-          {glowSlices}
-        </Svg>
-      </Animated.View>
+        style={{
+          position: 'absolute',
+          top: (TAB_BAR_H - 58) / 2,
+          width: 76,
+          height: 58,
+          borderRadius: 29,
+          backgroundColor: 'rgba(224,58,62,0.15)',
+          transform: [{ translateX: Animated.subtract(pillX, 38) }, { scaleX: scaleXAnim }, { scaleY: scaleYAnim }],
+        }}
+      />
 
       {/* home */}
       <Pressable style={{ position: 'absolute', left: hL, top: iconTop }} onPress={() => navigateTo(0)}>
         <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-          <Path d={HOME_P1} stroke={c(0)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={HOME_P2} stroke={c(0)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={HOME_P1} stroke={strokeColors[0]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={HOME_P2} stroke={strokeColors[0]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Pressable>
 
       {/* play */}
       <Pressable style={{ position: 'absolute', left: pL, top: iconTop }} onPress={() => navigateTo(1)}>
         <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-          <Path d={PLAY_P} stroke={c(1)} strokeWidth={2.25} strokeLinejoin="round" />
+          <AnimatedPath d={PLAY_P} stroke={strokeColors[1]} strokeWidth={2.25} strokeLinejoin="round" />
         </Svg>
       </Pressable>
 
       {/* task */}
       <Pressable style={{ position: 'absolute', left: tL, top: iconTop }} onPress={() => navigateTo(2)}>
         <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-          <Path d={TASK_P1} stroke={c(2)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={TASK_P2} stroke={c(2)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={TASK_P3} stroke={c(2)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={TASK_P1} stroke={strokeColors[2]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={TASK_P2} stroke={strokeColors[2]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={TASK_P3} stroke={strokeColors[2]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Pressable>
 
       {/* user */}
       <Pressable style={{ position: 'absolute', left: uL, top: iconTop }} onPress={() => navigateTo(3)}>
         <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
-          <Path d={USER_P1} stroke={c(3)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={USER_P2} stroke={c(3)} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={USER_P1} stroke={strokeColors[3]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+          <AnimatedPath d={USER_P2} stroke={strokeColors[3]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Pressable>
     </View>

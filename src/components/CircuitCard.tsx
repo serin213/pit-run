@@ -241,10 +241,10 @@ export default function CircuitCard({
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardWidth} y2={cardHeight}>
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
           </SvgLinearGradient>
         </Defs>
         <Rect

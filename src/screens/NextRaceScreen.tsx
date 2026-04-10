@@ -99,10 +99,10 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
               </SvgLinearGradient>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />

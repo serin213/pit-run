@@ -281,10 +281,10 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             >
               <Defs>
                 <SvgLinearGradient id="previewCardBorder" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={contentWidth} y2={PREVIEW_CARD_H}>
-                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-                  <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                  <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.03" />
-                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+                  <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                  <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
                 </SvgLinearGradient>
               </Defs>
               <Rect
