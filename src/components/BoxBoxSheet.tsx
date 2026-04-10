@@ -160,8 +160,8 @@ export default function BoxBoxSheet({
           <Svg width={waveWidth} height={WAVE_GROUP_HEIGHT} viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
             <Defs>
               <LinearGradient id="waveColumn" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor={waveStartColor} />
-                <Stop offset="100%" stopColor={waveEndColor} />
+                <Stop offset="0%" stopColor={waveEndColor} stopOpacity={0} />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
               </LinearGradient>
               <LinearGradient id="waveLeftFade" x1="0" y1="0" x2={WAVE_SIDE_FADE_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
                 <Stop offset="0%" stopColor={waveEndColor} stopOpacity="1" />
