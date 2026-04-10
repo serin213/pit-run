@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
@@ -109,7 +110,8 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <Pressable style={s.overlay} onPress={onClose} />
-      <View style={[s.sheet, { height: sheetHeight }]}>
+      <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.55)' }}>
         <Text
           style={[
             s.driver,
@@ -197,7 +199,8 @@ export default function BoxBoxSheet({
             <Text style={s.good}>Good</Text>
           </>
         )}
-      </View>
+        </View>
+      </BlurView>
     </View>
   );
 }
@@ -209,7 +212,6 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 26,
     borderRadius: 24,
-    backgroundColor: '#202028',
     overflow: 'hidden',
   },
   driver: {
