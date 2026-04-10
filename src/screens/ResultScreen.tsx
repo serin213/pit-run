@@ -476,9 +476,11 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           <Animated.View
             style={[
               styles.sheet,
-              { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16 },
+              { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16, backgroundColor: 'transparent', overflow: 'hidden' },
             ]}
           >
+            <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.55)' }]} />
             <Text style={styles.sheetTitle}>How was it?</Text>
 
             {/* Emoji scale */}
@@ -702,7 +704,7 @@ const styles = StyleSheet.create({
   // ── Sheet ──
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-end',
     zIndex: 500,
   },
