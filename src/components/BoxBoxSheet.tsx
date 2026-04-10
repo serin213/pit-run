@@ -140,7 +140,7 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
-      <GradientCardBorder style={[s.sheet, { height: sheetHeight }]} borderRadius={36} innerStyle={{ backgroundColor: 'transparent' }}>
+      <GradientCardBorder style={[s.sheet, { height: sheetHeight }]} borderRadius={36} innerStyle={{ backgroundColor: 'transparent', overflow: 'visible' }}>
         <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
