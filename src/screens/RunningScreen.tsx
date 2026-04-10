@@ -492,12 +492,15 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    marginRight: 12,
   },
   flagWrap: {
     width: 22,
     height: 14,
     borderRadius: 2,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   flagImage: {
     width: '100%',
@@ -506,16 +509,13 @@ const st = StyleSheet.create({
   topTrackText: {
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    lineHeight: 20,
     letterSpacing: -0.34,
-    includeFontPadding: false,
+    flex: 1,
   },
   topStatusText: {
     fontFamily: 'Formula1-Bold',
     fontSize: 17,
-    lineHeight: 20,
     letterSpacing: -0.34,
-    includeFontPadding: false,
   },
   topDivider: {
     position: 'absolute',

@@ -268,7 +268,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Image source={circuit.flagAsset} style={styles.flagImage} resizeMode="cover" />
               </View>
             ) : null}
-            <Text style={styles.circuitName} numberOfLines={1}>
+            <Text style={[styles.circuitName, { color: topTheme.text }]} numberOfLines={1}>
               {circuit.displayName.toUpperCase()} ({circuit.distanceKm.toFixed(2)}km)
             </Text>
           </View>
@@ -567,7 +567,6 @@ const styles = StyleSheet.create({
   circuitName: {
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    color: 'rgba(255,255,255,0.5)',
     letterSpacing: -0.34,
     flex: 1,
   },
