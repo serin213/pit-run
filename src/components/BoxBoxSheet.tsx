@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import GradientCardBorder from './GradientCardBorder';
 
 interface Props {
   visible: boolean;
@@ -139,7 +140,8 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
-      <BlurView intensity={30} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+      <GradientCardBorder style={[s.sheet, { height: sheetHeight }]} borderRadius={36} innerStyle={{ backgroundColor: 'transparent' }}>
+        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Text
@@ -230,7 +232,7 @@ export default function BoxBoxSheet({
           </>
         )}
         </View>
-      </BlurView>
+      </GradientCardBorder>
       </Animated.View>
     </View>
   );
