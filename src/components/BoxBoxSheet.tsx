@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
-import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 interface Props {
@@ -96,15 +96,17 @@ export default function BoxBoxSheet({
   useEffect(() => {
     if (visible) {
       setIsMounted(true);
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 320,
+        friction: 26,
+        tension: 300,
         useNativeDriver: true,
       }).start();
     } else {
       Animated.timing(slideAnim, {
         toValue: 500,
-        duration: 280,
+        duration: 250,
+        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) setIsMounted(false);
