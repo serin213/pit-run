@@ -80,7 +80,7 @@ export default function BoxBoxSheet({
         const mod = (0.5 + localWave * 0.36 + harmonic * 0.14) * energy;
         const animatedHeight = Math.max(12, Math.min(WAVE_BASE_Y_IN_GROUP, baseHeight * mod));
         const x = idx * columnWidth;
-        const fadeOpacity = x < WAVE_SIDE_FADE_WIDTH ? x / WAVE_SIDE_FADE_WIDTH : x > waveWidth - WAVE_SIDE_FADE_WIDTH ? (waveWidth - x) / WAVE_SIDE_FADE_WIDTH : 1;
+        const fadeOpacity = x < WAVE_SIDE_FADE_WIDTH / 2 ? x / (WAVE_SIDE_FADE_WIDTH / 2) : x > waveWidth - WAVE_SIDE_FADE_WIDTH / 2 ? (waveWidth - x) / (WAVE_SIDE_FADE_WIDTH / 2) : 1;
         return {
           x,
           width: columnWidth,
@@ -166,6 +166,12 @@ export default function BoxBoxSheet({
                 <Stop offset="0%" stopColor={waveEndColor} stopOpacity={0} />
                 <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
               </LinearGradient>
+              <LinearGradient id="waveBase" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="0" />
+                <Stop offset="10%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="90%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
+              </LinearGradient>
             </Defs>
 
             {waveColumns.map((col, idx) => (
@@ -179,7 +185,7 @@ export default function BoxBoxSheet({
                 opacity={col.fadeOpacity}
               />
             ))}
-            <Rect x={0} y={WAVE_BASE_Y_IN_GROUP} width={waveWidth} height={WAVE_BASE_HEIGHT} fill={teamColor} />
+            <Rect x={0} y={WAVE_BASE_Y_IN_GROUP} width={waveWidth} height={WAVE_BASE_HEIGHT} fill="url(#waveBase)" />
           </Svg>
         </View>
 
