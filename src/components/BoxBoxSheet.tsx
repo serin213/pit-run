@@ -6,6 +6,7 @@ import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onVisibilityChange?: (visible: boolean) => void;
   driverName?: string;
   teamColor?: string;
   mode?: 'boxbox' | 'fullPush';
@@ -39,6 +40,7 @@ const WAVE_COLUMN_OVERLAP = 0.2;
 export default function BoxBoxSheet({
   visible,
   onClose,
+  onVisibilityChange,
   driverName = 'LECLERC',
   teamColor = '#E03A3E',
   mode = 'boxbox',
@@ -86,6 +88,10 @@ export default function BoxBoxSheet({
   );
 
   useEffect(() => {
+    onVisibilityChange?.(visible);
+  }, [visible, onVisibilityChange]);
+
+  useEffect(() => {
     if (!visible) return;
     waveStartRef.current = 0;
     const loop = (ts: number) => {
@@ -109,9 +115,9 @@ export default function BoxBoxSheet({
 
   return (
     <View style={s.root} pointerEvents="box-none">
-      <Pressable style={s.overlay} onPress={onClose} />
       <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
         <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.55)' }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Text
           style={[
             s.driver,
@@ -207,7 +213,6 @@ export default function BoxBoxSheet({
 
 const s = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)' },
   sheet: {
     marginHorizontal: 20,
     marginBottom: 26,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useRunStore } from '../store/runStore';
@@ -92,6 +92,15 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     setSector,
   } = useRunStore();
   const pitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundOpacity = useRef(new Animated.Value(1)).current;
+
+  const handleVisibilityChange = useCallback((v: boolean) => {
+    Animated.timing(backgroundOpacity, {
+      toValue: v ? 0.4 : 1.0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [backgroundOpacity]);
 
   const [debugCircuitIdx, setDebugCircuitIdx] = useState(() =>
     Math.max(0, CIRCUITS.findIndex((c) => c.id === circuit?.id)),
@@ -238,6 +247,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 
   return (
     <View style={st.container}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: backgroundOpacity }]}>
       <View style={[st.topInfoRow, { top: topInfoTop }]}>
         <View style={st.topInfoLeft}>
           {activeCircuit?.flagAsset ? (
@@ -452,12 +462,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         )}
       </View>
 
+      </Animated.View>
       <BoxBoxSheet
         visible={boxBoxActive}
         mode={pitPhase === 'fullPush' ? 'fullPush' : 'boxbox'}
         driverName={boxBoxDriverName}
         teamColor={boxBoxTeamColor}
         onClose={closeBoxBox}
+        onVisibilityChange={handleVisibilityChange}
       />
     </View>
   );
@@ -466,7 +478,6 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 const st = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
   },
   topInfoRow: {
     position: 'absolute',
