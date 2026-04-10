@@ -14,6 +14,7 @@ import StopButton from '../components/StopButton';
 import PlayButton from '../components/PlayButton';
 import BoxBoxSheet from '../components/BoxBoxSheet';
 import NameTag from '../components/NameTag';
+import ScreenHeader from '../components/ScreenHeader';
 import CircuitMap, {
   CIRCUIT_VIEWBOX,
   getCircuitPointAtProgress,
@@ -126,7 +127,6 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       ? { line: '#FFFFFF', text: '#FFFFFF' }
       : getCircuitTheme(circuitLabel);
   const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : 'RACING';
-  const topInfoTop = safeTop + 14;
   const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
@@ -248,22 +248,16 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   return (
     <View style={st.container}>
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backgroundOpacity }]}>
-      <View style={[st.topInfoRow, { top: topInfoTop }]}>
-        <View style={st.topInfoLeft}>
-          {activeCircuit?.flagAsset ? (
-            <View style={st.flagWrap}>
-              <Image source={activeCircuit.flagAsset} style={st.flagImage} resizeMode="cover" />
-            </View>
-          ) : null}
-          <Text style={[st.topTrackText, { color: topTheme.text }]}>
-            {circuitLabel.toUpperCase()} ({circuitKm.toFixed(2)}km)
-          </Text>
-        </View>
-        <Text style={[st.topStatusText, { color: statusTextColor, opacity: statusTextOpacity }]}>
-          {raceStatusLabel}
-        </Text>
-      </View>
-      <View style={[st.topDivider, { top: topLineTop, backgroundColor: topTheme.line }]} />
+      <ScreenHeader
+        safeTop={safeTop}
+        flagAsset={activeCircuit?.flagAsset}
+        circuitLabel={circuitLabel}
+        circuitKm={circuitKm}
+        theme={topTheme}
+        statusLabel={raceStatusLabel}
+        statusColor={statusTextColor}
+        statusOpacity={statusTextOpacity}
+      />
 
       <View style={[st.distCenterWrap, { top: distTop, left: DIST_LEFT, right: DIST_LEFT }]}>
         <Text
@@ -479,49 +473,6 @@ const st = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',
-  },
-  topInfoRow: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  topInfoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginRight: 12,
-  },
-  flagWrap: {
-    width: 22,
-    height: 14,
-    borderRadius: 2,
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
-  flagImage: {
-    width: '100%',
-    height: '100%',
-  },
-  topTrackText: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 17,
-    letterSpacing: -0.34,
-    flex: 1,
-  },
-  topStatusText: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 17,
-    letterSpacing: -0.34,
-  },
-  topDivider: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 4,
   },
   distCenterWrap: {
     position: 'absolute',

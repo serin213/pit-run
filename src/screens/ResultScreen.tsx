@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import {
   Animated,
-  Image,
   Pressable,
   ScrollView,
   Share,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Polygon, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
+import ScreenHeader from '../components/ScreenHeader';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
@@ -259,23 +259,14 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   return (
     <View style={styles.root}>
       {/* ── Fixed header bar ── */}
-      <View style={[styles.header, { paddingTop: safeTop }]}>
-        <View style={styles.headerRow}>
-          {/* Flag + circuit name */}
-          <View style={styles.headerLeft}>
-            {circuit.flagAsset ? (
-              <View style={styles.flagWrap}>
-                <Image source={circuit.flagAsset} style={styles.flagImage} resizeMode="cover" />
-              </View>
-            ) : null}
-            <Text style={[styles.circuitName, { color: topTheme.text }]} numberOfLines={1}>
-              {circuit.displayName.toUpperCase()} ({circuit.distanceKm.toFixed(2)}km)
-            </Text>
-          </View>
-          <Text style={[styles.finishLabel, { color: topTheme.text }]}>FINISH</Text>
-        </View>
-        <View style={[styles.divider, { backgroundColor: topTheme.line }]} />
-      </View>
+      <ScreenHeader
+        safeTop={safeTop}
+        flagAsset={circuit.flagAsset}
+        circuitLabel={circuit.displayName}
+        circuitKm={circuit.distanceKm}
+        theme={topTheme}
+        statusLabel="FINISH"
+      />
 
       {/* ── Scroll content ── */}
       <ScrollView
@@ -532,52 +523,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#17171C',
-  },
-
-  // ── Header ──
-  header: {
-    backgroundColor: '#17171C',
-    zIndex: 100,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginRight: 12,
-  },
-  flagWrap: {
-    width: 22,
-    height: 14,
-    borderRadius: 2,
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
-  flagImage: {
-    width: '100%',
-    height: '100%',
-  },
-  circuitName: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 17,
-    letterSpacing: -0.34,
-    flex: 1,
-  },
-  finishLabel: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 17,
-    letterSpacing: -0.34,
-  },
-  divider: {
-    height: 4,
-    width: '100%',
   },
 
   // ── Scroll ──
