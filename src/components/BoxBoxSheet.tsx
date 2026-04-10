@@ -157,26 +157,26 @@ export default function BoxBoxSheet({
         </Text>
 
         <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
-          <Svg width="100%" height="100%" viewBox={`0 0 ${sheetWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
+          <Svg width="100%" height="100%" viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
             <Defs>
               <LinearGradient id="waveColumn" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={WAVE_GROUP_HEIGHT}>
                 <Stop offset="0%" stopColor={waveStartColor} />
                 <Stop offset="100%" stopColor={waveEndColor} />
               </LinearGradient>
-              <LinearGradient id="waveLeftFade" x1="0" y1="32" x2={WAVE_SIDE_FADE_WIDTH} y2="32" gradientUnits="userSpaceOnUse">
-                <Stop offset="7%" stopColor="rgba(0,0,0,0)" />
-                <Stop offset="100%" stopColor="rgba(32,32,40,0)" />
+              <LinearGradient id="waveLeftFade" x1="0" y1="0" x2={WAVE_SIDE_FADE_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
+                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
               </LinearGradient>
               <LinearGradient
                 id="waveRightFade"
                 x1={waveWidth - WAVE_SIDE_FADE_WIDTH}
-                y1="32"
+                y1="0"
                 x2={waveWidth}
-                y2="32"
+                y2="0"
                 gradientUnits="userSpaceOnUse"
               >
-                <Stop offset="7%" stopColor="rgba(32,32,40,0)" />
-                <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
+                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="0" />
+                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="1" />
               </LinearGradient>
             </Defs>
 
@@ -191,8 +191,6 @@ export default function BoxBoxSheet({
               />
             ))}
             <Rect x={0} y={WAVE_BASE_Y_IN_GROUP} width={waveWidth} height={WAVE_BASE_HEIGHT} fill={teamColor} />
-            <Rect x={0} y={-6} width={WAVE_SIDE_FADE_WIDTH} height={64} fill="url(#waveLeftFade)" />
-            <Rect x={waveWidth - WAVE_SIDE_FADE_WIDTH} y={-6} width={WAVE_SIDE_FADE_WIDTH} height={64} fill="url(#waveRightFade)" />
           </Svg>
         </View>
 
@@ -259,8 +257,8 @@ const s = StyleSheet.create({
   },
   waveWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: WAVE_BASE_SIDE,
+    right: WAVE_BASE_SIDE,
     top: WAVE_GROUP_TOP,
     height: WAVE_GROUP_HEIGHT,
   },
@@ -277,7 +275,7 @@ const s = StyleSheet.create({
   },
   warningWrap: {
     position: 'absolute',
-    left: 31,
+    left: 28,
     top: DETAIL_TOP,
     width: 44,
     height: 41,
@@ -295,7 +293,7 @@ const s = StyleSheet.create({
   },
   desc: {
     position: 'absolute',
-    left: 89,
+    left: 80,
     top: DETAIL_TEXT_TOP,
     color: 'rgba(255,255,255,0.5)',
     fontFamily: 'Formula1-Italic',
