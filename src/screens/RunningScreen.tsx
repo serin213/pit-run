@@ -96,7 +96,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 
   const handleVisibilityChange = useCallback((v: boolean) => {
     Animated.timing(backgroundOpacity, {
-      toValue: v ? 0.4 : 1.0,
+      toValue: v ? 0.2 : 1.0,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -478,6 +478,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 const st = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#17171C',
   },
   topInfoRow: {
     position: 'absolute',

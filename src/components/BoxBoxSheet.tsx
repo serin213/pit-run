@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 interface Props {
@@ -49,6 +49,8 @@ export default function BoxBoxSheet({
   const [waveTime, setWaveTime] = useState(0);
   const rafRef = useRef<number | null>(null);
   const waveStartRef = useRef<number>(0);
+  const slideAnim = useRef(new Animated.Value(500)).current;
+  const [isMounted, setIsMounted] = useState(visible);
   const sheetWidth = windowW - 40;
   const waveWidth = Math.max(1, sheetWidth - WAVE_BASE_SIDE * 2);
   const isFullPush = mode === 'fullPush';
@@ -92,6 +94,25 @@ export default function BoxBoxSheet({
   }, [visible, onVisibilityChange]);
 
   useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 320,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 500,
+        duration: 280,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setIsMounted(false);
+      });
+    }
+  }, [visible, slideAnim]);
+
+  useEffect(() => {
     if (!visible) return;
     waveStartRef.current = 0;
     const loop = (ts: number) => {
@@ -111,12 +132,13 @@ export default function BoxBoxSheet({
   const waveStartColor = `rgba(${Number.parseInt(teamColor.slice(1, 3), 16)},${Number.parseInt(teamColor.slice(3, 5), 16)},${Number.parseInt(teamColor.slice(5, 7), 16)},0)`;
   const waveEndColor = `rgba(${Number.parseInt(teamColor.slice(1, 3), 16)},${Number.parseInt(teamColor.slice(3, 5), 16)},${Number.parseInt(teamColor.slice(5, 7), 16)},1)`;
 
-  if (!visible) return null;
+  if (!isMounted) return null;
 
   return (
     <View style={s.root} pointerEvents="box-none">
-      <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.2)' }}>
+      <Animated.View style={{ transform: [{ translateY: slideAnim }] }}>
+      <BlurView intensity={10} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Text
           style={[
@@ -207,6 +229,7 @@ export default function BoxBoxSheet({
         )}
         </View>
       </BlurView>
+      </Animated.View>
     </View>
   );
 }
