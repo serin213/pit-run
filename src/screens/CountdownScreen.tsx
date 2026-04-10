@@ -98,7 +98,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (!assetsReady) return;
+    if (!assetsReady || lineHeight <= 0) return;
 
     setCount(5);
     setPreviousCount(null);
@@ -135,7 +135,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
       }
       dissolveOpacity.stopAnimation();
     };
-  }, [assetsReady, dissolveOpacity, onFinish]);
+  }, [assetsReady, lineHeight, dissolveOpacity, onFinish]);
 
   const renderNumberLayer = useMemo(
     () => (value: CountdownValue, opacity: number | Animated.AnimatedInterpolation<number>) => {
