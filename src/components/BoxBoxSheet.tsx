@@ -164,7 +164,7 @@ export default function BoxBoxSheet({
                 <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
               </LinearGradient>
               <LinearGradient id="waveLeftFade" x1="0" y1="0" x2={WAVE_SIDE_FADE_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
-                <Stop offset="0%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="0%" stopColor="#202028" stopOpacity="1" />
                 <Stop offset="100%" stopColor={waveEndColor} stopOpacity="0" />
               </LinearGradient>
               <LinearGradient
@@ -176,7 +176,7 @@ export default function BoxBoxSheet({
                 gradientUnits="userSpaceOnUse"
               >
                 <Stop offset="0%" stopColor={waveEndColor} stopOpacity="0" />
-                <Stop offset="100%" stopColor={waveEndColor} stopOpacity="1" />
+                <Stop offset="100%" stopColor="#202028" stopOpacity="1" />
               </LinearGradient>
             </Defs>
 
