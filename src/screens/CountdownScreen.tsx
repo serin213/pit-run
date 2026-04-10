@@ -189,7 +189,7 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
         resizeMode="contain"
       />
     );
-  }, [count, screenHeight, screenWidth]);
+  }, [screenHeight, screenWidth]);
 
   const previousOpacity = dissolveOpacity.interpolate({
     inputRange: [0, 1],
