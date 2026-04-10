@@ -157,14 +157,14 @@ export default function BoxBoxSheet({
         </Text>
 
         <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
-          <Svg width="100%" height="100%" viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
+          <Svg width="100%" height="100%" viewBox={`0 0 ${sheetWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
             <Defs>
-              <LinearGradient id="waveColumn" x1="0" y1="0" x2="0" y2="1">
+              <LinearGradient id="waveColumn" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={WAVE_GROUP_HEIGHT}>
                 <Stop offset="0%" stopColor={waveStartColor} />
                 <Stop offset="100%" stopColor={waveEndColor} />
               </LinearGradient>
               <LinearGradient id="waveLeftFade" x1="0" y1="32" x2={WAVE_SIDE_FADE_WIDTH} y2="32" gradientUnits="userSpaceOnUse">
-                <Stop offset="7%" stopColor="#202028" />
+                <Stop offset="7%" stopColor="rgba(0,0,0,0)" />
                 <Stop offset="100%" stopColor="rgba(32,32,40,0)" />
               </LinearGradient>
               <LinearGradient
@@ -176,7 +176,7 @@ export default function BoxBoxSheet({
                 gradientUnits="userSpaceOnUse"
               >
                 <Stop offset="7%" stopColor="rgba(32,32,40,0)" />
-                <Stop offset="100%" stopColor="#202028" />
+                <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
               </LinearGradient>
             </Defs>
 
@@ -259,8 +259,8 @@ const s = StyleSheet.create({
   },
   waveWrap: {
     position: 'absolute',
-    left: WAVE_BASE_SIDE,
-    right: WAVE_BASE_SIDE,
+    left: 0,
+    right: 0,
     top: WAVE_GROUP_TOP,
     height: WAVE_GROUP_HEIGHT,
   },
