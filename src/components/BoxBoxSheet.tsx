@@ -108,7 +108,7 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <Pressable style={s.overlay} onPress={onClose} />
-      <BlurView intensity={50} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+      <BlurView intensity={30} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
         <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.55)' }}>
           <Text style={[s.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
             {driverName}

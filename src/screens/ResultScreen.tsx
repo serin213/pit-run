@@ -470,7 +470,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16, backgroundColor: 'transparent', overflow: 'hidden' },
             ]}
           >
-            <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.55)' }]} />
             <Text style={styles.sheetTitle}>How was it?</Text>
 

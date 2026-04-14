@@ -503,7 +503,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           { borderRadius: modalRadius, transform: [{ translateY: slideAnim }], backgroundColor: 'transparent', overflow: 'hidden' },
         ]}
       >
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.55)' }]} />
         {/* Title — paddingTop:32 은 retireCard에 */}
         <Text style={[st.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
