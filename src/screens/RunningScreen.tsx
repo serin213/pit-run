@@ -357,6 +357,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           viewBoxHeight={activeCircuit?.viewBox?.height}
           startRect={activeCircuit?.startRect}
           checkerFlagCenter={activeCircuit?.checkerFlagCenter}
+          startLenOverride={activeCircuit?.startLenOverride}
         />
       </View>
 

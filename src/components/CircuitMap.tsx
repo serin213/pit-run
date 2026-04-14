@@ -19,6 +19,7 @@ interface Props {
   viewBoxHeight?: number;
   startRect?: Rect;
   checkerFlagCenter?: Point;
+  startLenOverride?: number;
 }
 
 export const CIRCUIT_VIEWBOX = { width: 286, height: 185 } as const;
@@ -153,9 +154,11 @@ function getAnchorLengths(
   pathStr: string,
   startRect?: Rect,
   checkerFlagCenter?: Point,
+  startLenOverride?: number,
 ): { startLen: number } {
   const key = pathStr + (startRect ? `|${startRect.minX},${startRect.minY}` : '') +
-    (checkerFlagCenter ? `|${checkerFlagCenter.x},${checkerFlagCenter.y}` : '');
+    (checkerFlagCenter ? `|${checkerFlagCenter.x},${checkerFlagCenter.y}` : '') +
+    (startLenOverride != null ? `|slo${startLenOverride}` : '');
   const cached = anchorCache.get(key);
   if (cached) return cached;
 
@@ -163,6 +166,12 @@ function getAnchorLengths(
   const total = props.getTotalLength();
 
   let startLen = 0;
+
+  if (startLenOverride != null) {
+    const result = { startLen: startLenOverride };
+    anchorCache.set(key, result);
+    return result;
+  }
 
   if (startRect) {
     const center = { x: (startRect.minX + startRect.maxX) / 2, y: (startRect.minY + startRect.maxY) / 2 };
@@ -236,6 +245,7 @@ export default function CircuitMap({
   viewBoxHeight,
   startRect,
   checkerFlagCenter,
+  startLenOverride,
 }: Props) {
   const vbW = viewBoxWidth ?? CIRCUIT_VIEWBOX.width;
   const vbH = viewBoxHeight ?? CIRCUIT_VIEWBOX.height;
@@ -243,8 +253,8 @@ export default function CircuitMap({
   const totalLength = getTotalLength(path);
 
   const { startLen } = useMemo(
-    () => getAnchorLengths(path, startRect, checkerFlagCenter),
-    [path, startRect, checkerFlagCenter],
+    () => getAnchorLengths(path, startRect, checkerFlagCenter, startLenOverride),
+    [path, startRect, checkerFlagCenter, startLenOverride],
   );
 
   const hasAnchors = startRect != null && checkerFlagCenter != null;

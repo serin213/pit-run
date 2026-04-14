@@ -74,6 +74,7 @@ export const CIRCUITS: CircuitDefinition[] = [
   {
     id: 'las-vegas',
     displayName: 'Las Vegas',
+    startLenOverride: 450.6,
     countryName: 'United States',
     distanceKm: 6.201,
     trackPath:
@@ -266,6 +267,7 @@ export const CIRCUITS: CircuitDefinition[] = [
   {
     id: 'baku',
     displayName: 'Baku',
+    startLenOverride: 335.2,
     countryName: 'Azerbaijan',
     distanceKm: 6.003,
     trackPath:
@@ -330,6 +332,7 @@ export const CIRCUITS: CircuitDefinition[] = [
   {
     id: 'silverstone',
     displayName: 'Silverstone',
+    startLenOverride: 519.5,
     countryName: 'United Kingdom',
     distanceKm: 5.891,
     trackPath:
@@ -362,6 +365,7 @@ export const CIRCUITS: CircuitDefinition[] = [
   {
     id: 'spa',
     displayName: 'Spa',
+    startLenOverride: 392.0,
     countryName: 'Belgium',
     distanceKm: 7.004,
     trackPath:
