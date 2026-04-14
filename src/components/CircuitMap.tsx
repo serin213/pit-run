@@ -19,6 +19,7 @@ interface Props {
   viewBoxHeight?: number;
   startRect?: Rect;
   checkerFlagCenter?: Point;
+  gradientStartLen?: number;
 }
 
 export const CIRCUIT_VIEWBOX = { width: 286, height: 185 } as const;
@@ -236,6 +237,7 @@ export default function CircuitMap({
   viewBoxHeight,
   startRect,
   checkerFlagCenter,
+  gradientStartLen,
 }: Props) {
   const vbW = viewBoxWidth ?? CIRCUIT_VIEWBOX.width;
   const vbH = viewBoxHeight ?? CIRCUIT_VIEWBOX.height;
@@ -260,7 +262,7 @@ export default function CircuitMap({
   const gradientSegments = useMemo(() => {
     const count = Math.max(36, Math.min(220, Math.ceil(drawn / 6)));
     const segLen = drawn / count;
-    const gapOffset = hasAnchors ? startLen : 0;
+    const gapOffset = gradientStartLen != null ? gradientStartLen : hasAnchors ? startLen : 0;
     const out: Array<{ color: string; gap: number; len: number; wrap?: boolean }> = [];
 
     for (let i = 0; i < count; i += 1) {
