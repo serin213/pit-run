@@ -504,7 +504,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
         ]}
       >
         <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.55)' }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
         {/* Title — paddingTop:32 은 retireCard에 */}
         <Text style={[st.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
           Are you sure?

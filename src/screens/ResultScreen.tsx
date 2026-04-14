@@ -471,7 +471,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             ]}
           >
             <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.55)' }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
             <Text style={styles.sheetTitle}>How was it?</Text>
 
             {/* Emoji scale */}
