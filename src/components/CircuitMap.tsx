@@ -192,7 +192,7 @@ export function getCircuitPointAtProgress(
   if (startRect && checkerFlagCenter) {
     const total = props.getTotalLength();
     const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    return props.getPointAtLength((startLen + p * total) % total);
+    return props.getPointAtLength(startLen + p * (total - startLen));
   }
 
   return props.getPointAtLength(p * props.getTotalLength());
@@ -212,7 +212,7 @@ export function getCircuitTangentAtProgress(
   let len: number;
   if (startRect && checkerFlagCenter) {
     const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    len = (startLen + p * total) % total;
+    len = startLen + p * (total - startLen);
   } else {
     len = p * total;
   }
@@ -250,7 +250,7 @@ export default function CircuitMap({
   const hasAnchors = startRect != null && checkerFlagCenter != null;
 
   // Forward gradient: startLen → startLen + p*(endLen-startLen)
-  const activeLen = p * totalLength;
+  const activeLen = hasAnchors ? p * (totalLength - startLen) : p * totalLength;
   const drawn = Math.max(2, activeLen);
 
   // Total gradient span for color interpolation (backtrack + active range)
