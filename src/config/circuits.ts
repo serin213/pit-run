@@ -28,6 +28,10 @@ export type CircuitDefinition = {
   direction?: CircuitDirection;
   viewBox?: { width: number; height: number };
   overlays?: CircuitOverlay[];
+  /** Bounding box of the start-point rect overlay (SVG coordinates). */
+  startRect?: { minX: number; minY: number; maxX: number; maxY: number };
+  /** Center of the checker-flag group (SVG coordinates). */
+  checkerFlagCenter?: { x: number; y: number };
 };
 
 const SHANGHAI_TRACK_PATH =
@@ -64,6 +68,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       { d: 'M120.147 104.133L121.684 99.7949L117.287 98.2379L115.751 102.576Z', fill: 'accent' },
       { d: 'M117.085 112.781L118.621 108.443L114.224 106.886L112.688 111.224Z', fill: 'accent' },
     ],
+    startRect: { minX: 101.5, minY: 92.5, maxX: 111.66, maxY: 100.22 },
+    checkerFlagCenter: { x: 122.51, y: 102.27 },
   },
   {
     id: 'las-vegas',
@@ -94,6 +100,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M289.183 31.8207L286.124 27.8652L279.004 33.3706L282.063 37.326L289.183 31.8207Z', fill: 'accent' },
     ],
+    startRect: { minX: 279, minY: 27.87, maxX: 289.18, maxY: 37.33 },
+    checkerFlagCenter: { x: 297.98, y: 21.9 },
   },
   {
     id: 'suzuka',
@@ -124,6 +132,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M259.478 62.2016L256.195 58.4297L249.406 64.3377L252.688 68.1096L259.478 62.2016Z', fill: 'accent' },
     ],
+    startRect: { minX: 249.41, minY: 58.43, maxX: 259.48, maxY: 68.11 },
+    checkerFlagCenter: { x: 267.69, y: 51.79 },
   },
   {
     id: 'monaco',
@@ -154,6 +164,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M29.9384 48.2672L27.1162 52.3945L34.5455 57.4745L37.3677 53.3471L29.9384 48.2672Z', fill: 'accent' },
     ],
+    startRect: { minX: 27.12, minY: 48.27, maxX: 37.37, maxY: 57.47 },
+    checkerFlagCenter: { x: 17.8, y: 42.95 },
   },
   {
     id: 'hungaroring',
@@ -184,6 +196,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M20.0323 155.52L20.0391 160.52L29.0391 160.507L29.0323 155.507L20.0323 155.52Z', fill: 'accent' },
     ],
+    startRect: { minX: 20.03, minY: 155.51, maxX: 29.04, maxY: 160.52 },
+    checkerFlagCenter: { x: 7.01, y: 158.01 },
   },
   {
     id: 'marina-bay',
@@ -214,6 +228,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M306.49 103.324L305.803 98.3711L296.889 99.6075L297.575 104.56L306.49 103.324Z', fill: 'accent' },
     ],
+    startRect: { minX: 296.89, minY: 98.37, maxX: 306.49, maxY: 104.56 },
+    checkerFlagCenter: { x: 319.06, y: 99.09 },
   },
   {
     id: 'monza',
@@ -244,6 +260,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M245.5 146.532L240.5 146.539L240.512 155.539L245.512 155.532L245.5 146.532Z', fill: 'accent' },
     ],
+    startRect: { minX: 240.5, minY: 146.53, maxX: 245.51, maxY: 155.54 },
+    checkerFlagCenter: { x: 243.01, y: 133.51 },
   },
   {
     id: 'baku',
@@ -274,6 +292,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M258.115 148.821L253.752 146.379L249.357 154.233L253.72 156.674L258.115 148.821Z', fill: 'accent' },
     ],
+    startRect: { minX: 249.36, minY: 146.38, maxX: 258.12, maxY: 156.67 },
+    checkerFlagCenter: { x: 262.32, y: 136.25 },
   },
   {
     id: 'albert-park',
@@ -304,6 +324,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M179.898 145.71L174.899 145.816L175.091 154.814L180.09 154.708L179.898 145.71Z', fill: 'accent' },
     ],
+    startRect: { minX: 174.9, minY: 145.71, maxX: 180.09, maxY: 154.81 },
+    checkerFlagCenter: { x: 177.15, y: 132.73 },
   },
   {
     id: 'silverstone',
@@ -334,6 +356,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M88.5448 23.0844L92.6011 26.0078L97.8633 18.7065L93.807 15.783L88.5448 23.0844Z', fill: 'accent' },
     ],
+    startRect: { minX: 88.54, minY: 15.78, maxX: 97.86, maxY: 26.01 },
+    checkerFlagCenter: { x: 82.93, y: 35.09 },
   },
   {
     id: 'spa',
@@ -364,6 +388,8 @@ export const CIRCUITS: CircuitDefinition[] = [
       // Start marker
       { d: 'M45.1486 144.195L49.0938 141.123L43.5646 134.022L39.6194 137.094L45.1486 144.195Z', fill: 'accent' },
     ],
+    startRect: { minX: 39.62, minY: 134.02, maxX: 49.09, maxY: 144.19 },
+    checkerFlagCenter: { x: 55.1, y: 152.96 },
   },
 ];
 

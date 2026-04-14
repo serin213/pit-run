@@ -188,8 +188,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const circuitScale = Math.min(circuitW / cvbW, circuitH / cvbH);
   const circuitOffsetX = (circuitW - cvbW * circuitScale) / 2;
   const circuitOffsetY = (circuitH - cvbH * circuitScale) / 2;
-  const circuitPoint = getCircuitPointAtProgress(prog, circuitPath);
-  const tangent = getCircuitTangentAtProgress(prog, circuitPath);
+  const circuitPoint = getCircuitPointAtProgress(prog, circuitPath, activeCircuit?.startRect, activeCircuit?.checkerFlagCenter);
+  const tangent = getCircuitTangentAtProgress(prog, circuitPath, activeCircuit?.startRect, activeCircuit?.checkerFlagCenter);
 
   // Incoming side (where the drawn line reaches the tag)
   // is opposite to the forward tangent direction.
@@ -355,6 +355,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           overlays={activeCircuit?.overlays}
           viewBoxWidth={activeCircuit?.viewBox?.width}
           viewBoxHeight={activeCircuit?.viewBox?.height}
+          startRect={activeCircuit?.startRect}
+          checkerFlagCenter={activeCircuit?.checkerFlagCenter}
         />
       </View>
 
