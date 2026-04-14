@@ -108,14 +108,15 @@ function findClosestLength(
 /**
  * Get the trailing edge midpoint of the start rect relative to the path direction at path start.
  */
-function getTrailingEdgeMidpoint(rect: Rect, pathProps: SvgPathProps, totalLength: number): Point {
+function getTrailingEdgeMidpoint(rect: Rect, pathProps: SvgPathProps, totalLength: number, refLen?: number): Point {
   const cx = (rect.minX + rect.maxX) / 2;
   const cy = (rect.minY + rect.maxY) / 2;
 
-  // Path direction at position 0 (M command, inside the rect)
+  // Path direction at refLen (actual position on path near startRect, not M point)
   const delta = Math.max(1, totalLength * 0.002);
-  const p0 = pathProps.getPointAtLength(0);
-  const p1 = pathProps.getPointAtLength(delta);
+  const ref = refLen ?? 0;
+  const p0 = pathProps.getPointAtLength(Math.max(0, ref - delta));
+  const p1 = pathProps.getPointAtLength(Math.min(totalLength, ref + delta));
   const dx = p1.x - p0.x;
   const dy = p1.y - p0.y;
   const mag = Math.hypot(dx, dy) || 1;
@@ -136,7 +137,7 @@ function getTrailingEdgeMidpoint(rect: Rect, pathProps: SvgPathProps, totalLengt
 }
 
 // Memoization for anchor lengths per path
-const anchorCache = new Map<string, { backtrackLen: number; endLen: number }>();
+const anchorCache = new Map<string, { startLen: number }>();
 
 /**
  * Compute anchor lengths for the gradient.
@@ -152,7 +153,7 @@ function getAnchorLengths(
   pathStr: string,
   startRect?: Rect,
   checkerFlagCenter?: Point,
-): { backtrackLen: number; endLen: number } {
+): { startLen: number } {
   const key = pathStr + (startRect ? `|${startRect.minX},${startRect.minY}` : '') +
     (checkerFlagCenter ? `|${checkerFlagCenter.x},${checkerFlagCenter.y}` : '');
   const cached = anchorCache.get(key);
@@ -161,22 +162,20 @@ function getAnchorLengths(
   const props = getPathProps(pathStr);
   const total = props.getTotalLength();
 
-  let backtrackLen = 0;
-  let endLen = total;
+  let startLen = 0;
 
   if (startRect) {
-    const trailing = getTrailingEdgeMidpoint(startRect, props, total);
-    // Search in the last 10% of the path for the trailing edge
-    const trailingPathLen = findClosestLength(props, trailing, total, total * 0.9, total);
-    backtrackLen = total - trailingPathLen;
+    const center = { x: (startRect.minX + startRect.maxX) / 2, y: (startRect.minY + startRect.maxY) / 2 };
+    const centerLen = findClosestLength(props, center, total, 0, total);
+    const trailing = getTrailingEdgeMidpoint(startRect, props, total, centerLen);
+    const searchWindow = total * 0.15;
+    startLen = findClosestLength(
+      props, trailing, total,
+      Math.max(0, centerLen - searchWindow),
+      centerLen
+    );
   }
-
-  if (checkerFlagCenter) {
-    // Search in the last 10% of the path for the checker flag (runner arrives here after full circuit)
-    endLen = findClosestLength(props, checkerFlagCenter, total, total * 0.9, total);
-  }
-
-  const result = { backtrackLen, endLen };
+  const result = { startLen };
   anchorCache.set(key, result);
   return result;
 }
@@ -191,8 +190,9 @@ export function getCircuitPointAtProgress(
   const props = getPathProps(path);
 
   if (startRect && checkerFlagCenter) {
-    const { endLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    return props.getPointAtLength(p * endLen);
+    const total = props.getTotalLength();
+    const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
+    return props.getPointAtLength((startLen + p * total) % total);
   }
 
   return props.getPointAtLength(p * props.getTotalLength());
@@ -211,8 +211,8 @@ export function getCircuitTangentAtProgress(
 
   let len: number;
   if (startRect && checkerFlagCenter) {
-    const { endLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    len = p * endLen;
+    const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
+    len = (startLen + p * total) % total;
   } else {
     len = p * total;
   }
@@ -242,35 +242,31 @@ export default function CircuitMap({
   const p = Math.max(0, Math.min(progress, 1));
   const totalLength = getTotalLength(path);
 
-  const { backtrackLen, endLen } = useMemo(
+  const { startLen } = useMemo(
     () => getAnchorLengths(path, startRect, checkerFlagCenter),
     [path, startRect, checkerFlagCenter],
   );
 
   const hasAnchors = startRect != null && checkerFlagCenter != null;
 
-  // Forward gradient: 0 → p * endLen
-  const forwardDrawn = hasAnchors ? p * endLen : p * totalLength;
-  const drawn = Math.max(2, forwardDrawn);
+  // Forward gradient: startLen → startLen + p*(endLen-startLen)
+  const activeLen = p * totalLength;
+  const drawn = Math.max(2, activeLen);
 
-  // Total gradient span for color interpolation (backtrack + forward endLen)
-  const totalSpan = hasAnchors ? backtrackLen + endLen : totalLength;
+  // Total gradient span for color interpolation (backtrack + active range)
+  const totalSpan = totalLength;
 
-  // Backtrack segment: from (totalLength - backtrackLen) to totalLength
-  // Always drawn in startColor to cover the start rect from behind
-  const backtrackStart = totalLength - backtrackLen;
 
   const gradientSegments = useMemo(() => {
     const count = Math.max(36, Math.min(220, Math.ceil(drawn / 6)));
     const segLen = drawn / count;
-    const out: Array<{ color: string; gap: number; len: number }> = [];
+    const gapOffset = hasAnchors ? startLen : 0;
+    const out: Array<{ color: string; gap: number; len: number; wrap?: boolean }> = [];
 
     for (let i = 0; i < count; i += 1) {
-      const gap = i * segLen;
-      // Color: offset by backtrackLen in the interpolation
-      const colorT = hasAnchors
-        ? (backtrackLen + gap) / totalSpan
-        : count <= 1 ? 0 : i / (count - 1);
+      const rawGap = gapOffset + i * segLen;
+      const gap = rawGap % totalLength;
+      const colorT = count <= 1 ? 0 : i / (count - 1);
       out.push({
         color: colorAt(startColor, endColor, colorT),
         gap,
@@ -279,7 +275,7 @@ export default function CircuitMap({
     }
 
     return out;
-  }, [backtrackLen, drawn, endColor, hasAnchors, startColor, totalSpan]);
+  }, [drawn, endColor, hasAnchors, startColor, startLen, totalSpan]);
 
   return (
     <View style={s.wrap}>
@@ -292,19 +288,6 @@ export default function CircuitMap({
             fill={o.fill === 'accent' ? (accentColor ?? startColor) : '#FFFFFF'}
           />
         ))}
-        {/* Backtrack: covers start rect from trailing edge to path end */}
-        {hasAnchors && backtrackLen > 0 && (
-          <Path
-            d={path}
-            fill="none"
-            stroke={startColor}
-            strokeWidth={5}
-            strokeMiterlimit={10}
-            strokeLinecap="butt"
-            strokeLinejoin="round"
-            strokeDasharray={`0 ${backtrackStart} ${backtrackLen + 0.2} ${totalLength}`}
-          />
-        )}
         {/* Forward gradient segments */}
         {[...gradientSegments].reverse().map((seg, idx) => (
           <Path
