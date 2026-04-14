@@ -19,7 +19,6 @@ interface Props {
   viewBoxHeight?: number;
   startRect?: Rect;
   checkerFlagCenter?: Point;
-  direction?: 'clockwise' | 'counterclockwise';
 }
 
 export const CIRCUIT_VIEWBOX = { width: 286, height: 185 } as const;
@@ -67,13 +66,22 @@ function colorAt(startHex: string, endHex: string, t: number) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-/** Find the path length closest to a given point by binary search + sampling. */
-function findClosestLength(props: SvgPathProps, target: Point, totalLength: number): number {
+/**
+ * Find the path length closest to a given point, searching only within [searchMin, searchMax].
+ */
+function findClosestLength(
+  props: SvgPathProps,
+  target: Point,
+  totalLength: number,
+  searchMin = 0,
+  searchMax = totalLength,
+): number {
   const samples = 200;
-  let bestLen = 0;
+  const range = searchMax - searchMin;
+  let bestLen = searchMin;
   let bestDist = Infinity;
   for (let i = 0; i <= samples; i++) {
-    const len = (i / samples) * totalLength;
+    const len = searchMin + (i / samples) * range;
     const pt = props.getPointAtLength(len);
     const d = (pt.x - target.x) ** 2 + (pt.y - target.y) ** 2;
     if (d < bestDist) {
@@ -81,10 +89,10 @@ function findClosestLength(props: SvgPathProps, target: Point, totalLength: numb
       bestLen = len;
     }
   }
-  // Refine with finer search around best
-  const step = totalLength / samples;
-  const lo = Math.max(0, bestLen - step);
-  const hi = Math.min(totalLength, bestLen + step);
+  // Refine
+  const step = range / samples;
+  const lo = Math.max(searchMin, bestLen - step);
+  const hi = Math.min(searchMax, bestLen + step);
   for (let i = 0; i <= 50; i++) {
     const len = lo + (i / 50) * (hi - lo);
     const pt = props.getPointAtLength(len);
@@ -97,48 +105,54 @@ function findClosestLength(props: SvgPathProps, target: Point, totalLength: numb
   return bestLen;
 }
 
-/** Get the trailing edge midpoint of the start rect relative to the path direction. */
+/**
+ * Get the trailing edge midpoint of the start rect relative to the path direction at path start.
+ */
 function getTrailingEdgeMidpoint(rect: Rect, pathProps: SvgPathProps, totalLength: number): Point {
   const cx = (rect.minX + rect.maxX) / 2;
   const cy = (rect.minY + rect.maxY) / 2;
-  const center: Point = { x: cx, y: cy };
 
-  // Find path direction at center
-  const centerLen = findClosestLength(pathProps, center, totalLength);
+  // Path direction at position 0 (M command, inside the rect)
   const delta = Math.max(1, totalLength * 0.002);
-  const prev = pathProps.getPointAtLength(Math.max(0, centerLen - delta));
-  const next = pathProps.getPointAtLength(Math.min(totalLength, centerLen + delta));
-  const dx = next.x - prev.x;
-  const dy = next.y - prev.y;
+  const p0 = pathProps.getPointAtLength(0);
+  const p1 = pathProps.getPointAtLength(delta);
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
   const mag = Math.hypot(dx, dy) || 1;
-  // Normalized direction of travel
   const dirX = dx / mag;
   const dirY = dy / mag;
 
   // Trailing edge = opposite to direction of travel
-  // Project rect edges to find which edge the path exits through
   const edges: Array<{ mx: number; my: number; dot: number }> = [
-    { mx: rect.minX, my: cy, dot: -dirX }, // left edge (normal = -x)
-    { mx: rect.maxX, my: cy, dot: dirX },  // right edge (normal = +x)
-    { mx: cx, my: rect.minY, dot: -dirY }, // top edge (normal = -y)
-    { mx: cx, my: rect.maxY, dot: dirY },  // bottom edge (normal = +y)
+    { mx: rect.minX, my: cy, dot: -dirX },
+    { mx: rect.maxX, my: cy, dot: dirX },
+    { mx: cx, my: rect.minY, dot: -dirY },
+    { mx: cx, my: rect.maxY, dot: dirY },
   ];
 
-  // The "leading" edge is the one most aligned with direction (highest dot product)
-  // The "trailing" edge is the one most aligned against direction (lowest dot product / most negative)
+  // Trailing edge has the most negative dot product (most against direction)
   edges.sort((a, b) => a.dot - b.dot);
-  const trailing = edges[0];
-  return { x: trailing.mx, y: trailing.my };
+  return { x: edges[0].mx, y: edges[0].my };
 }
 
 // Memoization for anchor lengths per path
-const anchorCache = new Map<string, { trailingLen: number; flagLen: number }>();
+const anchorCache = new Map<string, { backtrackLen: number; endLen: number }>();
 
+/**
+ * Compute anchor lengths for the gradient.
+ *
+ * The path is a closed loop: M(start rect) → circuit → back to M.
+ * - backtrackLen: small distance from trailing edge to path end (drawn in startColor behind the runner)
+ * - endLen: path length of checker flag found near the END of the path (where runner finishes)
+ *
+ * Gradient covers: [totalLength - backtrackLen → totalLength] (backtrack tail)
+ *                + [0 → p * endLen] (forward progress)
+ */
 function getAnchorLengths(
   pathStr: string,
   startRect?: Rect,
   checkerFlagCenter?: Point,
-): { trailingLen: number; flagLen: number } {
+): { backtrackLen: number; endLen: number } {
   const key = pathStr + (startRect ? `|${startRect.minX},${startRect.minY}` : '') +
     (checkerFlagCenter ? `|${checkerFlagCenter.x},${checkerFlagCenter.y}` : '');
   const cached = anchorCache.get(key);
@@ -147,19 +161,22 @@ function getAnchorLengths(
   const props = getPathProps(pathStr);
   const total = props.getTotalLength();
 
-  let trailingLen = 0;
-  let flagLen = total;
+  let backtrackLen = 0;
+  let endLen = total;
 
   if (startRect) {
     const trailing = getTrailingEdgeMidpoint(startRect, props, total);
-    trailingLen = findClosestLength(props, trailing, total);
+    // Search in the last 10% of the path for the trailing edge
+    const trailingPathLen = findClosestLength(props, trailing, total, total * 0.9, total);
+    backtrackLen = total - trailingPathLen;
   }
 
   if (checkerFlagCenter) {
-    flagLen = findClosestLength(props, checkerFlagCenter, total);
+    // Search in the last 10% of the path for the checker flag (runner arrives here after full circuit)
+    endLen = findClosestLength(props, checkerFlagCenter, total, total * 0.9, total);
   }
 
-  const result = { trailingLen, flagLen };
+  const result = { backtrackLen, endLen };
   anchorCache.set(key, result);
   return result;
 }
@@ -172,24 +189,13 @@ export function getCircuitPointAtProgress(
 ) {
   const p = Math.max(0, Math.min(progress, 1));
   const props = getPathProps(path);
-  const total = props.getTotalLength();
 
   if (startRect && checkerFlagCenter) {
-    const { trailingLen, flagLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    // Handle wrapping: if trailingLen > flagLen, the range wraps around the path
-    let len: number;
-    if (trailingLen <= flagLen) {
-      len = trailingLen + p * (flagLen - trailingLen);
-    } else {
-      const range = (total - trailingLen) + flagLen;
-      const raw = trailingLen + p * range;
-      len = raw > total ? raw - total : raw;
-    }
-    return props.getPointAtLength(len);
+    const { endLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
+    return props.getPointAtLength(p * endLen);
   }
 
-  const len = p * total;
-  return props.getPointAtLength(len);
+  return props.getPointAtLength(p * props.getTotalLength());
 }
 
 export function getCircuitTangentAtProgress(
@@ -205,14 +211,8 @@ export function getCircuitTangentAtProgress(
 
   let len: number;
   if (startRect && checkerFlagCenter) {
-    const { trailingLen, flagLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    if (trailingLen <= flagLen) {
-      len = trailingLen + p * (flagLen - trailingLen);
-    } else {
-      const range = (total - trailingLen) + flagLen;
-      const raw = trailingLen + p * range;
-      len = raw > total ? raw - total : raw;
-    }
+    const { endLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
+    len = p * endLen;
   } else {
     len = p * total;
   }
@@ -242,23 +242,23 @@ export default function CircuitMap({
   const p = Math.max(0, Math.min(progress, 1));
   const totalLength = getTotalLength(path);
 
-  const { trailingLen, flagLen } = useMemo(
+  const { backtrackLen, endLen } = useMemo(
     () => getAnchorLengths(path, startRect, checkerFlagCenter),
     [path, startRect, checkerFlagCenter],
   );
 
-  // Compute the actual drawn range on the path
   const hasAnchors = startRect != null && checkerFlagCenter != null;
-  const drawnRange = useMemo(() => {
-    if (!hasAnchors) return p * totalLength;
-    if (trailingLen <= flagLen) {
-      return p * (flagLen - trailingLen);
-    }
-    return p * ((totalLength - trailingLen) + flagLen);
-  }, [hasAnchors, p, totalLength, trailingLen, flagLen]);
 
-  const drawStart = hasAnchors ? trailingLen : 0;
-  const drawn = Math.max(2, drawnRange);
+  // Forward gradient: 0 → p * endLen
+  const forwardDrawn = hasAnchors ? p * endLen : p * totalLength;
+  const drawn = Math.max(2, forwardDrawn);
+
+  // Total gradient span for color interpolation (backtrack + forward endLen)
+  const totalSpan = hasAnchors ? backtrackLen + endLen : totalLength;
+
+  // Backtrack segment: from (totalLength - backtrackLen) to totalLength
+  // Always drawn in startColor to cover the start rect from behind
+  const backtrackStart = totalLength - backtrackLen;
 
   const gradientSegments = useMemo(() => {
     const count = Math.max(36, Math.min(220, Math.ceil(drawn / 6)));
@@ -266,23 +266,20 @@ export default function CircuitMap({
     const out: Array<{ color: string; gap: number; len: number }> = [];
 
     for (let i = 0; i < count; i += 1) {
-      let gap: number;
-      if (hasAnchors) {
-        // Position along the path, handling wrap-around
-        const rawGap = drawStart + i * segLen;
-        gap = rawGap > totalLength ? rawGap - totalLength : rawGap;
-      } else {
-        gap = i * segLen;
-      }
+      const gap = i * segLen;
+      // Color: offset by backtrackLen in the interpolation
+      const colorT = hasAnchors
+        ? (backtrackLen + gap) / totalSpan
+        : count <= 1 ? 0 : i / (count - 1);
       out.push({
-        color: colorAt(startColor, endColor, count <= 1 ? 0 : i / (count - 1)),
+        color: colorAt(startColor, endColor, colorT),
         gap,
         len: segLen,
       });
     }
 
     return out;
-  }, [drawn, drawStart, endColor, hasAnchors, startColor, totalLength]);
+  }, [backtrackLen, drawn, endColor, hasAnchors, startColor, totalSpan]);
 
   return (
     <View style={s.wrap}>
@@ -295,6 +292,20 @@ export default function CircuitMap({
             fill={o.fill === 'accent' ? (accentColor ?? startColor) : '#FFFFFF'}
           />
         ))}
+        {/* Backtrack: covers start rect from trailing edge to path end */}
+        {hasAnchors && backtrackLen > 0 && (
+          <Path
+            d={path}
+            fill="none"
+            stroke={startColor}
+            strokeWidth={5}
+            strokeMiterlimit={10}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            strokeDasharray={`0 ${backtrackStart} ${backtrackLen + 0.2} ${totalLength}`}
+          />
+        )}
+        {/* Forward gradient segments */}
         {[...gradientSegments].reverse().map((seg, idx) => (
           <Path
             key={`seg-${idx}`}
