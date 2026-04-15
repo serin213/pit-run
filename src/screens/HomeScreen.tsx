@@ -35,6 +35,7 @@ import type { HomeScreenProps } from '../navigation/types';
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
 const FLAME_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
+const QUALIFYING_TROPHY = require('../../assets/qualifying-card-trophy.png');
 
 // ─── Month navigation arrow paths (세린 연습장 (2)/Vector 1,2.svg) ─────────────
 
@@ -450,7 +451,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return `${Math.round(totalS / 60)}min`;
   }, [paceSec, circuit.distanceKm]);
 
-  const showCircuitCard = paceSec !== null;
+  const showCircuitCard = !!qualifyingResult;
+  const showQualifyingCard = !qualifyingResult;
+
+  // 퀄리파잉 제안 카드 레이아웃 (값 고정)
+  // top:24 + Qualifying(36) + gap20 + subtitle(26*2=52) + gap40 + image(171) + gap32 + CTA(44) + bottom20
+  const qSubtitleTop = 24 + 36 + 20;          // 80
+  const qSubtitleH = Math.round(20 * 1.3) * 2; // 52 (line-height 130%, 2 lines)
+  const qImageTop = qSubtitleTop + qSubtitleH + 40; // 172
+  const qImageW = 200;
+  const qImageH = 171;
+  const qCtaTop = qImageTop + qImageH + 32;   // 375
+  const qCardH = qCtaTop + 44 + 20;           // 439
 
   const tabH = useTabBarTotalHeight();
 
@@ -477,7 +489,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const startBtnW = cardW - 40;
 
   // 스크롤 콘텐츠 높이: 달력 접힘/펼침 상태에 따라 동적으로 계산, 카드 바깥 하단 여백 42px
-  const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + cardH + tabH + 24;
+  const activeCardH = showCircuitCard ? cardH : qCardH;
+  const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -617,6 +630,53 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           >
             <Text style={s.startBtnTxt}>START</Text>
           </Pressable>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* ── 퀄리파잉 제안 카드 (qualifyingResult 없을 때) ── */}
+      {showQualifyingCard && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            left: cardLeft,
+            top: py(258),
+            width: cardW,
+            height: qCardH,
+            borderRadius: 16,
+            transform: [{ translateY: cardTransY }],
+          }}
+        >
+          <Svg key={`q-${svgKey}`} width={cardW} height={qCardH} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              <SvgLG id={`hcbgq_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={qCardH}>
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
+                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+              </SvgLG>
+            </Defs>
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={qCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgq_${idBase}_${svgKey})`} strokeWidth={0.5} />
+          </Svg>
+          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+            <Text style={s.circuitName} numberOfLines={1}>QUALIFYING</Text>
+
+            <Text style={[s.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
+              {'Run 1km first.\nYour interval plan follows.'}
+            </Text>
+
+            <Image
+              source={QUALIFYING_TROPHY}
+              style={{ position: 'absolute', left: (cardW - qImageW) / 2, top: qImageTop, width: qImageW, height: qImageH }}
+              resizeMode="contain"
+            />
+
+            <Pressable
+              style={[s.startBtn, { width: startBtnW, top: qCtaTop }]}
+              onPress={() => navigation.navigate('Qualifying')}
+            >
+              <Text style={s.startBtnTxt}>START</Text>
+            </Pressable>
           </View>
         </Animated.View>
       )}
@@ -782,6 +842,16 @@ const s = StyleSheet.create({
     fontSize: 20,
     lineHeight: 24,
     color: '#FFFFFF',
+    includeFontPadding: false,
+  },
+  qSubtitle: {
+    position: 'absolute',
+    fontFamily: 'Formula1-Regular',
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -2,
+    color: '#FFFFFF',
+    opacity: 0.5,
     includeFontPadding: false,
   },
   startBtn: {
