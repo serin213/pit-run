@@ -15,6 +15,8 @@ export type RootStackParamList = {
   Countdown: undefined;
   Running: undefined;
   Result: undefined;
+  Practice: undefined;
+  PracticeResult: undefined;
 };
 
 export type ProfileSetupScreenProps = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
@@ -31,3 +33,5 @@ export type RunningScreenProps = NativeStackScreenProps<RootStackParamList, 'Run
 export type ResultScreenProps = NativeStackScreenProps<RootStackParamList, 'Result'>;
 export type ProfileScreenProps = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 export type ProfileEditScreenProps = NativeStackScreenProps<RootStackParamList, 'ProfileEdit'>;
+export type PracticeScreenProps = NativeStackScreenProps<RootStackParamList, 'Practice'>;
+export type PracticeResultScreenProps = NativeStackScreenProps<RootStackParamList, 'PracticeResult'>;

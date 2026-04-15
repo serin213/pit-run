@@ -86,7 +86,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => navigation.navigate('Setup')}
+          onPress={() => navigation.navigate('Practice')}
         >
           <Image
             source={STOPWATCH_ICON}
