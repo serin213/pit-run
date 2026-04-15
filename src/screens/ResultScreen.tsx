@@ -21,6 +21,7 @@ import { fmtTime, fmtPace } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
+import { radius } from '../constants/radius';
 
 
 const FASTEST_COLOR = '#8528C5';
@@ -470,7 +471,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16, backgroundColor: 'transparent', overflow: 'hidden' },
             ]}
           >
-            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
             <Text style={styles.sheetTitle}>How was it?</Text>
 
@@ -654,8 +655,9 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: '#202028',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: radius.lg.borderRadius,
+    borderTopRightRadius: radius.lg.borderRadius,
+    borderCurve: radius.lg.borderCurve,
     paddingHorizontal: 20,
     paddingTop: 32,
   },
@@ -718,7 +720,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.13,
   },
   confirmBtn: {
-    borderRadius: 12,
+    ...radius.sm,
     paddingVertical: 16,
     alignItems: 'center',
     backgroundColor: '#34343F',

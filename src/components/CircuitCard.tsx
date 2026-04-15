@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CircuitDefinition } from '../config/circuits';
 import { CARD_FILL } from './GradientCardBorder';
+import { radius } from '../constants/radius';
 
 export type CircuitTagType = 'Sprint' | 'Mixed' | 'Tempo';
 
@@ -27,7 +28,7 @@ const GRID_FIGMA_W = 167;
 const FEATURED_FIGMA_W = 346;
 /** 세로는 디바이스와 무관하게 Figma와 동일 pt로 고정 */
 const CARD_FIXED_HEIGHT = 182;
-const CARD_RADIUS = 16;
+const CARD_RADIUS = radius.sm.borderRadius;
 /** see all 그리드 카드: 트랙 우·하단 여백 (고정 pt, scale 없음) */
 const TRACK_EDGE_INSET_GRID = 18;
 /** Best Match 넓은 카드 */

@@ -32,6 +32,8 @@ export type CircuitDefinition = {
   startRect?: { minX: number; minY: number; maxX: number; maxY: number };
   /** Center of the checker-flag group (SVG coordinates). */
   checkerFlagCenter?: { x: number; y: number };
+  /** Override the auto-detected start length on the track path (SVG path units). */
+  startLenOverride?: number;
 };
 
 const SHANGHAI_TRACK_PATH =

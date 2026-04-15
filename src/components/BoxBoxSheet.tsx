@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import { radius } from '../constants/radius';
 
 interface Props {
   visible: boolean;
@@ -9,6 +10,7 @@ interface Props {
   driverName?: string;
   teamColor?: string;
   mode?: 'boxbox' | 'fullPush';
+  onVisibilityChange?: (visible: boolean) => void;
 }
 
 const BAR_HEIGHTS = [28, 42, 34, 54, 46, 36, 46, 40, 32, 22, 34, 42, 50];
@@ -108,7 +110,7 @@ export default function BoxBoxSheet({
   return (
     <View style={s.root} pointerEvents="box-none">
       <Pressable style={s.overlay} onPress={onClose} />
-      <BlurView intensity={30} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+      <BlurView intensity={10} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
         <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.35)' }}>
           <Text style={[s.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
             {driverName}
@@ -123,12 +125,12 @@ export default function BoxBoxSheet({
                   <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
                 </LinearGradient>
                 <LinearGradient id="fadeLeft" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={fadeWidth} y2="0">
-                  <Stop offset="0%" stopColor="#18181d" stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#18181d" stopOpacity={0} />
+                  <Stop offset="0%" stopColor="#101014" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#101014" stopOpacity={0} />
                 </LinearGradient>
                 <LinearGradient id="fadeRight" gradientUnits="userSpaceOnUse" x1={waveWidth} y1="0" x2={waveWidth - fadeWidth} y2="0">
-                  <Stop offset="0%" stopColor="#18181d" stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#18181d" stopOpacity={0} />
+                  <Stop offset="0%" stopColor="#101014" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#101014" stopOpacity={0} />
                 </LinearGradient>
               </Defs>
               {waveColumns.map((col, idx) => (
@@ -192,7 +194,7 @@ const s = StyleSheet.create({
   sheet: {
     marginHorizontal: 20,
     marginBottom: 26,
-    borderRadius: 24,
+    ...radius.lg,
     overflow: 'hidden',
   },
   driver: {

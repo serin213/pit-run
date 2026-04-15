@@ -18,6 +18,7 @@ import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
 import type { NextRaceScreenProps } from '../navigation/types';
+import { radius } from '../constants/radius';
 
 const H_PAD = 20;
 const CTA_AREA_H = 164;
@@ -95,7 +96,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
         </Text>
 
         {/* ── 서킷 카드 (홈과 동일 구조, 버튼 제외) ── */}
-        <View style={{ width: cardW, height: cardH, borderRadius: 16, marginTop: 36 }}>
+        <View style={{ width: cardW, height: cardH, ...radius.lg, marginTop: 36 }}>
           <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
@@ -105,9 +106,9 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
                 <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
               </SvgLinearGradient>
             </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
           </Svg>
-          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: radius.lg.borderRadius - 0.5, borderCurve: radius.lg.borderCurve, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
 
             <Text style={styles.circuitName} numberOfLines={1} allowFontScaling={false}>
               {circuit.displayName.toUpperCase()}

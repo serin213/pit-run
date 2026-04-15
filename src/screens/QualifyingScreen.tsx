@@ -26,6 +26,7 @@ import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
 import type { QualifyingResult } from '../store/appStore';
 import type { QualifyingScreenProps } from '../navigation/types';
+import { radius } from '../constants/radius';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -287,7 +288,7 @@ type IntroScreenProps = {
 };
 
 function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
-  const cardBorderRadius = 12;
+  const cardBorderRadius = radius.sm.borderRadius;
   const cardPaddingV = 12;
   const cardPaddingHEnd = 18;
   const cardPaddingHStart = 16;
@@ -503,7 +504,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           { borderRadius: modalRadius, transform: [{ translateY: slideAnim }], backgroundColor: 'transparent', overflow: 'hidden' },
         ]}
       >
-        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
         {/* Title — paddingTop:32 은 retireCard에 */}
         <Text style={[st.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
@@ -520,7 +521,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           {/* Continue (left) */}
           <Pressable
             onPress={() => dismiss(onContinue)}
-            style={[st.retireBtn, st.retireContinueBtn, { borderRadius: 12 }]}
+            style={[st.retireBtn, st.retireContinueBtn, radius.sm]}
           >
             <Text style={[st.retireBtnLabel, { color: '#FFFFFF' }]} allowFontScaling={false}>
               Continue
@@ -530,7 +531,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           {/* Retire (right) */}
           <Pressable
             onPress={() => dismiss(onRetire)}
-            style={[st.retireBtn, st.retireRetireBtn, { borderRadius: 12 }]}
+            style={[st.retireBtn, st.retireRetireBtn, radius.sm]}
           >
             <Text style={[st.retireBtnLabel, { color: ACCENT }]} allowFontScaling={false}>
               Retire
@@ -664,8 +665,8 @@ const st = StyleSheet.create({
   },
   ctaBtnWrap: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
   },
 
   // ── Warmup / Qualifying ──
