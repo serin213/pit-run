@@ -21,6 +21,7 @@ import TabBar from '../components/TabBar';
 import { useActiveTab } from './navigationRef';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
+import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -48,6 +49,9 @@ export default function RootNavigator() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // 로그인 시 Supabase 데이터 → 로컬 동기화
+  useSyncOnLogin();
 
   if (isLoading) {
     return (
