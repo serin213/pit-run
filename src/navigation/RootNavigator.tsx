@@ -1,7 +1,8 @@
-import React from 'react';
-import { Platform, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
+import AuthScreen from '../screens/AuthScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
@@ -18,20 +19,34 @@ import RunningScreen from '../screens/RunningScreen';
 import ResultScreen from '../screens/ResultScreen';
 import TabBar from '../components/TabBar';
 import { useActiveTab } from './navigationRef';
+import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /** 웹 미리보기: `npm run web:history` 또는 `EXPO_PUBLIC_WEB_INITIAL=History expo start --web` */
 function getInitialRouteName(): keyof RootStackParamList {
-  if (Platform.OS !== 'web') return 'ProfileSetup';
+  if (Platform.OS !== 'web') return 'Auth';
   const v = process.env.EXPO_PUBLIC_WEB_INITIAL;
   if (v === 'History' || v === 'Home' || v === 'Race' || v === 'Profile') return v;
-  return 'ProfileSetup';
+  return 'Auth';
 }
 
 export default function RootNavigator() {
   const activeTab = useActiveTab();
   const showTabBar = activeTab !== undefined;
+  const { isLoading, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#17171C', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#E03A3E" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -43,6 +58,7 @@ export default function RootNavigator() {
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="Auth" component={AuthScreen} options={{ animation: 'none' }} />
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
         <Stack.Screen
           name="Home"

@@ -26,6 +26,8 @@ import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
 import type { QualifyingResult } from '../types';
 import type { QualifyingScreenProps } from '../navigation/types';
+import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -38,6 +40,8 @@ type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
 export default function QualifyingScreen({ navigation }: QualifyingScreenProps) {
   const { setQualifyingResult } = useAppStore();
+  const { saveResult } = useSupabaseQualifying();
+  const { startSession, endSession } = useSupabaseSession();
   /** GPS 1km — 프로덕션에서 위치 추적 연동 시 갱신 */
   const trialDistKm = 0;
   const { width: windowW } = useWindowDimensions();
@@ -107,6 +111,8 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
     setTrialStartedAt(null);
     setTrialElapsedMs(0);
     setPhase('warmup');
+    // Supabase 세션 시작 (비동기, 실패해도 진행)
+    startSession('qualifying').catch(() => {});
   };
 
   const skipToQualifying = () => {
@@ -121,6 +127,19 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
     const oneKmMs = Math.max(1000, trialElapsedMs);
     const result = buildQualifyingResult(oneKmMs);
     setQualifyingResult(result);
+    // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
+    saveResult({
+      one_km_ms: oneKmMs,
+      pace_sec_per_km: result.paceSecPerKm,
+      grade: result.grade,
+      warmup_minutes: result.warmupMinutes,
+    }).catch(() => {});
+    endSession({
+      status: 'completed',
+      total_dist_km: 1,
+      total_time_ms: oneKmMs,
+      avg_pace_sec_per_km: result.paceSecPerKm,
+    }).catch(() => {});
     navigation.replace('QualifyingPost');
   };
 
@@ -133,6 +152,12 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   };
 
   const executeRetire = () => {
+    // Supabase 세션 포기 기록
+    endSession({
+      status: 'abandoned',
+      total_dist_km: effectiveDistKm,
+      total_time_ms: trialElapsedMs,
+    }).catch(() => {});
     setPhase('intro');
     setWarmupLeftSec(RECOMMENDED_WARMUP_MINUTES * 60);
     setTrialStartedAt(null);

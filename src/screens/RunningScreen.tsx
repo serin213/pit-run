@@ -24,6 +24,7 @@ import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
 import { useAppStore } from '../store/appStore';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 
 const FW = 402;
 const FH = 874;
@@ -59,8 +60,15 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { selectedCircuitId, profile: storeProfile, updatePaceRecord } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
+  const { startSession } = useSupabaseSession();
   const onStop = useCallback(() => navigation.replace('Result'), [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
+
+  // Supabase 세션 시작 (mount 시 1회)
+  useEffect(() => {
+    startSession('grand_prix', selectedCircuitId).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { width: windowW, height: windowH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeTop = useSafeTop();
