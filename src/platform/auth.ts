@@ -7,10 +7,48 @@
  * 이 파일만 교체하면 미니앱 전환 가능
  */
 
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '../api/client';
+
+// ─── Deep link listener for OAuth callback ──────────────────────────────────
+
+/**
+ * 앱 시작 시 1회 호출. Google OAuth redirect URL에서 돌아올 때
+ * Supabase 세션을 자동으로 설정해준다.
+ */
+export function setupDeepLinkListener() {
+  const handleUrl = async (event: { url: string }) => {
+    const url = event.url;
+    if (!url.startsWith('pitrun://auth/callback')) return;
+
+    // Extract tokens from fragment (#access_token=...&refresh_token=...)
+    const fragment = url.split('#')[1];
+    if (!fragment) return;
+
+    const params = new URLSearchParams(fragment);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    }
+  };
+
+  // Listen for incoming links
+  const subscription = Linking.addEventListener('url', handleUrl);
+
+  // Handle cold start (app was closed, opened via URL)
+  Linking.getInitialURL().then((url) => {
+    if (url) handleUrl({ url });
+  });
+
+  return subscription;
+}
 
 // ─── Apple Sign-In (iOS) ────────────────────────────────────────────────────
 
@@ -46,7 +84,6 @@ async function signInWithApple() {
 // ─── Google Sign-In (Android / iOS fallback) ────────────────────────────────
 
 async function signInWithGoogle() {
-  // Google OAuth via Supabase — opens browser-based flow
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -57,8 +94,11 @@ async function signInWithGoogle() {
 
   if (error) throw error;
 
-  // The URL needs to be opened in an in-app browser
-  // This will be handled by the AuthScreen component
+  // Open the auth URL in system browser
+  if (data.url) {
+    await Linking.openURL(data.url);
+  }
+
   return data;
 }
 

@@ -5,6 +5,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 import { getDriverCode } from '../utils/driverCode';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
+import { upsertProfile } from '../api/profiles';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 
 const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF'] as const;
@@ -331,11 +332,14 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             label="MAKE DEBUT"
             enabled={canSubmit}
             onPress={() => {
+              const finalName = toDriverNameCase(trimmedName);
               setProfile({
-                displayName: toDriverNameCase(trimmedName),
+                displayName: finalName,
                 raceNumber: normalizedNumber,
                 nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
               });
+              // Supabase에 프로필 저장 (비동기, 실패해도 로컬은 유지)
+              upsertProfile({ display_name: finalName }).catch(() => {});
               navigation.replace('Home');
             }}
           />

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -14,8 +13,8 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import GradientCtaButton from '../components/GradientCtaButton';
 import { signIn, isAppleAuthAvailable } from '../platform/auth';
+import { useAuthStore } from '../store/authStore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -23,17 +22,24 @@ type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
 export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { width: windowW } = useWindowDimensions();
+  const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hPad = 28;
   const btnW = windowW - hPad * 2;
+
+  // 로그인 성공 시 ProfileSetup으로 이동
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigation.replace('ProfileSetup');
+    }
+  }, [isAuthenticated, navigation]);
 
   const handleSignIn = async (provider: 'apple' | 'google') => {
     try {
       setLoading(true);
       setError(null);
       await signIn(provider);
-      // onAuthStateChange in authStore will handle navigation
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sign in failed';
       setError(msg);

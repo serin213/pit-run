@@ -21,6 +21,7 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { useAppStore } from '../store/appStore';
 import { useTabBarTotalHeight } from '../components/TabBar';
+import { signOut } from '../platform/auth';
 import type { ProfileScreenProps } from '../navigation/types';
 
 // ─── Card SVG path generator ──────────────────────────────────────────────────
@@ -336,6 +337,18 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
       {/* Version */}
       <Text style={[s.version, { top: py(683) }]}>Version {APP_VERSION}</Text>
+
+      {/* Sign Out */}
+      <Pressable
+        style={[s.listRow, { top: py(715) }]}
+        onPress={() => {
+          signOut().then(() => {
+            navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+          }).catch(() => {});
+        }}
+      >
+        <Text style={[s.listLabel, { color: '#E03A3E' }]}>Sign Out</Text>
+      </Pressable>
 
       {/* ── Gradient fade — Defs 없이 Rect 단계별 렌더 ── */}
       <Svg

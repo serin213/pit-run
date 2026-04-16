@@ -20,21 +20,30 @@ import ResultScreen from '../screens/ResultScreen';
 import TabBar from '../components/TabBar';
 import { useActiveTab } from './navigationRef';
 import { useAuthStore } from '../store/authStore';
+import { useAppStore } from '../store/appStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-/** 웹 미리보기: `npm run web:history` 또는 `EXPO_PUBLIC_WEB_INITIAL=History expo start --web` */
-function getInitialRouteName(): keyof RootStackParamList {
-  if (Platform.OS !== 'web') return 'Auth';
-  const v = process.env.EXPO_PUBLIC_WEB_INITIAL;
-  if (v === 'History' || v === 'Home' || v === 'Race' || v === 'Profile') return v;
-  return 'Auth';
+function getInitialRoute(isAuthenticated: boolean, hasProfile: boolean): keyof RootStackParamList {
+  // Web preview override
+  if (Platform.OS === 'web') {
+    const v = process.env.EXPO_PUBLIC_WEB_INITIAL;
+    if (v === 'History' || v === 'Home' || v === 'Race' || v === 'Profile') return v;
+  }
+
+  if (!isAuthenticated) return 'Auth';
+  if (!hasProfile) return 'ProfileSetup';
+  return 'Home';
 }
 
 export default function RootNavigator() {
   const activeTab = useActiveTab();
   const showTabBar = activeTab !== undefined;
-  const { isLoading, initialize } = useAuthStore();
+  const { isLoading, isAuthenticated, initialize } = useAuthStore();
+  const profile = useAppStore((s) => s.profile);
+
+  // 프로필이 설정되었는지 확인 (displayName이 기본값 'LEC'가 아닌 경우)
+  const hasProfile = profile.displayName !== 'LEC' || profile.raceNumber !== '16';
 
   useEffect(() => {
     initialize();
@@ -48,10 +57,12 @@ export default function RootNavigator() {
     );
   }
 
+  const initialRoute = getInitialRoute(isAuthenticated, hasProfile);
+
   return (
     <View style={{ flex: 1 }}>
       <Stack.Navigator
-        initialRouteName={getInitialRouteName()}
+        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#17171C' },
