@@ -1,18 +1,56 @@
 import { create } from 'zustand';
+import { createMMKV } from 'react-native-mmkv';
 import type { TireType } from '../constants/colors';
+import type { QualifyingResult, UserProfile } from '../types';
 
-export type QualifyingResult = {
-  warmupMinutes: number;
-  oneKmMs: number;
-  paceSecPerKm: number;
-  grade: 'A' | 'B' | 'C' | 'D';
-  nextIntervalHint: string;
+// Re-export for backward compatibility — 기존 import 경로 유지용.
+// 신규 코드는 `src/types` 에서 직접 import 해 주세요.
+export type { QualifyingResult, UserProfile };
+
+// ─── MMKV persistence ───────────────────────────────────────────────────────
+
+const storage = createMMKV({ id: 'app-store' });
+
+type PersistedState = {
+  profile: UserProfile;
+  qualifyingResult: QualifyingResult | null;
+  activityDates: string[];
+  totalDistanceKm: number;
+  paceRecords: { bestEver: number; todayBest: number };
+  notificationsEnabled: boolean;
 };
 
-export type UserProfile = {
-  displayName: string;
-  raceNumber: string;
-  nameTagAccentColor: string;
+function loadPersisted(): Partial<PersistedState> {
+  try {
+    const raw = storage.getString('state');
+    if (!raw) return {};
+    return JSON.parse(raw) as Partial<PersistedState>;
+  } catch {
+    return {};
+  }
+}
+
+function persist(state: PersistedState) {
+  try {
+    storage.set('state', JSON.stringify(state));
+  } catch {
+    // storage write failure — ignore
+  }
+}
+
+// ─── Store ──────────────────────────────────────────────────────────────────
+
+const saved = loadPersisted();
+
+const DEFAULT_PROFILE: UserProfile = {
+  displayName: 'LEC',
+  raceNumber: '16',
+  nameTagAccentColor: '#E03A3E',
+};
+
+const DEFAULT_PACE_RECORDS = {
+  bestEver: Number.POSITIVE_INFINITY,
+  todayBest: Number.POSITIVE_INFINITY,
 };
 
 interface AppState {
@@ -41,13 +79,24 @@ interface AppState {
   setNotificationsEnabled: (enabled: boolean) => void;
 }
 
+/** persist할 필드만 추출 */
+function extractPersisted(state: AppState): PersistedState {
+  return {
+    profile: state.profile,
+    qualifyingResult: state.qualifyingResult,
+    activityDates: state.activityDates,
+    totalDistanceKm: state.totalDistanceKm,
+    paceRecords: state.paceRecords,
+    notificationsEnabled: state.notificationsEnabled,
+  };
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
-  profile: {
-    displayName: 'LEC',
-    raceNumber: '16',
-    nameTagAccentColor: '#E03A3E',
+  profile: saved.profile ?? DEFAULT_PROFILE,
+  setProfile: (profile) => {
+    set({ profile });
+    persist(extractPersisted({ ...get(), profile }));
   },
-  setProfile: (profile) => set({ profile }),
 
   selectedCircuitId: null,
   setSelectedCircuitId: (id) => set({ selectedCircuitId: id }),
@@ -55,33 +104,44 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedTire: 'soft',
   setSelectedTire: (tire) => set({ selectedTire: tire }),
 
-  qualifyingResult: null,
-  setQualifyingResult: (result) => set({ qualifyingResult: result }),
-
-  paceRecords: {
-    bestEver: Number.POSITIVE_INFINITY,
-    todayBest: Number.POSITIVE_INFINITY,
+  qualifyingResult: saved.qualifyingResult ?? null,
+  setQualifyingResult: (result) => {
+    set({ qualifyingResult: result });
+    persist(extractPersisted({ ...get(), qualifyingResult: result }));
   },
+
+  paceRecords: saved.paceRecords ?? DEFAULT_PACE_RECORDS,
   updatePaceRecord: (pace) => {
     const prev = get().paceRecords;
     const bestEver = Math.min(prev.bestEver, pace);
     const todayBest = Math.min(prev.todayBest, pace);
     if (bestEver === prev.bestEver && todayBest === prev.todayBest) return;
-    set({ paceRecords: { bestEver, todayBest } });
+    const paceRecords = { bestEver, todayBest };
+    set({ paceRecords });
+    persist(extractPersisted({ ...get(), paceRecords }));
   },
 
-  activityDates: [],
+  activityDates: saved.activityDates ?? [],
   recordActivity: () => {
     const today = new Date().toISOString().slice(0, 10);
     const prev = get().activityDates;
     if (!prev.includes(today)) {
-      set({ activityDates: [...prev, today] });
+      const activityDates = [...prev, today];
+      set({ activityDates });
+      persist(extractPersisted({ ...get(), activityDates }));
     }
   },
 
-  totalDistanceKm: 0,
-  addDistance: (km) => set((state) => ({ totalDistanceKm: state.totalDistanceKm + km })),
+  totalDistanceKm: saved.totalDistanceKm ?? 0,
+  addDistance: (km) => {
+    const totalDistanceKm = get().totalDistanceKm + km;
+    set({ totalDistanceKm });
+    persist(extractPersisted({ ...get(), totalDistanceKm }));
+  },
 
-  notificationsEnabled: true,
-  setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
+  notificationsEnabled: saved.notificationsEnabled ?? true,
+  setNotificationsEnabled: (enabled) => {
+    set({ notificationsEnabled: enabled });
+    persist(extractPersisted({ ...get(), notificationsEnabled: enabled }));
+  },
 }));

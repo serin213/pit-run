@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
+  Auth: undefined;
   ProfileSetup: undefined;
   Home: undefined;
   Race: undefined;
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   PracticeResult: undefined;
 };
 
+export type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 export type ProfileSetupScreenProps = NativeStackScreenProps<RootStackParamList, 'ProfileSetup'>;
 export type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export type RaceScreenProps = NativeStackScreenProps<RootStackParamList, 'Race'>;

@@ -16,9 +16,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "scheme": "pitrun",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.pit-run"
+      "bundleIdentifier": "com.anonymous.pit-run",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +38,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-apple-authentication"
     ]
   }
 }

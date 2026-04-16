@@ -432,7 +432,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         warmupMinutes: 5,
         oneKmMs: 300000,
         paceSecPerKm: 300,
-        grade: 'A',
+        grade: 'f1',
         nextIntervalHint: '4:50/km',
       });
       setDevTestActive(true);

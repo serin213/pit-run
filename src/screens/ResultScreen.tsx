@@ -21,8 +21,8 @@ import { fmtTime, fmtPace } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { radius } from '../constants/radius';
-
 
 const FASTEST_COLOR = '#8528C5';
 const FASTEST_BG = 'rgba(133,40,197,0.15)';
@@ -125,8 +125,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
-  const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
+  const { distKm, elapsedMs, paceHistory, paceS, resetRun } = useRunStore();
   const { selectedCircuitId, recordActivity, addDistance } = useAppStore();
+  const { endSession } = useSupabaseSession();
 
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const circuitLabel = circuit.displayName.toUpperCase();
@@ -219,10 +220,20 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       setShowSheet(false);
       recordActivity();
       addDistance(distKm);
+      // Supabase 세션 완료 저장
+      const avgPace = elapsedMs > 0 && distKm > 0 ? (elapsedMs / 1000) / distKm : null;
+      const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
+      endSession({
+        status: 'completed',
+        total_dist_km: distKm,
+        total_time_ms: elapsedMs,
+        avg_pace_sec_per_km: avgPace,
+        best_pace_sec_per_km: bestPace,
+      }).catch(() => {});
       resetRun();
       navigation.navigate('Home');
     });
-  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, navigation]);
+  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs, paceHistory, endSession, navigation]);
 
   const sheetTranslateY = sheetAnim.interpolate({
     inputRange: [0, 1],
