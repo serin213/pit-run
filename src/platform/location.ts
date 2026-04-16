@@ -9,6 +9,8 @@
 
 import * as Location from 'expo-location';
 
+export { haversineKm } from '../core/pace';
+
 export type LocationCoords = {
   latitude: number;
   longitude: number;
@@ -68,24 +70,4 @@ export async function getCurrentPosition(): Promise<LocationCoords> {
     accuracy: loc.coords.accuracy,
     speed: loc.coords.speed,
   };
-}
-
-/** 두 좌표 간 거리 (km) */
-export function haversineKm(
-  a: { latitude: number; longitude: number },
-  b: { latitude: number; longitude: number },
-): number {
-  const R = 6371;
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLon = toRad(b.longitude - a.longitude);
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const c =
-    sinDLat * sinDLat +
-    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * sinDLon * sinDLon;
-  return R * 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1 - c));
-}
-
-function toRad(deg: number) {
-  return (deg * Math.PI) / 180;
 }

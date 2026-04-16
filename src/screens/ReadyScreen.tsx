@@ -8,6 +8,7 @@ import GradientCtaButton from '../components/GradientCtaButton';
 import GradientCardBorder from '../components/GradientCardBorder';
 import type { UserProfile, QualifyingResult } from '../types';
 import { GRADE_DISPLAY_NAME } from '../constants/grade';
+import { formatStopwatch } from '../core/pace';
 
 type ReadyScreenProps = {
   circuits: CircuitDefinition[];
@@ -192,10 +193,4 @@ const styles = StyleSheet.create({
   },
 });
 
-function fmtStopwatch(ms: number): string {
-  const total = Math.floor(ms / 10);
-  const cs = total % 100;
-  const sec = Math.floor(total / 100) % 60;
-  const min = Math.floor(total / 6000);
-  return `${min}:${sec < 10 ? '0' : ''}${sec}.${cs < 10 ? '0' : ''}${cs}`;
-}
+const fmtStopwatch = formatStopwatch;

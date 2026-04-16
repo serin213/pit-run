@@ -24,10 +24,11 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
-import type { QualifyingResult } from '../types';
 import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { buildQualifyingResult } from '../core/qualifying';
+import { formatTime } from '../core/pace';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -125,7 +126,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
 
   const finishOneKm = () => {
     const oneKmMs = Math.max(1000, trialElapsedMs);
-    const result = buildQualifyingResult(oneKmMs);
+    const result = buildQualifyingResult(oneKmMs, RECOMMENDED_WARMUP_MINUTES);
     setQualifyingResult(result);
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
     saveResult({
@@ -571,64 +572,12 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
 // Helpers
 // ─────────────────────────────────────────────
 
-function buildQualifyingResult(oneKmMs: number): QualifyingResult {
-  const paceSec = oneKmMs / 1000;
-  if (paceSec <= 240) {
-    return {
-      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
-      oneKmMs,
-      paceSecPerKm: paceSec,
-      grade: 'f1_champion',
-      nextIntervalHint: 'F1 Champion: 400m x 8, recovery 60s, target pace 4:00–4:20/km.',
-    };
-  }
-  if (paceSec <= 270) {
-    return {
-      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
-      oneKmMs,
-      paceSecPerKm: paceSec,
-      grade: 'f1',
-      nextIntervalHint: 'F1: 400m x 6, recovery 90s, target pace 4:45–5:05/km.',
-    };
-  }
-  if (paceSec <= 330) {
-    return {
-      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
-      oneKmMs,
-      paceSecPerKm: paceSec,
-      grade: 'f1_rookie',
-      nextIntervalHint: 'F1 Rookie: 400m x 5, recovery 90s, target pace 5:20–5:45/km.',
-    };
-  }
-  if (paceSec <= 390) {
-    return {
-      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
-      oneKmMs,
-      paceSecPerKm: paceSec,
-      grade: 'f2',
-      nextIntervalHint: 'F2: 300m x 5, recovery 90–120s, target pace 6:00–6:35/km.',
-    };
-  }
-  return {
-    warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
-    oneKmMs,
-    paceSecPerKm: paceSec,
-    grade: 'f3',
-    nextIntervalHint: 'F3: 1min run + 1min walk x 10, then repeat qualifying next week.',
-  };
-}
-
 function fmtClock(totalSec: number): string {
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+  return formatTime(totalSec * 1000);
 }
 
 function fmtQualTime(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+  return formatTime(ms);
 }
 
 // ─────────────────────────────────────────────
