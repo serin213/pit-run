@@ -24,7 +24,7 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
-import type { QualifyingResult } from '../store/appStore';
+import type { QualifyingResult } from '../types';
 import type { QualifyingScreenProps } from '../navigation/types';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
@@ -548,13 +548,22 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
 
 function buildQualifyingResult(oneKmMs: number): QualifyingResult {
   const paceSec = oneKmMs / 1000;
+  if (paceSec <= 240) {
+    return {
+      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
+      oneKmMs,
+      paceSecPerKm: paceSec,
+      grade: 'f1_champion',
+      nextIntervalHint: 'F1 Champion: 400m x 8, recovery 60s, target pace 4:00–4:20/km.',
+    };
+  }
   if (paceSec <= 270) {
     return {
       warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
       oneKmMs,
       paceSecPerKm: paceSec,
-      grade: 'A',
-      nextIntervalHint: 'A Grade: 400m x 6, recovery 90s, target pace 4:45–5:05/km.',
+      grade: 'f1',
+      nextIntervalHint: 'F1: 400m x 6, recovery 90s, target pace 4:45–5:05/km.',
     };
   }
   if (paceSec <= 330) {
@@ -562,8 +571,8 @@ function buildQualifyingResult(oneKmMs: number): QualifyingResult {
       warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
       oneKmMs,
       paceSecPerKm: paceSec,
-      grade: 'B',
-      nextIntervalHint: 'B Grade: 400m x 5, recovery 90s, target pace 5:20–5:45/km.',
+      grade: 'f1_rookie',
+      nextIntervalHint: 'F1 Rookie: 400m x 5, recovery 90s, target pace 5:20–5:45/km.',
     };
   }
   if (paceSec <= 390) {
@@ -571,16 +580,16 @@ function buildQualifyingResult(oneKmMs: number): QualifyingResult {
       warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
       oneKmMs,
       paceSecPerKm: paceSec,
-      grade: 'C',
-      nextIntervalHint: 'C Grade: 300m x 5, recovery 90–120s, target pace 6:00–6:35/km.',
+      grade: 'f2',
+      nextIntervalHint: 'F2: 300m x 5, recovery 90–120s, target pace 6:00–6:35/km.',
     };
   }
   return {
     warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
     oneKmMs,
     paceSecPerKm: paceSec,
-    grade: 'D',
-    nextIntervalHint: 'D Grade: 1min run + 1min walk x 10, then repeat qualifying next week.',
+    grade: 'f3',
+    nextIntervalHint: 'F3: 1min run + 1min walk x 10, then repeat qualifying next week.',
   };
 }
 

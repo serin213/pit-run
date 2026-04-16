@@ -6,20 +6,8 @@ import type { CircuitDefinition } from '../config/circuits';
 import SvgButton from '../components/SvgButton';
 import GradientCtaButton from '../components/GradientCtaButton';
 import GradientCardBorder from '../components/GradientCardBorder';
-
-type UserProfile = {
-  displayName: string;
-  raceNumber: string;
-  nameTagAccentColor: string;
-};
-
-type QualifyingResult = {
-  warmupMinutes: number;
-  oneKmMs: number;
-  paceSecPerKm: number;
-  grade: 'A' | 'B' | 'C' | 'D';
-  nextIntervalHint: string;
-};
+import type { UserProfile, QualifyingResult } from '../types';
+import { GRADE_DISPLAY_NAME } from '../constants/grade';
 
 type ReadyScreenProps = {
   circuits: CircuitDefinition[];
@@ -67,7 +55,7 @@ export default function ReadyScreen({
         <Text style={styles.sectionTitle}>QUALIFYING</Text>
         {qualifyingResult ? (
           <>
-            <Text style={styles.userText}>GRADE: {qualifyingResult.grade}</Text>
+            <Text style={styles.userText}>GRADE: {GRADE_DISPLAY_NAME[qualifyingResult.grade]}</Text>
             <Text style={styles.userText}>1KM: {fmtStopwatch(qualifyingResult.oneKmMs)}</Text>
             <Text style={styles.userText}>NEXT: {qualifyingResult.nextIntervalHint}</Text>
           </>
