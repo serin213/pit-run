@@ -31,6 +31,7 @@ import CircuitMini from '../components/CircuitMini';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
+import { radius } from '../constants/radius';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
   ));
 
   return (
-    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={16}>
+    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
       {/* 요일 레이블 (top=16) */}
       {WEEK_LABELS.map((label, col) => (
         <Text key={`wl-${col}`} style={[s.calLabel, { left: colX[col] }]}>
@@ -248,7 +249,7 @@ function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNext }: Mo
   }
 
   return (
-    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={16}>
+    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
       {/* 월 이름 */}
       <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
 
@@ -456,7 +457,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // 퀄리파잉 제안 카드 레이아웃 (값 고정)
   // top:24 + Qualifying(36) + gap20 + subtitle(26*2=52) + gap40 + image(171) + gap32 + CTA(44) + bottom20
-  const qSubtitleTop = 24 + 36 + 20;          // 80
+  const qSubtitleTop = 24 + 36 + 16;          // 76
   const qSubtitleH = Math.round(20 * 1.3) * 2; // 52 (line-height 130%, 2 lines)
   const qImageTop = qSubtitleTop + qSubtitleH + 40; // 172
   const qImageW = 200;
@@ -552,7 +553,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           width: cardW,
           height: calHeightAnim,
           overflow: 'hidden',
-          borderRadius: 16,
+          ...radius.md,
         }}
       >
         {calExpanded ? (
@@ -578,7 +579,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             top: py(258),
             width: cardW,
             height: cardH,
-            borderRadius: 16,
+            ...radius.lg,
             transform: [{ translateY: cardTransY }],
           }}
         >
@@ -591,9 +592,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
               </SvgLG>
             </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
+            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
           </Svg>
-          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: radius.lg.borderRadius - 0.5, borderCurve: radius.lg.borderCurve, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
           <Text style={s.circuitName} numberOfLines={1}>
             {circuit.displayName.toUpperCase()}
           </Text>
@@ -659,7 +660,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={qCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgq_${idBase}_${svgKey})`} strokeWidth={0.5} />
           </Svg>
           <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
-            <Text style={s.circuitName} numberOfLines={1}>QUALIFYING</Text>
+            <Text style={s.circuitName} numberOfLines={1}>Qualifying</Text>
 
             <Text style={[s.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
               {'Run 1km first.\nYour interval plan follows.'}
@@ -756,11 +757,11 @@ const s = StyleSheet.create({
   // 캘린더 카드
   calCard: {
     flex: 1,
-    borderRadius: 16,
+    ...radius.md,
   },
   monthCard: {
     flex: 1,
-    borderRadius: 16,
+    ...radius.md,
   },
   monthTitle: {
     position: 'absolute',
@@ -849,7 +850,7 @@ const s = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -2,
+    letterSpacing: -0.2,
     color: '#FFFFFF',
     opacity: 0.5,
     includeFontPadding: false,

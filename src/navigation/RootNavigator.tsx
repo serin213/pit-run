@@ -17,6 +17,8 @@ import AllCircuitsScreen from '../screens/AllCircuitsScreen';
 import CountdownScreen from '../screens/CountdownScreen';
 import RunningScreen from '../screens/RunningScreen';
 import ResultScreen from '../screens/ResultScreen';
+import PracticeScreen from '../screens/PracticeScreen';
+import PracticeResultScreen from '../screens/PracticeResultScreen';
 import TabBar from '../components/TabBar';
 import { useActiveTab } from './navigationRef';
 import { useAuthStore } from '../store/authStore';
@@ -102,6 +104,16 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Result"
           component={ResultScreen}
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Practice"
+          component={PracticeScreen}
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="PracticeResult"
+          component={PracticeResultScreen}
           options={{ animation: 'fade', gestureEnabled: false }}
         />
       </Stack.Navigator>

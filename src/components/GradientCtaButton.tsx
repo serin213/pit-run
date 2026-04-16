@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 let _ctaBtnId = 0;
 import { Animated, Easing, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { CTA_RADIUS } from '../constants/radius';
 
 type GradientCtaButtonSingleProps = {
   variant?: 'single';
@@ -167,7 +168,7 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
               y="0"
               width={width}
               height={height}
-              rx="12"
+              rx={CTA_RADIUS}
               fill={`url(#${gradientId})`}
               fillOpacity={enabled ? 1 : 0.3}
             />
@@ -292,7 +293,7 @@ function DualSplitCtaRow({
           onPress={onPressLeft}
           onPressIn={() => pulse(leftPress, true)}
           onPressOut={() => pulse(leftPress, false)}
-          style={[dualStyles.halfBtn, dualStyles.pitsBtn, { height, borderRadius: 12 }]}
+          style={[dualStyles.halfBtn, dualStyles.pitsBtn, { height, borderRadius: CTA_RADIUS, borderCurve: 'continuous' }]}
         >
           <Text style={dualStyles.dualLabel} allowFontScaling={false}>
             {leftLabel}
@@ -304,7 +305,7 @@ function DualSplitCtaRow({
           onPress={onPressRight}
           onPressIn={() => pulse(rightPress, true)}
           onPressOut={() => pulse(rightPress, false)}
-          style={[dualStyles.halfBtn, dualStyles.startBtn, { height, borderRadius: 12 }]}
+          style={[dualStyles.halfBtn, dualStyles.startBtn, { height, borderRadius: CTA_RADIUS, borderCurve: 'continuous' }]}
         >
           <Text style={dualStyles.dualLabel} allowFontScaling={false}>
             {rightLabel}

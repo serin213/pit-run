@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimens
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { getDriverCode } from '../utils/driverCode';
+import { radius } from '../constants/radius';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
 import { upsertProfile } from '../api/profiles';
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     height: PREVIEW_CARD_H,
-    borderRadius: 12,
+    ...radius.sm,
   },
   previewCardInner: {
     position: 'absolute',
@@ -477,7 +478,8 @@ const styles = StyleSheet.create({
     left: 1,
     right: 1,
     bottom: 1,
-    borderRadius: 11,
+    ...radius.sm,
+    borderRadius: radius.sm.borderRadius - 1,
     backgroundColor: 'rgba(32,32,40,0.4)',
     paddingHorizontal: 20,
     flexDirection: 'row',
