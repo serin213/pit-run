@@ -6,20 +6,7 @@ import type { CircuitDefinition } from '../config/circuits';
 import SvgButton from '../components/SvgButton';
 import GradientCtaButton from '../components/GradientCtaButton';
 import GradientCardBorder from '../components/GradientCardBorder';
-
-type UserProfile = {
-  displayName: string;
-  raceNumber: string;
-  nameTagAccentColor: string;
-};
-
-type QualifyingResult = {
-  warmupMinutes: number;
-  oneKmMs: number;
-  paceSecPerKm: number;
-  grade: 'A' | 'B' | 'C' | 'D';
-  nextIntervalHint: string;
-};
+import type { UserProfile, QualifyingResult } from '../types';
 
 type ReadyScreenProps = {
   circuits: CircuitDefinition[];

@@ -24,7 +24,7 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
-import type { QualifyingResult } from '../store/appStore';
+import type { QualifyingResult } from '../types';
 import type { QualifyingScreenProps } from '../navigation/types';
 import { radius } from '../constants/radius';
 

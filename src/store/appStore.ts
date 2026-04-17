@@ -1,19 +1,10 @@
 import { create } from 'zustand';
 import type { TireType } from '../constants/colors';
+import type { QualifyingResult, UserProfile } from '../types';
 
-export type QualifyingResult = {
-  warmupMinutes: number;
-  oneKmMs: number;
-  paceSecPerKm: number;
-  grade: 'A' | 'B' | 'C' | 'D';
-  nextIntervalHint: string;
-};
-
-export type UserProfile = {
-  displayName: string;
-  raceNumber: string;
-  nameTagAccentColor: string;
-};
+// Re-export for backward compatibility — 기존 import 경로 유지용.
+// 신규 코드는 `src/types` 에서 직접 import 해 주세요.
+export type { QualifyingResult, UserProfile };
 
 interface AppState {
   profile: UserProfile;
