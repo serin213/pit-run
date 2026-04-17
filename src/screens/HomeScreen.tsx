@@ -32,6 +32,7 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
 import { radius } from '../constants/radius';
+import { useLocationPermission } from '../hooks/useLocationPermission';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -358,6 +359,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
+
+  // 홈 최초 진입 시 위치 권한 요청
+  useLocationPermission({ requestOnMount: true });
 
   const py = useCallback(
     (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS),

@@ -26,6 +26,7 @@ import { useSafeBottom } from '../hooks/useSafeBottom';
 import { CARD_FILL } from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { RaceScreenProps } from '../navigation/types';
+import { useLocationPermission } from '../hooks/useLocationPermission';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
+  const { ensurePermission } = useLocationPermission();
 
   const py = (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS);
 
@@ -86,7 +88,11 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => navigation.navigate('Practice')}
+          onPress={async () => {
+            const granted = await ensurePermission();
+            if (!granted) return;
+            navigation.navigate('Practice');
+          }}
         >
           <Image
             source={STOPWATCH_ICON}

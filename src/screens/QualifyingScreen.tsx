@@ -39,6 +39,7 @@ import {
   type LocationCoords,
   type LocationSubscription,
 } from '../platform/location';
+import { useLocationPermission } from '../hooks/useLocationPermission';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -53,6 +54,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const { setQualifyingResult } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { startSession, endSession } = useSupabaseSession();
+  const { ensurePermission } = useLocationPermission();
   const [trialDistKm, setTrialDistKm] = useState(0);
   const gpsCoordsRef = useRef<LocationCoords | null>(null);
   const gpsSubRef = useRef<LocationSubscription | null>(null);
@@ -149,7 +151,9 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
 
   const effectiveDistKm = __DEV__ ? simDistKm : trialDistKm;
 
-  const startWarmup = () => {
+  const startWarmup = async () => {
+    const granted = await ensurePermission();
+    if (!granted) return;
     setWarmupLeftSec(RECOMMENDED_WARMUP_MINUTES * 60);
     setTrialStartedAt(null);
     setTrialElapsedMs(0);
