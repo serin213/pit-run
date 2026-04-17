@@ -1,13 +1,14 @@
 import React, { useRef } from 'react';
 
 let _ctaBtnId = 0;
-import { Animated, Easing, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Animated, Easing, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from 'react-native';
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { CTA_RADIUS } from '../constants/radius';
 
 type GradientCtaButtonSingleProps = {
   variant?: 'single';
-  width: number;
+  /** 생략 시 windowWidth − 40 (양쪽 20pt 여백) */
+  width?: number;
   label: string;
   enabled: boolean;
   onPress: () => void;
@@ -24,7 +25,8 @@ type GradientCtaButtonSingleProps = {
 /** PITS + START 한 줄 (Figma 987:3121) */
 type GradientCtaButtonDualProps = {
   variant: 'dual';
-  width: number;
+  /** 생략 시 windowWidth − 40 (양쪽 20pt 여백) */
+  width?: number;
   dualLeftLabel?: string;
   dualRightLabel?: string;
   onPressLeft: () => void;
@@ -41,10 +43,13 @@ const GLOW_HEIGHT = 158;
 const GLOW_BOTTOM_OFFSET = -65;
 
 export default function GradientCtaButton(props: GradientCtaButtonProps) {
+  const { width: windowW } = useWindowDimensions();
+  const defaultWidth = windowW - 40;
+
   if (props.variant === 'dual') {
     return (
       <DualSplitCtaRow
-        width={props.width}
+        width={props.width ?? defaultWidth}
         height={props.height}
         gap={props.gap}
         style={props.style}
@@ -57,7 +62,7 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
   }
 
   const {
-    width,
+    width: widthProp,
     label,
     enabled,
     onPress,
@@ -70,6 +75,8 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
     gradientStart = '#E03A3E',
     gradientEnd = '#FF4D51',
   } = props;
+
+  const width = widthProp ?? defaultWidth;
 
   const gradientId = useRef(`gradientCta_${++_ctaBtnId}`).current;
   const glowId = useRef(`gradientCtaGlow_${_ctaBtnId}`).current;

@@ -21,8 +21,10 @@ import { fmtTime, fmtPace } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { useAuthStore } from '../store/authStore';
+import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
-
 
 const FASTEST_COLOR = '#8528C5';
 const FASTEST_BG = 'rgba(133,40,197,0.15)';
@@ -125,8 +127,10 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
-  const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
-  const { selectedCircuitId, recordActivity, addDistance } = useAppStore();
+  const { distKm, elapsedMs, paceHistory, paceS, resetRun } = useRunStore();
+  const { selectedCircuitId, recordActivity, addDistance, currentRaceEventId, setCurrentRaceEventId } = useAppStore();
+  const { endSession } = useSupabaseSession();
+  const { user } = useAuthStore();
 
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const circuitLabel = circuit.displayName.toUpperCase();
@@ -219,10 +223,32 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       setShowSheet(false);
       recordActivity();
       addDistance(distKm);
+      // Supabase 세션 완료 저장
+      const avgPace = elapsedMs > 0 && distKm > 0 ? (elapsedMs / 1000) / distKm : null;
+      const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
+      endSession({
+        status: 'completed',
+        total_dist_km: distKm,
+        total_time_ms: elapsedMs,
+        avg_pace_sec_per_km: avgPace,
+        best_pace_sec_per_km: bestPace,
+      }).catch(() => {});
+      // analytics: race_completed
+      if (user?.id && currentRaceEventId) {
+        logRaceCompleted({
+          raceStartedEventId: currentRaceEventId,
+          userId: user.id,
+          completedReps: 0,
+          actualHardPace: avgPace ?? 0,
+          actualEasyPace: null,
+          totalDurationSec: Math.round(elapsedMs / 1000),
+        }).catch(() => {});
+        setCurrentRaceEventId(null);
+      }
       resetRun();
       navigation.navigate('Home');
     });
-  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, navigation]);
+  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs, paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation]);
 
   const sheetTranslateY = sheetAnim.interpolate({
     inputRange: [0, 1],
@@ -450,7 +476,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         </Svg>
         <View style={{ paddingBottom: safeBottom + 16 }}>
           <GradientCtaButton
-            width={screenW - 56}
             height={58}
             label="Finish Race"
             enabled

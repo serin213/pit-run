@@ -6,6 +6,9 @@ import { getDriverCode } from '../utils/driverCode';
 import { radius } from '../constants/radius';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
+import { upsertProfile } from '../api/profiles';
+import { supabase } from '../api/client';
+import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 
 const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF'] as const;
@@ -332,11 +335,23 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             label="MAKE DEBUT"
             enabled={canSubmit}
             onPress={() => {
+              const finalName = toDriverNameCase(trimmedName);
               setProfile({
-                displayName: toDriverNameCase(trimmedName),
+                displayName: finalName,
                 raceNumber: normalizedNumber,
                 nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
               });
+              // Supabase에 프로필 저장 (비동기, 실패해도 로컬은 유지)
+              upsertProfile({
+                display_name: finalName,
+                race_number: normalizedNumber,
+                accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,
+              }).catch(() => {});
+              supabase.auth.getUser().then(({ data }) => {
+                if (data.user?.id) {
+                  logOnboardingCompleted({ userId: data.user.id }).catch(() => {});
+                }
+              }).catch(() => {});
               navigation.replace('Home');
             }}
           />
@@ -362,8 +377,8 @@ const styles = StyleSheet.create({
   },
   ctaBtnWrap: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
   },
   title: {
     fontSize: 36,

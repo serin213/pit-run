@@ -1,17 +1,64 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  requestForegroundPermission,
+  watchPosition,
+  haversineKm,
+  type LocationCoords,
+  type LocationSubscription,
+} from '../platform/location';
+
+const MIN_ACCURACY_M = 20;
+const MIN_DELTA_KM = 0.002;
+const MAX_DELTA_KM = 0.15;
 
 /**
  * Practice 화면용 거리(km) 트래커.
  *
- * 현재 구현: 시간 경과 기반 시뮬레이션 (RunningScreen과 동일하게 GPS 미연결 상태)
- * 추후 GPS 연결 시 이 훅 내부만 useGPS 결과로 교체하면 됨 — 호출부 수정 불필요.
+ * GPS 권한이 있으면 실측 거리 사용.
+ * 권한 없거나 GPS 불가 시 시간 기반 시뮬레이션 폴백.
  */
 export function usePracticeDistance(paused: boolean): number {
   const [distKm, setDistKm] = useState(0);
+  const [gpsActive, setGpsActive] = useState(false);
+  const prevCoordsRef = useRef<LocationCoords | null>(null);
   const lastTickRef = useRef<number | null>(null);
 
+  // GPS 추적
   useEffect(() => {
     if (paused) {
+      prevCoordsRef.current = null;
+      return;
+    }
+
+    let sub: LocationSubscription | null = null;
+
+    (async () => {
+      const granted = await requestForegroundPermission();
+      if (!granted) return;
+
+      setGpsActive(true);
+
+      sub = await watchPosition((coords) => {
+        if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) return;
+
+        if (prevCoordsRef.current) {
+          const dist = haversineKm(prevCoordsRef.current, coords);
+          if (dist >= MIN_DELTA_KM && dist <= MAX_DELTA_KM) {
+            setDistKm((prev) => prev + dist);
+          }
+        }
+        prevCoordsRef.current = coords;
+      });
+    })();
+
+    return () => {
+      sub?.remove();
+    };
+  }, [paused]);
+
+  // 시뮬레이션 폴백 (GPS 미연결 시)
+  useEffect(() => {
+    if (paused || gpsActive) {
       lastTickRef.current = null;
       return;
     }
@@ -25,7 +72,7 @@ export function usePracticeDistance(paused: boolean): number {
       setDistKm((prev) => prev + dtSec / 300);
     }, 100);
     return () => clearInterval(id);
-  }, [paused]);
+  }, [paused, gpsActive]);
 
   return distKm;
 }

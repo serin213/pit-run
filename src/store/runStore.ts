@@ -32,6 +32,9 @@ interface RunState {
   boxBoxActive: boolean;
   pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush';
 
+  // GPS
+  gpsEnabled: boolean;
+
   // 액션
   startRun: () => void;
   pauseRun: () => void;
@@ -39,6 +42,9 @@ interface RunState {
   stopRun: () => void;
   resetRun: () => void;
   tick: (dtMs: number) => void;
+  /** GPS 실측 거리 추가 (km). tick()의 시뮬레이션 거리 대신 사용. */
+  addGpsDistance: (km: number) => void;
+  setGpsEnabled: (enabled: boolean) => void;
   setSector: (sector: SectorColor) => void;
   setTire: (tire: TireType) => void;
   triggerBoxBox: () => void;
@@ -61,6 +67,7 @@ const INITIAL_STATE = {
   tyreLog: [{ tire: 'medium' as TireType, startDist: 0, endDist: 0 }],
   boxBoxActive: false,
   pitPhase: 'none' as const,
+  gpsEnabled: false,
 };
 
 export const useRunStore = create<RunState>((set, get) => ({
@@ -87,10 +94,18 @@ export const useRunStore = create<RunState>((set, get) => ({
     }),
 
   tick: (dtMs: number) => {
-    const { isPaused, paceS, distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog, pitPhase } = get();
+    const { isPaused, paceS, distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog, pitPhase, gpsEnabled } = get();
     if (isPaused) return;
 
-    // 페이스 랜덤 워크
+    const newElapsed = elapsedMs + dtMs;
+
+    // GPS 모드: 시간만 갱신, 거리는 addGpsDistance()로 별도 처리
+    if (gpsEnabled) {
+      set({ elapsedMs: newElapsed });
+      return;
+    }
+
+    // 시뮬레이션 모드 (GPS 미연결 시 폴백)
     const isInPit = pitPhase === 'inPit';
     const drift = (Math.random() - 0.5) * (isInPit ? 0.8 : 0.4);
     const minPace = isInPit ? 325 : 265;
@@ -99,7 +114,6 @@ export const useRunStore = create<RunState>((set, get) => ({
 
     const dKm = dtMs / (newPace * 1000);
     const newDist = distKm + dKm;
-    const newElapsed = elapsedMs + dtMs;
     const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
 
     // 페이스 기록 (500m마다)
@@ -129,6 +143,46 @@ export const useRunStore = create<RunState>((set, get) => ({
       tyreLog: newTyreLog,
     });
   },
+
+  addGpsDistance: (km: number) => {
+    const { distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog } = get();
+    if (km <= 0) return;
+
+    const newDist = distKm + km;
+    const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
+
+    // GPS 실측 페이스 계산: 최근 tick 시간 기준
+    // elapsedMs > 0이고 distKm > 0이면 현재 평균 페이스 계산
+    const newPace = newDist > 0 ? elapsedMs / 1000 / newDist : BASE_PACE_S;
+
+    // 페이스 기록 (500m마다)
+    let newHistory = paceHistory;
+    let newLastRecord = lastRecordDist;
+    if (newDist - lastRecordDist >= PACE_RECORD_INTERVAL_KM) {
+      newHistory = [...paceHistory, newPace].slice(-20);
+      newLastRecord = newDist;
+    }
+
+    // tyreLog 업데이트
+    const newTyreLog = [...tyreLog];
+    if (newTyreLog.length > 0) {
+      newTyreLog[newTyreLog.length - 1] = {
+        ...newTyreLog[newTyreLog.length - 1],
+        endDist: newDist,
+      };
+    }
+
+    set({
+      paceS: newPace,
+      distKm: newDist,
+      prog: newProg,
+      paceHistory: newHistory,
+      lastRecordDist: newLastRecord,
+      tyreLog: newTyreLog,
+    });
+  },
+
+  setGpsEnabled: (enabled) => set({ gpsEnabled: enabled }),
 
   setSector: (sector) => set({ sector }),
 

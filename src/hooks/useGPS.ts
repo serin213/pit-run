@@ -1,66 +1,64 @@
 import { useEffect, useRef } from 'react';
-import * as Location from 'expo-location';
 import { useRunStore } from '../store/runStore';
+import {
+  requestForegroundPermission,
+  watchPosition,
+  haversineKm,
+  type LocationCoords,
+  type LocationSubscription,
+} from '../platform/location';
 
-const LOCATION_TASK = 'background-location-task';
+/** GPS 위치 → 거리 필터링 상수 */
+const MIN_ACCURACY_M = 20; // accuracy > 20m인 좌표는 무시
+const MIN_DELTA_KM = 0.002; // 2m 미만 이동은 무시 (노이즈 방지)
+const MAX_DELTA_KM = 0.15; // 150m 초과 점프는 무시 (GPS 튐 방지)
 
 /**
  * GPS 위치 추적 훅
- * 실제 앱에서는 시뮬레이션 tick 대신 이 훅이 distKm을 업데이트
- * 개발 시뮬레이터에서는 시뮬레이션 모드 사용
+ * platform/location.ts 추상화를 통해 위치 데이터를 받고
+ * runStore.addGpsDistance()로 실측 거리를 반영.
  */
 export function useGPS(enabled: boolean) {
-  const prevLocationRef = useRef<Location.LocationObject | null>(null);
-  const { isRunning, isPaused } = useRunStore();
+  const prevCoordsRef = useRef<LocationCoords | null>(null);
+  const { isRunning, isPaused, setGpsEnabled } = useRunStore();
 
   useEffect(() => {
-    if (!enabled || !isRunning || isPaused) return;
+    if (!enabled || !isRunning || isPaused) {
+      return;
+    }
 
-    let sub: Location.LocationSubscription | null = null;
+    let sub: LocationSubscription | null = null;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      const granted = await requestForegroundPermission();
+      if (!granted) return;
 
-      sub = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
-          distanceInterval: 1,
-        },
-        (location) => {
-          if (prevLocationRef.current) {
-            const dist = haversineKm(
-              prevLocationRef.current.coords,
-              location.coords,
-            );
-            // TODO: useRunStore에 addGpsDistance 액션 추가 후 연결
-            // useRunStore.getState().addGpsDistance(dist);
+      setGpsEnabled(true);
+
+      sub = await watchPosition((coords) => {
+        // 정확도 낮은 좌표 무시
+        if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) return;
+
+        if (prevCoordsRef.current) {
+          const dist = haversineKm(prevCoordsRef.current, coords);
+          // 노이즈/GPS 튐 필터링
+          if (dist >= MIN_DELTA_KM && dist <= MAX_DELTA_KM) {
+            useRunStore.getState().addGpsDistance(dist);
           }
-          prevLocationRef.current = location;
-        },
-      );
+        }
+        prevCoordsRef.current = coords;
+      });
     })();
 
-    return () => { sub?.remove(); };
-  }, [enabled, isRunning, isPaused]);
-}
+    return () => {
+      sub?.remove();
+    };
+  }, [enabled, isRunning, isPaused, setGpsEnabled]);
 
-function haversineKm(
-  a: { latitude: number; longitude: number },
-  b: { latitude: number; longitude: number },
-): number {
-  const R = 6371;
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLon = toRad(b.longitude - a.longitude);
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-  const c =
-    sinDLat * sinDLat +
-    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * sinDLon * sinDLon;
-  return R * 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1 - c));
-}
-
-function toRad(deg: number) {
-  return (deg * Math.PI) / 180;
+  // 러닝 종료 시 GPS 상태 리셋
+  useEffect(() => {
+    if (!isRunning) {
+      prevCoordsRef.current = null;
+    }
+  }, [isRunning]);
 }

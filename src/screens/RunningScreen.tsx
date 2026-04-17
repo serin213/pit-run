@@ -5,6 +5,7 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useRunStore } from '../store/runStore';
 import { useDistanceDisplayFont } from '../hooks/useDistanceDisplayFont';
 import { useRunning } from '../hooks/useRunning';
+import { useGPS } from '../hooks/useGPS';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { getDriverCode, getDriverDisplayName } from '../utils/driverCode';
 import { COLORS } from '../constants/colors';
@@ -23,7 +24,10 @@ import CircuitMap, {
 import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
 import { useAppStore } from '../store/appStore';
+import { useAuthStore } from '../store/authStore';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 
 const FW = 402;
 const FH = 874;
@@ -56,11 +60,19 @@ const IN_PIT_PAUSE_BUTTON = require('../../assets/control-buttons/inpit-pause.pn
 
 
 export default function RunningScreen({ navigation }: NavRunningScreenProps) {
-  const { selectedCircuitId, profile: storeProfile, updatePaceRecord } = useAppStore();
+  const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
+  const { startSession } = useSupabaseSession();
+  const { user } = useAuthStore();
   const onStop = useCallback(() => navigation.replace('Result'), [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
+
+  // Supabase 세션 시작 (mount 시 1회)
+  useEffect(() => {
+    startSession('grand_prix', selectedCircuitId).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { width: windowW, height: windowH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeTop = useSafeTop();
@@ -109,6 +121,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const activeCircuit = SHOW_DEBUG_CIRCUIT_SWITCH ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
   useRunning();
+  useGPS(true);
 
   useEffect(() => {
     startRun();
@@ -431,6 +444,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             <Pressable
               onPress={() => {
                 stopRun();
+                if (user?.id && currentRaceEventId) {
+                  logRaceAbandoned({
+                    raceStartedEventId: currentRaceEventId,
+                    userId: user.id,
+                    abandonedAtRep: 0,
+                    reasonCode: 'user_quit',
+                  }).catch(() => {});
+                }
                 onStop();
               }}
             >

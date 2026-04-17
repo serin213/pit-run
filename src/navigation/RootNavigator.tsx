@@ -1,7 +1,8 @@
-import React from 'react';
-import { Platform, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
+import AuthScreen from '../screens/AuthScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
@@ -20,31 +21,61 @@ import PracticeScreen from '../screens/PracticeScreen';
 import PracticeResultScreen from '../screens/PracticeResultScreen';
 import TabBar from '../components/TabBar';
 import { useActiveTab } from './navigationRef';
+import { useAuthStore } from '../store/authStore';
+import { useAppStore } from '../store/appStore';
+import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-/** 웹 미리보기: `npm run web:history` 또는 `EXPO_PUBLIC_WEB_INITIAL=History expo start --web` */
-function getInitialRouteName(): keyof RootStackParamList {
-  if (Platform.OS !== 'web') return 'ProfileSetup';
-  const v = process.env.EXPO_PUBLIC_WEB_INITIAL;
-  if (v === 'History' || v === 'Home' || v === 'Race' || v === 'Profile') return v;
-  return 'ProfileSetup';
+function getInitialRoute(isAuthenticated: boolean, hasProfile: boolean): keyof RootStackParamList {
+  // Web preview override
+  if (Platform.OS === 'web') {
+    const v = process.env.EXPO_PUBLIC_WEB_INITIAL;
+    if (v === 'History' || v === 'Home' || v === 'Race' || v === 'Profile') return v;
+  }
+
+  if (!isAuthenticated) return 'Auth';
+  if (!hasProfile) return 'ProfileSetup';
+  return 'Home';
 }
 
 export default function RootNavigator() {
   const activeTab = useActiveTab();
   const showTabBar = activeTab !== undefined;
+  const { isLoading, isAuthenticated, initialize } = useAuthStore();
+  const profile = useAppStore((s) => s.profile);
+
+  // 프로필이 설정되었는지 확인 (displayName이 기본값 'LEC'가 아닌 경우)
+  const hasProfile = profile.displayName !== 'LEC' || profile.raceNumber !== '16';
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  // 로그인 시 Supabase 데이터 → 로컬 동기화
+  useSyncOnLogin();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#17171C', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#E03A3E" />
+      </View>
+    );
+  }
+
+  const initialRoute = getInitialRoute(isAuthenticated, hasProfile);
 
   return (
     <View style={{ flex: 1 }}>
       <Stack.Navigator
-        initialRouteName={getInitialRouteName()}
+        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#17171C' },
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="Auth" component={AuthScreen} options={{ animation: 'none' }} />
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
         <Stack.Screen
           name="Home"

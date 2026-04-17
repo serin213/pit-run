@@ -7,6 +7,8 @@ import SvgButton from '../components/SvgButton';
 import GradientCtaButton from '../components/GradientCtaButton';
 import GradientCardBorder from '../components/GradientCardBorder';
 import type { UserProfile, QualifyingResult } from '../types';
+import { GRADE_DISPLAY_NAME } from '../constants/grade';
+import { formatStopwatch } from '../core/pace';
 
 type ReadyScreenProps = {
   circuits: CircuitDefinition[];
@@ -31,7 +33,6 @@ export default function ReadyScreen({
   const hPad = 28;
   const cardContentW = windowW - hPad * 2 - 14 * 2;
   const ctaContainerH = 164;
-  const ctaWidth = windowW - 56; // 28pt margins × 2
   const ctaHeight = 54;
 
   return (
@@ -54,7 +55,7 @@ export default function ReadyScreen({
         <Text style={styles.sectionTitle}>QUALIFYING</Text>
         {qualifyingResult ? (
           <>
-            <Text style={styles.userText}>GRADE: {qualifyingResult.grade}</Text>
+            <Text style={styles.userText}>GRADE: {GRADE_DISPLAY_NAME[qualifyingResult.grade]}</Text>
             <Text style={styles.userText}>1KM: {fmtStopwatch(qualifyingResult.oneKmMs)}</Text>
             <Text style={styles.userText}>NEXT: {qualifyingResult.nextIntervalHint}</Text>
           </>
@@ -112,7 +113,6 @@ export default function ReadyScreen({
         </Svg>
         <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
-            width={ctaWidth}
             height={ctaHeight}
             label="러닝 기록 시작"
             enabled
@@ -186,15 +186,9 @@ const styles = StyleSheet.create({
   },
   ctaBtnWrap: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
   },
 });
 
-function fmtStopwatch(ms: number): string {
-  const total = Math.floor(ms / 10);
-  const cs = total % 100;
-  const sec = Math.floor(total / 100) % 60;
-  const min = Math.floor(total / 6000);
-  return `${min}:${sec < 10 ? '0' : ''}${sec}.${cs < 10 ? '0' : ''}${cs}`;
-}
+const fmtStopwatch = formatStopwatch;

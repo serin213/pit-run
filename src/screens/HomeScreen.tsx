@@ -32,6 +32,9 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
 import { radius } from '../constants/radius';
+import { useLocationPermission } from '../hooks/useLocationPermission';
+import { useAuthStore } from '../store/authStore';
+import { logSessionStarted } from '../lib/analytics/raceEvents';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -359,6 +362,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
+  // 홈 최초 진입 시 위치 권한 요청
+  useLocationPermission({ requestOnMount: true });
+
+  const { user } = useAuthStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        logSessionStarted({ userId: user.id }).catch(() => {});
+      }
+    }, [user?.id]),
+  );
+
   const py = useCallback(
     (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS),
     [safeTop],
@@ -432,7 +448,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         warmupMinutes: 5,
         oneKmMs: 300000,
         paceSecPerKm: 300,
-        grade: 'A',
+        grade: 'f1',
         nextIntervalHint: '4:50/km',
       });
       setDevTestActive(true);
