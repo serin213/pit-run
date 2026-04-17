@@ -3,6 +3,8 @@ import { supabase } from './client';
 export type ProfileRow = {
   user_id: string;
   display_name: string;
+  race_number: string;
+  accent_color: string;
   created_at: string;
   updated_at: string;
 };
@@ -23,6 +25,8 @@ export async function fetchProfile(): Promise<ProfileRow | null> {
 /** 프로필 upsert (회원가입 직후 or 수정) */
 export async function upsertProfile(fields: {
   display_name: string;
+  race_number?: string;
+  accent_color?: string;
 }): Promise<ProfileRow> {
   const userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) throw new Error('Not authenticated');

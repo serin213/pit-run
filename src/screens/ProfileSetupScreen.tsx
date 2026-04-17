@@ -340,7 +340,11 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
               });
               // Supabase에 프로필 저장 (비동기, 실패해도 로컬은 유지)
-              upsertProfile({ display_name: finalName }).catch(() => {});
+              upsertProfile({
+                display_name: finalName,
+                race_number: normalizedNumber,
+                accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,
+              }).catch(() => {});
               navigation.replace('Home');
             }}
           />

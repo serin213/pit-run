@@ -25,8 +25,12 @@ import Svg, {
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { useAppStore } from '../store/appStore';
+import { useAuthStore } from '../store/authStore';
 import { CIRCUITS } from '../config/circuits';
-import { fmtDist, fmtPace } from '../utils/format';
+import { fmtDist, fmtPace, fmtTime } from '../utils/format';
+import { fetchQualifyingHistory } from '../api/qualifying';
+import { fetchSessions } from '../api/sessions';
+import { GRADE_DISPLAY_NAME } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
@@ -76,8 +80,8 @@ type GpRow = {
   circuitId: string;
 };
 
-/** 데모 데이터 — 서버 연동 시 스토어/API로 교체 */
-const MOCK_QUALIFYING: QHistRow[] = [
+/** 데모 데이터 — 비로그인 시 또는 데이터 없을 때 폴백 */
+const FALLBACK_QUALIFYING: QHistRow[] = [
   { iso: '2024-03-25', label: '03.25', paceSec: 318 },
   { iso: '2024-05-26', label: '05.26', paceSec: 312 },
   { iso: '2024-06-30', label: '06.31', paceSec: 329, promotedGrade: 'F2' },
@@ -85,7 +89,7 @@ const MOCK_QUALIFYING: QHistRow[] = [
   { iso: '2025-02-02', label: '02.02', paceSec: 308 },
 ];
 
-const MOCK_GP: GpRow[] = [
+const FALLBACK_GP: GpRow[] = [
   { sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', timeStr: "5'21\"", circuitId: 'monaco' },
 ];
 
@@ -152,6 +156,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
   const totalDistanceKm = useAppStore((s) => s.totalDistanceKm);
+  const { isAuthenticated } = useAuthStore();
 
   const py = (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS);
 
@@ -159,7 +164,75 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   const tabH = useTabBarTotalHeight();
 
-  const sortedQ = useMemo(() => [...MOCK_QUALIFYING].sort((a, b) => a.iso.localeCompare(b.iso)), []);
+  // ─── Supabase 데이터 fetch ────────────────────────────────────────────────
+  const [qualifyingData, setQualifyingData] = useState<QHistRow[]>(FALLBACK_QUALIFYING);
+  const [gpData, setGpData] = useState<GpRow[]>(FALLBACK_GP);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) return;
+
+      (async () => {
+        try {
+          const rows = await fetchQualifyingHistory();
+          if (rows.length > 0) {
+            // 이전 등급과 비교하여 승급 여부 판단
+            const sorted = [...rows].sort(
+              (a, b) => a.recorded_at.localeCompare(b.recorded_at),
+            );
+            let prevGrade: string | null = null;
+            const mapped: QHistRow[] = sorted.map((r) => {
+              const d = new Date(r.recorded_at);
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              const promoted =
+                prevGrade && r.grade !== prevGrade
+                  ? GRADE_DISPLAY_NAME[r.grade]
+                  : undefined;
+              prevGrade = r.grade;
+              return {
+                iso: r.recorded_at.slice(0, 10),
+                label: `${mm}.${dd}`,
+                paceSec: r.pace_sec_per_km,
+                promotedGrade: promoted,
+              };
+            });
+            setQualifyingData(mapped);
+          }
+        } catch (e) {
+          console.warn('[HistoryScreen] qualifying fetch error:', e);
+        }
+
+        try {
+          const sessions = await fetchSessions(50);
+          const gpSessions = sessions.filter(
+            (s) => s.type === 'grand_prix' && s.status === 'completed',
+          );
+          if (gpSessions.length > 0) {
+            const mapped: GpRow[] = gpSessions.map((s) => {
+              const d = new Date(s.started_at);
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const yy = String(d.getFullYear()).slice(2);
+              const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
+              return {
+                sortKey: s.started_at.slice(0, 10),
+                dateDisplay: `${dd}.${mm}.${yy}`,
+                venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
+                timeStr: fmtTime(s.total_time_ms),
+                circuitId: s.circuit_id ?? 'monaco',
+              };
+            });
+            setGpData(mapped);
+          }
+        } catch (e) {
+          console.warn('[HistoryScreen] sessions fetch error:', e);
+        }
+      })();
+    }, [isAuthenticated]),
+  );
+
+  const sortedQ = useMemo(() => [...qualifyingData].sort((a, b) => a.iso.localeCompare(b.iso)), [qualifyingData]);
   const maxCols = useMemo(() => maxFitColumns(contentW, COL_GAP), [contentW]);
   const visibleCount = Math.min(sortedQ.length, maxCols);
   const visible = useMemo(
@@ -218,15 +291,19 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
   const gpSorted = useMemo(
-    () => [...MOCK_GP].sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
-    [],
+    () => [...gpData].sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
+    [gpData],
   );
 
-  const monaco = CIRCUITS.find((c) => c.id === 'monaco') ?? CIRCUITS[0];
-  const circuitVB = monaco.viewBox ?? { width: 337, height: 139 };
   const circuitTargetH = 65;
-  const circuitScale = circuitTargetH / circuitVB.height;
-  const circuitDrawW = circuitVB.width * circuitScale;
+
+  /** GP 카드에 표시할 서킷 정보 lookup */
+  const getCircuitInfo = useCallback((circuitId: string) => {
+    const circuit = CIRCUITS.find((c) => c.id === circuitId) ?? CIRCUITS[0];
+    const vb = circuit.viewBox ?? { width: 337, height: 139 };
+    const scale = circuitTargetH / vb.height;
+    return { circuit, vb, drawW: vb.width * scale };
+  }, []);
 
   const selected = visible[selectedIdx];
   const bubbleCenterX = SIDE_PAD + selectedIdx * (colW + COL_GAP) + colW / 2;
@@ -375,25 +452,28 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         <Text style={[s.sectionTitle, { marginLeft: GP_TITLE_PAD_L, marginTop: 64 }]}>Grand Prix History</Text>
 
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 16, gap: 12 }}>
-          {gpSorted.map((gp) => (
-            <GradientCardBorder key={gp.sortKey} style={s.gpCardOuter} innerStyle={s.gpCardInner}>
-              <View style={s.gpTextCol}>
-                <Text style={s.gpDate}>{gp.dateDisplay}</Text>
-                <Text style={s.gpVenue}>{gp.venue}</Text>
-                <Text style={s.gpTime}>{gp.timeStr}</Text>
-              </View>
-              <View style={[s.gpCircuitWrap, { minWidth: circuitDrawW }]}>
-                <Svg
-                  width={circuitDrawW}
-                  height={circuitTargetH}
-                  viewBox={`0 0 ${circuitVB.width} ${circuitVB.height}`}
-                  style={s.gpCircuitSvg}
-                >
-                  <Path d={monaco.trackPath} stroke="#FFFFFF" strokeWidth={4} fill="none" />
-                </Svg>
-              </View>
-            </GradientCardBorder>
-          ))}
+          {gpSorted.map((gp) => {
+            const { circuit, vb, drawW } = getCircuitInfo(gp.circuitId);
+            return (
+              <GradientCardBorder key={gp.sortKey} style={s.gpCardOuter} innerStyle={s.gpCardInner}>
+                <View style={s.gpTextCol}>
+                  <Text style={s.gpDate}>{gp.dateDisplay}</Text>
+                  <Text style={s.gpVenue}>{gp.venue}</Text>
+                  <Text style={s.gpTime}>{gp.timeStr}</Text>
+                </View>
+                <View style={[s.gpCircuitWrap, { minWidth: drawW }]}>
+                  <Svg
+                    width={drawW}
+                    height={circuitTargetH}
+                    viewBox={`0 0 ${vb.width} ${vb.height}`}
+                    style={s.gpCircuitSvg}
+                  >
+                    <Path d={circuit.trackPath} stroke="#FFFFFF" strokeWidth={4} fill="none" />
+                  </Svg>
+                </View>
+              </GradientCardBorder>
+            );
+          })}
         </View>
       </ScrollView>
 

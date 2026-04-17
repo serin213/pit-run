@@ -28,6 +28,8 @@ import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { buildQualifyingResult } from '../core/qualifying';
+import { generateIntervalPlan } from '../core/intervals';
+import { insertPlan } from '../api/plans';
 import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
 
@@ -135,7 +137,16 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
       pace_sec_per_km: result.paceSecPerKm,
       grade: result.grade,
       warmup_minutes: result.warmupMinutes,
-    }).catch(() => {});
+    })
+      .then((qRow) => {
+        // 퀄리파잉 결과 저장 후 인터벌 플랜도 저장
+        const plan = generateIntervalPlan(result.grade, result.paceSecPerKm);
+        insertPlan({
+          based_on_qualifying_id: qRow?.id ?? null,
+          segments: plan.segments,
+        }).catch(() => {});
+      })
+      .catch(() => {});
     endSession({
       status: 'completed',
       total_dist_km: 1,

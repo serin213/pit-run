@@ -23,15 +23,17 @@ export function useSyncOnLogin() {
         const profile = await fetchProfile();
         if (profile) {
           const current = useAppStore.getState().profile;
-          // Supabase에 display_name이 있고 로컬이 기본값이면 Supabase 우선
-          if (
-            profile.display_name &&
+          const isDefault =
             current.displayName === 'LEC' &&
-            current.raceNumber === '16'
-          ) {
+            current.raceNumber === '16' &&
+            current.nameTagAccentColor === '#E03A3E';
+
+          // Supabase에 프로필이 있고 로컬이 기본값이면 Supabase 우선
+          if (profile.display_name && isDefault) {
             useAppStore.getState().setProfile({
-              ...current,
               displayName: profile.display_name,
+              raceNumber: profile.race_number || current.raceNumber,
+              nameTagAccentColor: profile.accent_color || current.nameTagAccentColor,
             });
           }
         }
