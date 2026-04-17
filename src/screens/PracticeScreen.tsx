@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { usePracticeDistance } from '../hooks/usePracticeDistance';
+import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import type { PracticeScreenProps } from '../navigation/types';
 
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -21,6 +22,13 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
 
   const [isPaused, setIsPaused] = useState(false);
   const distKm = usePracticeDistance(isPaused);
+  const { startSession, endSession } = useSupabaseSession();
+  const startTimeRef = useRef(Date.now());
+
+  useEffect(() => {
+    startSession('practice').catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const timerFontSize = 120;
   const badgeGroupTop = safeTop + 164;
@@ -62,7 +70,14 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
       >
         {isPaused ? (
           <>
-            <Pressable onPress={() => navigation.replace('PracticeResult')}>
+            <Pressable onPress={() => {
+              endSession({
+                status: 'completed',
+                total_dist_km: distKm,
+                total_time_ms: Date.now() - startTimeRef.current,
+              }).catch(() => {});
+              navigation.replace('PracticeResult');
+            }}>
               <Image source={STOP_BUTTON} style={st.controlButton} resizeMode="contain" />
             </Pressable>
             <Pressable onPress={() => setIsPaused(false)}>

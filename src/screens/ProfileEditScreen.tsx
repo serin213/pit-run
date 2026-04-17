@@ -15,6 +15,7 @@ import GradientCtaButton from '../components/GradientCtaButton';
 import BackButton from '../components/BackButton';
 import { getDriverCode } from '../utils/driverCode';
 import { useAppStore } from '../store/appStore';
+import { upsertProfile } from '../api/profiles';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
@@ -349,11 +350,18 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           label="Confirm"
           enabled={canSubmit}
           onPress={() => {
+            const finalName = toDriverNameCase(trimmedName);
+            const finalColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
             setProfile({
-              displayName: toDriverNameCase(trimmedName),
+              displayName: finalName,
               raceNumber: normalizedNumber,
-              nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
+              nameTagAccentColor: finalColor,
             });
+            upsertProfile({
+              display_name: finalName,
+              race_number: normalizedNumber,
+              accent_color: finalColor,
+            }).catch(() => {});
             navigation.goBack();
           }}
         />
