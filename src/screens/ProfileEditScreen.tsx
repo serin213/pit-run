@@ -345,7 +345,6 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           <Rect x={0} y={0} width={windowW} height={ctaContainerH} fill="url(#editFade)" />
         </Svg>
         <GradientCtaButton
-          width={contentWidth}
           height={ctaHeight}
           label="Confirm"
           enabled={canSubmit}
@@ -518,8 +517,8 @@ const s = StyleSheet.create({
   ctaContainer: {
     position: 'absolute',
     bottom: 0,
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
     justifyContent: 'flex-end',
   },
 });

@@ -476,7 +476,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         </Svg>
         <View style={{ paddingBottom: safeBottom + 16 }}>
           <GradientCtaButton
-            width={screenW - 56}
             height={58}
             label="Finish Race"
             enabled

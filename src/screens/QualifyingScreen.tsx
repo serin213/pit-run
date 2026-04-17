@@ -27,8 +27,9 @@ import { useAppStore } from '../store/appStore';
 import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
-import { buildQualifyingResult } from '../core/qualifying';
 import { generateIntervalPlan } from '../core/intervals';
+import { assignGrade } from '../lib/grading/calcGrade';
+import type { QualifyingResult } from '../types';
 import { insertPlan } from '../api/plans';
 import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
@@ -49,6 +50,14 @@ const LICENSE_TROPHY_ICON = require('../../assets/race-trophy.png');
 
 const RECOMMENDED_WARMUP_MINUTES = 5;
 const ACCENT = '#E03A3E';
+
+const GRADE_HINTS: Record<string, string> = {
+  f1_champion: 'F1 Champion: 400m x 8, recovery 60s, target pace 3:20–3:40/km.',
+  f1: 'F1: 400m x 6, recovery 90s, target pace 3:40–4:10/km.',
+  f1_rookie: 'F1 Rookie: 400m x 5, recovery 90s, target pace 4:10–4:45/km.',
+  f2: 'F2: 300m x 5, recovery 90–120s, target pace 4:45–5:45/km.',
+  f3: 'F3: 1min run + 1min walk x 10, then repeat qualifying next week.',
+};
 
 type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
@@ -175,7 +184,15 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
 
   const finishOneKm = () => {
     const oneKmMs = Math.max(1000, trialElapsedMs);
-    const result = buildQualifyingResult(oneKmMs, RECOMMENDED_WARMUP_MINUTES);
+    const paceSecPerKm = oneKmMs / 1000;
+    const gradeAssignment = assignGrade(paceSecPerKm, Date.now());
+    const result: QualifyingResult = {
+      warmupMinutes: RECOMMENDED_WARMUP_MINUTES,
+      oneKmMs,
+      paceSecPerKm,
+      grade: gradeAssignment.grade,
+      nextIntervalHint: GRADE_HINTS[gradeAssignment.grade],
+    };
     setQualifyingResult(result);
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
     saveResult({

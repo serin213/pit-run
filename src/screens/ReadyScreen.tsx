@@ -33,7 +33,6 @@ export default function ReadyScreen({
   const hPad = 28;
   const cardContentW = windowW - hPad * 2 - 14 * 2;
   const ctaContainerH = 164;
-  const ctaWidth = windowW - 56; // 28pt margins × 2
   const ctaHeight = 54;
 
   return (
@@ -114,7 +113,6 @@ export default function ReadyScreen({
         </Svg>
         <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
-            width={ctaWidth}
             height={ctaHeight}
             label="러닝 기록 시작"
             enabled
@@ -188,8 +186,8 @@ const styles = StyleSheet.create({
   },
   ctaBtnWrap: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
   },
 });
 

@@ -377,8 +377,8 @@ const styles = StyleSheet.create({
   },
   ctaBtnWrap: {
     position: 'absolute',
-    left: 28,
-    right: 28,
+    left: 20,
+    right: 20,
   },
   title: {
     fontSize: 36,
