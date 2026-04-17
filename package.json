@@ -9,7 +9,8 @@
     "web": "expo start --web --localhost --port 8081",
     "web:clear": "expo start --web --clear --localhost --port 8081",
     "web:history": "EXPO_PUBLIC_WEB_INITIAL=History expo start --web --localhost --port 8081",
-    "start:native": "expo start --localhost --port 8081"
+    "start:native": "expo start --localhost --port 8081",
+    "test": "vitest run"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.8",
@@ -45,7 +46,8 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "svg-path-commander": "^2.2.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.4"
   },
   "private": true
 }
