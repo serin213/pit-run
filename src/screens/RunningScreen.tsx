@@ -5,6 +5,7 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useRunStore } from '../store/runStore';
 import { useDistanceDisplayFont } from '../hooks/useDistanceDisplayFont';
 import { useRunning } from '../hooks/useRunning';
+import { useGPS } from '../hooks/useGPS';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { getDriverCode, getDriverDisplayName } from '../utils/driverCode';
 import { COLORS } from '../constants/colors';
@@ -117,6 +118,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const activeCircuit = SHOW_DEBUG_CIRCUIT_SWITCH ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
   useRunning();
+  useGPS(true);
 
   useEffect(() => {
     startRun();

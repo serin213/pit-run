@@ -32,6 +32,13 @@ import { generateIntervalPlan } from '../core/intervals';
 import { insertPlan } from '../api/plans';
 import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
+import {
+  requestForegroundPermission,
+  watchPosition,
+  haversineKm,
+  type LocationCoords,
+  type LocationSubscription,
+} from '../platform/location';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -46,8 +53,9 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const { setQualifyingResult } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { startSession, endSession } = useSupabaseSession();
-  /** GPS 1km — 프로덕션에서 위치 추적 연동 시 갱신 */
-  const trialDistKm = 0;
+  const [trialDistKm, setTrialDistKm] = useState(0);
+  const gpsCoordsRef = useRef<LocationCoords | null>(null);
+  const gpsSubRef = useRef<LocationSubscription | null>(null);
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
 
@@ -83,6 +91,37 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
     }, 100);
     return () => clearInterval(timer);
   }, [phase, trialStartedAt]);
+
+  // GPS 추적: qualifying 단계에서만 활성화
+  useEffect(() => {
+    if (phase !== 'qualifying' && phase !== 'retireConfirm') {
+      gpsSubRef.current?.remove();
+      gpsSubRef.current = null;
+      gpsCoordsRef.current = null;
+      return;
+    }
+
+    (async () => {
+      const granted = await requestForegroundPermission();
+      if (!granted) return;
+
+      gpsSubRef.current = await watchPosition((coords) => {
+        if (coords.accuracy != null && coords.accuracy > 20) return;
+        if (gpsCoordsRef.current) {
+          const dist = haversineKm(gpsCoordsRef.current, coords);
+          if (dist >= 0.002 && dist <= 0.15) {
+            setTrialDistKm((prev) => prev + dist);
+          }
+        }
+        gpsCoordsRef.current = coords;
+      });
+    })();
+
+    return () => {
+      gpsSubRef.current?.remove();
+      gpsSubRef.current = null;
+    };
+  }, [phase]);
 
   // Auto-complete when GPS distance reaches 1km
   useEffect(() => {
