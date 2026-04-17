@@ -22,6 +22,8 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { useAuthStore } from '../store/authStore';
+import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
 
 const FASTEST_COLOR = '#8528C5';
@@ -126,8 +128,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const safeBottom = useSafeBottom();
 
   const { distKm, elapsedMs, paceHistory, paceS, resetRun } = useRunStore();
-  const { selectedCircuitId, recordActivity, addDistance } = useAppStore();
+  const { selectedCircuitId, recordActivity, addDistance, currentRaceEventId, setCurrentRaceEventId } = useAppStore();
   const { endSession } = useSupabaseSession();
+  const { user } = useAuthStore();
 
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const circuitLabel = circuit.displayName.toUpperCase();
@@ -230,10 +233,22 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         avg_pace_sec_per_km: avgPace,
         best_pace_sec_per_km: bestPace,
       }).catch(() => {});
+      // analytics: race_completed
+      if (user?.id && currentRaceEventId) {
+        logRaceCompleted({
+          raceStartedEventId: currentRaceEventId,
+          userId: user.id,
+          completedReps: 0,
+          actualHardPace: avgPace ?? 0,
+          actualEasyPace: null,
+          totalDurationSec: Math.round(elapsedMs / 1000),
+        }).catch(() => {});
+        setCurrentRaceEventId(null);
+      }
       resetRun();
       navigation.navigate('Home');
     });
-  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs, paceHistory, endSession, navigation]);
+  }, [sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs, paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation]);
 
   const sheetTranslateY = sheetAnim.interpolate({
     inputRange: [0, 1],

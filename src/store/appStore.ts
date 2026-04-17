@@ -77,6 +77,10 @@ interface AppState {
 
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
+
+  /** 현재 진행 중인 레이스의 analytics eventId. 비지속성(휘발). */
+  currentRaceEventId: string | null;
+  setCurrentRaceEventId: (id: string | null) => void;
 }
 
 /** persist할 필드만 추출 */
@@ -144,4 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ notificationsEnabled: enabled });
     persist(extractPersisted({ ...get(), notificationsEnabled: enabled }));
   },
+
+  currentRaceEventId: null,
+  setCurrentRaceEventId: (id) => set({ currentRaceEventId: id }),
 }));

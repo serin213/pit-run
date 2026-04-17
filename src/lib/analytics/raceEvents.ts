@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Grade, Tire, Program } from '../training/buildProgram';
 
-// ─── Event types ────────────────────────────────────────────────────────────
+// ─── Event types ─────────────────────────────────────────────────────────────
 
 export type RaceStartedEvent = {
   type: 'race_started';
@@ -47,18 +47,64 @@ export type RaceFeedbackEvent = {
   feedback: 'too_easy' | 'just_right' | 'too_hard';
 };
 
+export type SessionStartedEvent = {
+  type: 'session_started';
+  eventId: string;
+  userId: string;
+  timestamp: number;
+};
+
+export type ModeSelectedEvent = {
+  type: 'mode_selected';
+  eventId: string;
+  userId: string;
+  timestamp: number;
+  mode: 'practice' | 'qualifying' | 'grand_prix';
+};
+
+export type QualifyingCompletedEvent = {
+  type: 'qualifying_completed';
+  eventId: string;
+  userId: string;
+  timestamp: number;
+  grade: Grade;
+  paceSecPerKm: number;
+  oneKmMs: number;
+};
+
+export type QualifyingAbandonedEvent = {
+  type: 'qualifying_abandoned';
+  eventId: string;
+  userId: string;
+  timestamp: number;
+  elapsedMs: number;
+  distanceKm: number;
+};
+
+export type OnboardingCompletedEvent = {
+  type: 'onboarding_completed';
+  eventId: string;
+  userId: string;
+  timestamp: number;
+};
+
 export type AnalyticsEvent =
   | RaceStartedEvent
   | RaceCompletedEvent
   | RaceAbandonedEvent
-  | RaceFeedbackEvent;
+  | RaceFeedbackEvent
+  | SessionStartedEvent
+  | ModeSelectedEvent
+  | QualifyingCompletedEvent
+  | QualifyingAbandonedEvent
+  | OnboardingCompletedEvent;
 
-// ─── Queue constants ─────────────────────────────────────────────────────────
+// ─── Queue constants ──────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'pending_events';
 const MAX_QUEUE_SIZE = 1000;
 
-// ─── Internal helper ─────────────────────────────────────────────────────────
+// ─── Internal helper ──────────────────────────────────────────────────────────
 
 async function logEvent(event: AnalyticsEvent): Promise<void> {
   console.log('[ANALYTICS]', JSON.stringify(event));
@@ -70,16 +116,21 @@ async function logEvent(event: AnalyticsEvent): Promise<void> {
     const queue: AnalyticsEvent[] = raw ? (JSON.parse(raw) as AnalyticsEvent[]) : [];
     queue.push(event);
     // 1000개 초과 시 오래된 것부터 drop
-    const trimmed = queue.length > MAX_QUEUE_SIZE ? queue.slice(queue.length - MAX_QUEUE_SIZE) : queue;
+    const trimmed =
+      queue.length > MAX_QUEUE_SIZE
+        ? queue.slice(queue.length - MAX_QUEUE_SIZE)
+        : queue;
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   } catch {
     // storage 실패는 로깅에 영향 주지 않도록 무시
   }
 }
 
-// ─── Exported log functions ──────────────────────────────────────────────────
+// ─── Exported log functions ───────────────────────────────────────────────────
 
-export async function logRaceStarted(params: Omit<RaceStartedEvent, 'type' | 'eventId' | 'timestamp'>): Promise<string> {
+export async function logRaceStarted(
+  params: Omit<RaceStartedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
   const event: RaceStartedEvent = {
     type: 'race_started',
     eventId: randomUUID(),
@@ -90,7 +141,9 @@ export async function logRaceStarted(params: Omit<RaceStartedEvent, 'type' | 'ev
   return event.eventId;
 }
 
-export async function logRaceCompleted(params: Omit<RaceCompletedEvent, 'type' | 'eventId' | 'timestamp'>): Promise<string> {
+export async function logRaceCompleted(
+  params: Omit<RaceCompletedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
   const event: RaceCompletedEvent = {
     type: 'race_completed',
     eventId: randomUUID(),
@@ -101,7 +154,9 @@ export async function logRaceCompleted(params: Omit<RaceCompletedEvent, 'type' |
   return event.eventId;
 }
 
-export async function logRaceAbandoned(params: Omit<RaceAbandonedEvent, 'type' | 'eventId' | 'timestamp'>): Promise<string> {
+export async function logRaceAbandoned(
+  params: Omit<RaceAbandonedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
   const event: RaceAbandonedEvent = {
     type: 'race_abandoned',
     eventId: randomUUID(),
@@ -112,7 +167,9 @@ export async function logRaceAbandoned(params: Omit<RaceAbandonedEvent, 'type' |
   return event.eventId;
 }
 
-export async function logRaceFeedback(params: Omit<RaceFeedbackEvent, 'type' | 'eventId' | 'timestamp'>): Promise<string> {
+export async function logRaceFeedback(
+  params: Omit<RaceFeedbackEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
   const event: RaceFeedbackEvent = {
     type: 'race_feedback',
     eventId: randomUUID(),
@@ -123,7 +180,72 @@ export async function logRaceFeedback(params: Omit<RaceFeedbackEvent, 'type' | '
   return event.eventId;
 }
 
-// ─── Queue management ────────────────────────────────────────────────────────
+export async function logSessionStarted(
+  params: Omit<SessionStartedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
+  const event: SessionStartedEvent = {
+    type: 'session_started',
+    eventId: randomUUID(),
+    timestamp: Date.now(),
+    ...params,
+  };
+  await logEvent(event);
+  return event.eventId;
+}
+
+export async function logModeSelected(
+  params: Omit<ModeSelectedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
+  const event: ModeSelectedEvent = {
+    type: 'mode_selected',
+    eventId: randomUUID(),
+    timestamp: Date.now(),
+    ...params,
+  };
+  await logEvent(event);
+  return event.eventId;
+}
+
+export async function logQualifyingCompleted(
+  params: Omit<QualifyingCompletedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
+  const event: QualifyingCompletedEvent = {
+    type: 'qualifying_completed',
+    eventId: randomUUID(),
+    timestamp: Date.now(),
+    ...params,
+  };
+  await logEvent(event);
+  return event.eventId;
+}
+
+export async function logQualifyingAbandoned(
+  params: Omit<QualifyingAbandonedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
+  const event: QualifyingAbandonedEvent = {
+    type: 'qualifying_abandoned',
+    eventId: randomUUID(),
+    timestamp: Date.now(),
+    ...params,
+  };
+  await logEvent(event);
+  return event.eventId;
+}
+
+export async function logOnboardingCompleted(
+  params: Omit<OnboardingCompletedEvent, 'type' | 'eventId' | 'timestamp'>,
+): Promise<string> {
+  const event: OnboardingCompletedEvent = {
+    type: 'onboarding_completed',
+    eventId: randomUUID(),
+    timestamp: Date.now(),
+    ...params,
+  };
+  await logEvent(event);
+  return event.eventId;
+}
+
+// ─── Queue management ─────────────────────────────────────────────────────────
 
 /** 큐에 쌓인 이벤트 전체 반환 */
 export async function getPendingEvents(): Promise<AnalyticsEvent[]> {

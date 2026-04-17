@@ -27,6 +27,8 @@ import { CARD_FILL } from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { RaceScreenProps } from '../navigation/types';
 import { useLocationPermission } from '../hooks/useLocationPermission';
+import { useAuthStore } from '../store/authStore';
+import { logModeSelected } from '../lib/analytics/raceEvents';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
   const { ensurePermission } = useLocationPermission();
+  const { user } = useAuthStore();
 
   const py = (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS);
 
@@ -91,6 +94,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           onPress={async () => {
             const granted = await ensurePermission();
             if (!granted) return;
+            if (user?.id) logModeSelected({ userId: user.id, mode: 'practice' }).catch(() => {});
             navigation.navigate('Practice');
           }}
         >
@@ -119,7 +123,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => navigation.navigate('Qualifying')}
+          onPress={() => {
+            if (user?.id) logModeSelected({ userId: user.id, mode: 'qualifying' }).catch(() => {});
+            navigation.navigate('Qualifying');
+          }}
         >
           <Image
             source={TROPHY_ICON}
@@ -146,7 +153,10 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         </Svg>
         <Pressable
           style={[s.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => navigation.navigate('Setup')}
+          onPress={() => {
+            if (user?.id) logModeSelected({ userId: user.id, mode: 'grand_prix' }).catch(() => {});
+            navigation.navigate('Setup');
+          }}
         >
           <Image
             source={FLAG_ICON}

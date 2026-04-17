@@ -26,6 +26,9 @@ import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
 import type { SetupScreenProps } from '../navigation/types';
 import { useLocationPermission } from '../hooks/useLocationPermission';
+import { useAuthStore } from '../store/authStore';
+import { buildProgram, type Tire } from '../lib/training/buildProgram';
+import { logRaceStarted } from '../lib/analytics/raceEvents';
 
 const H_PAD = 20;
 const CARD_GAP = 12;
@@ -69,6 +72,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
   const { ensurePermission } = useLocationPermission();
+  const { user } = useAuthStore();
   const {
     setSelectedCircuitId: storeSetCircuit,
     setSelectedTire: storeSetTire,
@@ -465,6 +469,26 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                 if (!granted) return;
                 storeSetTire(selectedTire!);
                 storeSetCircuit(selectedCircuitId!);
+                // race_started 로그: buildProgram으로 프로그램 생성 후 기록
+                if (user?.id && qualifyingResult) {
+                  const circuit = { id: selectedCircuitId!, baseIntervalM: 200, baseReps: 8 };
+                  const appUser = {
+                    trainingBasePace: qualifyingResult.paceSecPerKm,
+                    grade: qualifyingResult.grade,
+                    totalSessionCount: 0,
+                  };
+                  const program = buildProgram(appUser, circuit, selectedTire! as Tire);
+                  logRaceStarted({
+                    userId: user.id,
+                    grade: qualifyingResult.grade,
+                    circuitId: selectedCircuitId!,
+                    tire: selectedTire! as Tire,
+                    cyclePhase: program.cyclePhase,
+                    program,
+                  }).then((eventId) => {
+                    useAppStore.getState().setCurrentRaceEventId(eventId);
+                  }).catch(() => {});
+                }
                 navigation.navigate('Countdown');
               }}
               textButtonType="none"

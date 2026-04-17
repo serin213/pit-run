@@ -40,6 +40,8 @@ import {
   type LocationSubscription,
 } from '../platform/location';
 import { useLocationPermission } from '../hooks/useLocationPermission';
+import { useAuthStore } from '../store/authStore';
+import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -55,6 +57,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const { saveResult } = useSupabaseQualifying();
   const { startSession, endSession } = useSupabaseSession();
   const { ensurePermission } = useLocationPermission();
+  const { user } = useAuthStore();
   const [trialDistKm, setTrialDistKm] = useState(0);
   const gpsCoordsRef = useRef<LocationCoords | null>(null);
   const gpsSubRef = useRef<LocationSubscription | null>(null);
@@ -196,6 +199,14 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
       total_time_ms: oneKmMs,
       avg_pace_sec_per_km: result.paceSecPerKm,
     }).catch(() => {});
+    if (user?.id) {
+      logQualifyingCompleted({
+        userId: user.id,
+        grade: result.grade,
+        paceSecPerKm: result.paceSecPerKm,
+        oneKmMs,
+      }).catch(() => {});
+    }
     navigation.replace('QualifyingPost');
   };
 
@@ -214,6 +225,13 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
       total_dist_km: effectiveDistKm,
       total_time_ms: trialElapsedMs,
     }).catch(() => {});
+    if (user?.id) {
+      logQualifyingAbandoned({
+        userId: user.id,
+        elapsedMs: trialElapsedMs,
+        distanceKm: effectiveDistKm,
+      }).catch(() => {});
+    }
     setPhase('intro');
     setWarmupLeftSec(RECOMMENDED_WARMUP_MINUTES * 60);
     setTrialStartedAt(null);
