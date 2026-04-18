@@ -1,19 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
+  Image,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
-import { formatStopwatch, formatPace } from '../core/pace';
+import { formatPace } from '../core/pace';
 import type { QualifyingPostScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
+
+// ─── Grade text images ────────────────────────────────────────────────────────
+
+type GradeImageInfo = { source: ReturnType<typeof require>; width: number; height: number };
+
+// f3/f2/f1: height 86 (비율 맞춤), f1-rookie/f1-champion: height 116 (비율 맞춤)
+const GRADE_TEXT_IMAGES: Record<QualifyingGrade, GradeImageInfo> = {
+  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width: 157, height: 86 },
+  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 165, height: 86 },
+  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width: 156, height: 86 },
+  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 138, height: 116 },
+  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 207, height: 116 },
+};
 
 // ─── Grade-specific CTA colors ───────────────────────────────────────────────
 
@@ -37,30 +50,31 @@ const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
   f1_champion: require('../../assets/qualifying/lottie/f1-champion.json'),
 };
 
-// 애니메이션 총 124프레임 @ 약 29.97fps ≈ 4140ms
-const ANIM_DURATION_MS = 4200;
-// 텍스트/CTA 페이드인 딜레이
-const TEXT_DELAY_MS = ANIM_DURATION_MS + 200;
-const CTA_DELAY_MS = TEXT_DELAY_MS + 500;
-
 export default function QualifyingPostScreen({ navigation }: QualifyingPostScreenProps) {
-  const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
   const grade = qualifyingResult?.grade ?? 'f3';
   const ctaTheme = CTA_THEME[grade];
+  const gradeImg = GRADE_TEXT_IMAGES[grade];
 
-  const lottieRef = useRef<LottieView>(null);
-  const textOpacity = useRef(new Animated.Value(0)).current;
+  const gradeTextOpacity = useRef(new Animated.Value(0)).current;
+  const statsOpacity = useRef(new Animated.Value(0)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
-  const [animDone, setAnimDone] = useState(false);
+
+  // 글로우 효과(사다리꼴)가 프레임 0에서 시작 → 애니메이션 시작과 동시에 fade in
+  useEffect(() => {
+    Animated.timing(gradeTextOpacity, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleAnimationFinish = () => {
-    setAnimDone(true);
     Animated.sequence([
-      Animated.timing(textOpacity, {
+      Animated.timing(statsOpacity, {
         toValue: 1,
         duration: 400,
         delay: 200,
@@ -76,18 +90,14 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
   };
 
   const timeStr = qualifyingResult
-    ? formatStopwatch(qualifyingResult.oneKmMs)
-    : '--:--';
-  const paceStr = qualifyingResult
-    ? formatPace(qualifyingResult.paceSecPerKm) + '/km'
-    : '--';
+    ? formatPace(qualifyingResult.paceSecPerKm)
+    : `—'——"`;
 
   return (
     <View style={styles.root}>
       {/* Lottie 트로피 애니메이션 */}
       <View style={[styles.lottieWrap, { marginTop: safeTop + 60 }]}>
         <LottieView
-          ref={lottieRef}
           source={LOTTIE_SOURCE[grade]}
           style={styles.lottie}
           autoPlay
@@ -97,25 +107,26 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         />
       </View>
 
-      {/* 성적 텍스트 */}
-      <Animated.View style={[styles.statsWrap, { opacity: textOpacity }]}>
-        <View style={styles.statRow}>
-          <Text style={styles.statLabel}>GLOBAL RANK</Text>
-          <Text style={styles.statValue}>—</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.statRow}>
-          <Text style={styles.statLabel}>TIME</Text>
-          <Text style={styles.statValue}>{timeStr}</Text>
-        </View>
+      {/* 등급 텍스트 이미지 — 글로우 시작 시 fade in */}
+      <Animated.View style={[styles.gradeTextWrap, { marginTop: 20, opacity: gradeTextOpacity }]}>
+        <Image
+          source={gradeImg.source}
+          style={{ width: gradeImg.width, height: gradeImg.height }}
+          resizeMode="contain"
+        />
+      </Animated.View>
+
+      {/* 성적 — 애니메이션 종료 후 fade in */}
+      <Animated.View style={[styles.statsWrap, { opacity: statsOpacity }]}>
+        <Text style={styles.statLabel}>GLOBAL RANK</Text>
+        <Text style={[styles.statValue, { marginTop: 8 }]}>—%</Text>
+        <Text style={[styles.statLabel, { marginTop: 24 }]}>TIME</Text>
+        <Text style={[styles.statValue, { marginTop: 8 }]}>{timeStr}</Text>
       </Animated.View>
 
       {/* CTA */}
       <Animated.View
-        style={[
-          styles.ctaWrap,
-          { bottom: safeBottom + 20, opacity: ctaOpacity },
-        ]}
+        style={[styles.ctaWrap, { bottom: safeBottom + 20, opacity: ctaOpacity }]}
       >
         <GradientCtaButton
           label="To the GRID"
@@ -143,20 +154,12 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 462 / 243,
   },
-  statsWrap: {
-    marginTop: 48,
-    marginHorizontal: 20,
-    gap: 0,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  gradeTextWrap: {
     alignItems: 'center',
-    paddingVertical: 16,
   },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  statsWrap: {
+    marginTop: 28,
+    alignItems: 'center',
   },
   statLabel: {
     fontFamily: 'Formula1-Regular',
@@ -167,8 +170,8 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: 'Formula1-Bold',
-    fontSize: 20,
-    letterSpacing: -0.4,
+    fontSize: 30,
+    letterSpacing: 0,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
