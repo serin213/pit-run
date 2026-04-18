@@ -76,7 +76,7 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
                 total_dist_km: distKm,
                 total_time_ms: Date.now() - startTimeRef.current,
               }).catch(() => {});
-              navigation.replace('PracticeResult');
+              navigation.replace('PracticeResult', { distanceKm: distKm });
             }}>
               <Image source={STOP_BUTTON} style={st.controlButton} resizeMode="contain" />
             </Pressable>

@@ -1,122 +1,115 @@
-import React, { useMemo } from 'react';
-import { BlurView } from 'expo-blur';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import LottieView from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
+import { useSafeBottom } from '../hooks/useSafeBottom';
 import GradientCtaButton from '../components/GradientCtaButton';
-import GradientCardBorder from '../components/GradientCardBorder';
 import { useAppStore } from '../store/appStore';
-import { GRADE_DISPLAY_NAME } from '../constants/grade';
 import { formatStopwatch, formatPace } from '../core/pace';
-import { generateIntervalPlan, type IntervalSegment } from '../core/intervals';
 import type { QualifyingPostScreenProps } from '../navigation/types';
+import type { QualifyingGrade } from '../types';
 
-const H_PAD = 20;
+// ─── Grade-specific Lottie sources ───────────────────────────────────────────
 
-function segmentLabel(seg: IntervalSegment): string {
-  if (seg.type === 'warmup') return 'Warm-up';
-  if (seg.type === 'cooldown') return 'Cool-down';
-  if (seg.type === 'recovery') return 'Recovery';
-  // run
-  if (seg.distanceM) return `Run ${seg.distanceM}m`;
-  if (seg.durationSec) return `Run ${seg.durationSec}s`;
-  return 'Run';
-}
+const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
+  f3:          require('../../assets/qualifying/lottie/f3.json'),
+  f2:          require('../../assets/qualifying/lottie/f2.json'),
+  f1_rookie:   require('../../assets/qualifying/lottie/f1-rookie.json'),
+  f1:          require('../../assets/qualifying/lottie/f1.json'),
+  f1_champion: require('../../assets/qualifying/lottie/f1-champion.json'),
+};
 
-function segmentMeta(seg: IntervalSegment): string {
-  if (seg.durationSec) {
-    const min = Math.floor(seg.durationSec / 60);
-    const sec = seg.durationSec % 60;
-    if (min > 0 && sec > 0) return `${min}m ${sec}s`;
-    if (min > 0) return `${min}min`;
-    return `${sec}s`;
-  }
-  if (seg.targetPaceSecPerKm) return formatPace(seg.targetPaceSecPerKm);
-  return '';
-}
+// 애니메이션 총 124프레임 @ 약 29.97fps ≈ 4140ms
+const ANIM_DURATION_MS = 4200;
+// 텍스트/CTA 페이드인 딜레이
+const TEXT_DELAY_MS = ANIM_DURATION_MS + 200;
+const CTA_DELAY_MS = TEXT_DELAY_MS + 500;
 
 export default function QualifyingPostScreen({ navigation }: QualifyingPostScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
-  const ctaW = windowW - H_PAD * 2;
+  const safeBottom = useSafeBottom();
+
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
+  const grade = qualifyingResult?.grade ?? 'f3';
 
-  const plan = useMemo(() => {
-    if (!qualifyingResult) return null;
-    return generateIntervalPlan(qualifyingResult.grade, qualifyingResult.paceSecPerKm);
-  }, [qualifyingResult]);
+  const lottieRef = useRef<LottieView>(null);
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const ctaOpacity = useRef(new Animated.Value(0)).current;
+  const [animDone, setAnimDone] = useState(false);
 
-  const gradeName = qualifyingResult
-    ? GRADE_DISPLAY_NAME[qualifyingResult.grade]
-    : 'Unranked';
+  const handleAnimationFinish = () => {
+    setAnimDone(true);
+    Animated.sequence([
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 400,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(ctaOpacity, {
+        toValue: 1,
+        duration: 350,
+        delay: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const timeStr = qualifyingResult
+    ? formatStopwatch(qualifyingResult.oneKmMs)
+    : '--:--';
+  const paceStr = qualifyingResult
+    ? formatPace(qualifyingResult.paceSecPerKm) + '/km'
+    : '--';
 
   return (
     <View style={styles.root}>
-      <BlurView intensity={60} tint="dark" style={[styles.topBlur, { height: safeTop }]} pointerEvents="none" />
+      {/* Lottie 트로피 애니메이션 */}
+      <View style={[styles.lottieWrap, { marginTop: safeTop + 60 }]}>
+        <LottieView
+          ref={lottieRef}
+          source={LOTTIE_SOURCE[grade]}
+          style={styles.lottie}
+          autoPlay
+          loop={false}
+          onAnimationFinish={handleAnimationFinish}
+          resizeMode="contain"
+        />
+      </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: safeTop + 80, paddingHorizontal: H_PAD, paddingBottom: 140 }]}
-        showsVerticalScrollIndicator={false}
+      {/* 성적 텍스트 */}
+      <Animated.View style={[styles.statsWrap, { opacity: textOpacity }]}>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>GLOBAL RANK</Text>
+          <Text style={styles.statValue}>—</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>TIME</Text>
+          <Text style={styles.statValue}>{timeStr}</Text>
+        </View>
+      </Animated.View>
+
+      {/* CTA */}
+      <Animated.View
+        style={[
+          styles.ctaWrap,
+          { bottom: safeBottom + 20, opacity: ctaOpacity },
+        ]}
       >
-        <Text style={styles.title} allowFontScaling={false}>
-          License Earned
-        </Text>
-
-        {/* Grade + time card */}
-        <GradientCardBorder style={styles.cardOuter} innerStyle={styles.cardInner}>
-          <Text style={styles.gradeLabel}>GRADE</Text>
-          <Text style={styles.gradeValue} allowFontScaling={false}>
-            {gradeName}
-          </Text>
-          {qualifyingResult && (
-            <>
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>1km Time</Text>
-                <Text style={styles.statValue}>{formatStopwatch(qualifyingResult.oneKmMs)}</Text>
-              </View>
-              <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Pace</Text>
-                <Text style={styles.statValue}>{formatPace(qualifyingResult.paceSecPerKm)}/km</Text>
-              </View>
-            </>
-          )}
-        </GradientCardBorder>
-
-        {/* Interval plan preview */}
-        {plan && (
-          <GradientCardBorder style={styles.cardOuter} innerStyle={styles.cardInner}>
-            <Text style={styles.planTitle}>YOUR INTERVAL PLAN</Text>
-            <Text style={styles.planSubtitle}>
-              {plan.totalSegments} segments based on your grade
-            </Text>
-            <View style={styles.segmentList}>
-              {plan.segments.map((seg, i) => (
-                <View key={i} style={styles.segmentRow}>
-                  <View style={[styles.segmentDot, seg.type === 'run' ? styles.segmentDotRun : styles.segmentDotRest]} />
-                  <Text style={styles.segmentLabel}>{segmentLabel(seg)}</Text>
-                  <Text style={styles.segmentMeta}>{segmentMeta(seg)}</Text>
-                </View>
-              ))}
-            </View>
-          </GradientCardBorder>
-        )}
-
-        {qualifyingResult && (
-          <Text style={styles.hint} allowFontScaling={false}>
-            {qualifyingResult.nextIntervalHint}
-          </Text>
-        )}
-      </ScrollView>
-
-      <View style={[styles.ctaWrap, { paddingHorizontal: H_PAD, bottom: 40 }]}>
         <GradientCtaButton
-          width={ctaW}
-          height={58}
-          label="CONTINUE"
+          label="NEXT RACE"
           enabled
           onPress={() => navigation.replace('NextRace')}
         />
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -126,117 +119,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#17171C',
   },
-  topBlur: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
+  lottieWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  scrollContent: {
-    gap: 20,
+  lottie: {
+    width: '100%',
+    aspectRatio: 462 / 243,
   },
-  title: {
-    fontFamily: 'Formula1-Black',
-    fontSize: 28,
-    lineHeight: 34,
-    color: '#FFFFFF',
-    letterSpacing: 1.4,
-    includeFontPadding: false,
-    marginLeft: 4,
-  },
-  cardOuter: {
-    borderRadius: 14,
-  },
-  cardInner: {
-    padding: 20,
-    gap: 12,
-  },
-  gradeLabel: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    includeFontPadding: false,
-  },
-  gradeValue: {
-    fontFamily: 'Formula1-Black',
-    fontSize: 32,
-    color: '#FFFFFF',
-    letterSpacing: 1,
-    includeFontPadding: false,
+  statsWrap: {
+    marginTop: 48,
+    marginHorizontal: 20,
+    gap: 0,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   statLabel: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: -0.26,
     color: 'rgba(255,255,255,0.5)',
     includeFontPadding: false,
   },
   statValue: {
     fontFamily: 'Formula1-Bold',
-    fontSize: 16,
+    fontSize: 20,
+    letterSpacing: -0.4,
     color: '#FFFFFF',
-    includeFontPadding: false,
-  },
-  planTitle: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 14,
-    color: '#FFFFFF',
-    includeFontPadding: false,
-  },
-  planSubtitle: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    includeFontPadding: false,
-    marginBottom: 4,
-  },
-  segmentList: {
-    gap: 8,
-  },
-  segmentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  segmentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  segmentDotRun: {
-    backgroundColor: '#E03A3E',
-  },
-  segmentDotRest: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  segmentLabel: {
-    flex: 1,
-    fontFamily: 'Formula1-Regular',
-    fontSize: 14,
-    color: '#EAEAEA',
-    includeFontPadding: false,
-  },
-  segmentMeta: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    includeFontPadding: false,
-  },
-  hint: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255,255,255,0.45)',
     includeFontPadding: false,
   },
   ctaWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 20,
+    right: 20,
   },
 });

@@ -1,20 +1,55 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeTop } from '../hooks/useSafeTop';
+import { useSafeBottom } from '../hooks/useSafeBottom';
+import GradientCtaButton from '../components/GradientCtaButton';
 import type { PracticeResultScreenProps } from '../navigation/types';
 
-/**
- * Practice 결과 화면 — 추후 본 결과 UI 구현 전 placeholder.
- */
-export default function PracticeResultScreen({ navigation }: PracticeResultScreenProps) {
+const RACE_FLAG = require('../../assets/practice-race-flag.png');
+
+const CTA_H = 44;
+
+export default function PracticeResultScreen({ navigation, route }: PracticeResultScreenProps) {
+  const { distanceKm } = route.params;
+  const safeTop = useSafeTop();
+  const safeBottom = useSafeBottom();
+  const { width: windowW } = useWindowDimensions();
+
+  const ctaBottom = safeBottom + 20;
+  const flagBottom = ctaBottom + CTA_H + 36;
+
   return (
     <View style={st.container}>
-      <Text style={st.title}>Practice complete</Text>
-      <Pressable
-        style={st.cta}
-        onPress={() => navigation.popToTop()}
-      >
-        <Text style={st.ctaText}>DONE</Text>
-      </Pressable>
+      {/* 거리 + km */}
+      <View style={[st.topContent, { paddingTop: safeTop + 130 }]}>
+        <View style={st.distanceRow}>
+          <Text style={st.distanceNum} allowFontScaling={false}>
+            {distanceKm.toFixed(2)}
+          </Text>
+          <Text style={st.distanceUnit}>km</Text>
+        </View>
+
+        {/* 메시지 */}
+        <Text style={st.message}>
+          {'Good run.\nSee you on track.'}
+        </Text>
+      </View>
+
+      {/* 깃발 이미지 */}
+      <Image
+        source={RACE_FLAG}
+        style={[st.flag, { bottom: flagBottom, right: 24 }]}
+        resizeMode="contain"
+      />
+
+      {/* CTA */}
+      <View style={[st.ctaWrap, { bottom: ctaBottom }]}>
+        <GradientCtaButton
+          label="To the GRID"
+          enabled
+          onPress={() => navigation.popToTop()}
+        />
+      </View>
     </View>
   );
 }
@@ -23,31 +58,49 @@ const st = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    gap: 40,
   },
-  title: {
+  topContent: {
+    paddingLeft: 20,
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  distanceNum: {
+    fontFamily: 'Formula1-Black',
+    fontSize: 100,
+    lineHeight: 100,
+    letterSpacing: 5,
     color: '#FFFFFF',
-    fontFamily: 'Formula1-Bold',
-    fontSize: 28,
-    letterSpacing: -0.56,
     includeFontPadding: false,
   },
-  cta: {
-    width: '100%',
-    height: 58,
-    backgroundColor: '#E03A3E',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaText: {
+  distanceUnit: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 30,
+    lineHeight: 30,
+    letterSpacing: -0.6,
     color: '#FFFFFF',
-    fontFamily: 'Formula1-Bold',
-    fontSize: 18,
-    letterSpacing: -0.36,
+    marginLeft: 8,
+    marginBottom: 4,
     includeFontPadding: false,
+  },
+  message: {
+    marginTop: 24,
+    fontFamily: 'Formula1-Italic',
+    fontSize: 24,
+    lineHeight: 31,
+    letterSpacing: -0.24,
+    color: 'rgba(255,255,255,0.7)',
+    includeFontPadding: false,
+  },
+  flag: {
+    position: 'absolute',
+    width: 206,
+    height: 215,
+  },
+  ctaWrap: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
   },
 });
