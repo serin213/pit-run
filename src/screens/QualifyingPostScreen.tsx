@@ -34,11 +34,11 @@ type GradeImageInfo = {
 // gradeTextMarginTop = 28 − 48 + pad_top_pt
 // statsMarginTop     = 28 − pad_bottom_pt
 const GRADE_TEXT_IMAGES: Record<QualifyingGrade, GradeImageInfo> = {
-  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width:  98.5, height:  54,    gradeTextMarginTop: -20, statsMarginTop: 28 },
-  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 103.8, height:  54,    gradeTextMarginTop: -20, statsMarginTop: 13 },
-  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width:  98,   height:  54,    gradeTextMarginTop: -20, statsMarginTop: 11 },
-  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 136.4, height:  92.51, gradeTextMarginTop: -20, statsMarginTop: 28 },
-  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 205.4, height:  92.69, gradeTextMarginTop: -20, statsMarginTop: 28 },
+  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width:  98.5, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 38 },
+  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 103.8, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 23 },
+  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width:  98,   height:  54,    gradeTextMarginTop: -2, statsMarginTop: 21 },
+  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 136.4, height:  92.51, gradeTextMarginTop: -2, statsMarginTop: 38 },
+  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 205.4, height:  92.69, gradeTextMarginTop: -2, statsMarginTop: 38 },
 };
 
 // ─── Grade-specific CTA colors ───────────────────────────────────────────────
