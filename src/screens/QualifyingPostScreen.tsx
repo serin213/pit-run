@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -64,13 +65,19 @@ const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
   f1_champion: require('../../assets/qualifying/lottie/f1-champion.json'),
 };
 
+const GRADE_ORDER: QualifyingGrade[] = ['f3', 'f2', 'f1', 'f1_rookie', 'f1_champion'];
+const GRADE_LABELS_SHORT: Record<QualifyingGrade, string> = {
+  f3: 'F3', f2: 'F2', f1: 'F1', f1_rookie: 'ROOKIE', f1_champion: 'CHAMP',
+};
+
 export default function QualifyingPostScreen({ navigation }: QualifyingPostScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
-  const grade = qualifyingResult?.grade ?? 'f3';
+  const [devGrade, setDevGrade] = useState<QualifyingGrade | null>(null);
+  const grade = (__DEV__ && devGrade) ? devGrade : (qualifyingResult?.grade ?? 'f3');
   const ctaTheme = CTA_THEME[grade];
   const gradeImg = GRADE_TEXT_IMAGES[grade];
 
@@ -80,12 +87,15 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
 
   // 글로우 효과(사다리꼴)가 프레임 0에서 시작 → 애니메이션 시작과 동시에 fade in
   useEffect(() => {
+    gradeTextOpacity.setValue(0);
+    statsOpacity.setValue(0);
+    ctaOpacity.setValue(0);
     Animated.timing(gradeTextOpacity, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [grade]);
 
   const handleAnimationFinish = () => {
     Animated.sequence([
@@ -110,9 +120,27 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
 
   return (
     <View style={styles.root}>
+      {/* [DEV] 등급 전환 버튼 */}
+      {__DEV__ && (
+        <View style={[styles.devBar, { top: safeTop + 8 }]}>
+          {GRADE_ORDER.map((g) => (
+            <Pressable
+              key={g}
+              onPress={() => setDevGrade(g)}
+              style={[styles.devBtn, grade === g && styles.devBtnActive]}
+            >
+              <Text style={[styles.devBtnText, grade === g && styles.devBtnTextActive]}>
+                {GRADE_LABELS_SHORT[g]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Lottie 트로피 애니메이션 */}
       <View style={[styles.lottieWrap, { marginTop: safeTop + 60 }]}>
         <LottieView
+          key={grade}
           source={LOTTIE_SOURCE[grade]}
           style={styles.lottie}
           autoPlay
@@ -191,8 +219,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   globe: {
-    width: 544,
-    height: 564,
+    width: 620,
+    height: 643,
+  },
+  devBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    zIndex: 99,
+  },
+  devBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  devBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  devBtnText: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    includeFontPadding: false,
+  },
+  devBtnTextActive: {
+    color: '#FFFFFF',
   },
   bottomGradient: {
     position: 'absolute',
