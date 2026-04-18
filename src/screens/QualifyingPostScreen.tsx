@@ -148,11 +148,11 @@ const styles = StyleSheet.create({
   },
   lottieWrap: {
     alignItems: 'center',
-    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
   lottie: {
-    width: '100%',
-    aspectRatio: 462 / 243,
+    width: 462,
+    height: 243,
   },
   gradeTextWrap: {
     alignItems: 'center',
