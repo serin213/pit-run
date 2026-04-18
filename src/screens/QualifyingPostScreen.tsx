@@ -17,15 +17,25 @@ import type { QualifyingGrade } from '../types';
 
 // ─── Grade text images ────────────────────────────────────────────────────────
 
-type GradeImageInfo = { source: ReturnType<typeof require>; width: number; height: number };
+type GradeImageInfo = {
+  source: ReturnType<typeof require>;
+  width: number;
+  height: number;
+  /** Lottie 하단 공백 + PNG 상단 투명 패딩 보정 → trophy bottom ↔ text content top = 28pt */
+  gradeTextMarginTop: number;
+  /** PNG 하단 투명 패딩 보정 → text content bottom ↔ GLOBAL RANK = 28pt */
+  statsMarginTop: number;
+};
 
-// f3/f2/f1: height 86 (비율 맞춤), f1-rookie/f1-champion: height 116 (비율 맞춤)
+// Lottie: center trophy bottom = 195pt, comp height = 243pt → 48pt 하단 공백
+// gradeTextMarginTop = 28 − 48 + pad_top_pt
+// statsMarginTop     = 28 − pad_bottom_pt
 const GRADE_TEXT_IMAGES: Record<QualifyingGrade, GradeImageInfo> = {
-  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width: 157, height: 86 },
-  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 165, height: 86 },
-  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width: 156, height: 86 },
-  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 138, height: 116 },
-  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 207, height: 116 },
+  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width: 157, height: 86,  gradeTextMarginTop: -20, statsMarginTop: 28 },
+  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 165, height: 86,  gradeTextMarginTop: -20, statsMarginTop:  4 },
+  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width: 156, height: 86,  gradeTextMarginTop: -20, statsMarginTop:  0 },
+  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 138, height: 116, gradeTextMarginTop:  -2, statsMarginTop: 22 },
+  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 207, height: 116, gradeTextMarginTop:  -2, statsMarginTop: 23 },
 };
 
 // ─── Grade-specific CTA colors ───────────────────────────────────────────────
@@ -108,7 +118,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       </View>
 
       {/* 등급 텍스트 이미지 — 글로우 시작 시 fade in */}
-      <Animated.View style={[styles.gradeTextWrap, { marginTop: 20, opacity: gradeTextOpacity }]}>
+      <Animated.View style={[styles.gradeTextWrap, { marginTop: gradeImg.gradeTextMarginTop, opacity: gradeTextOpacity }]}>
         <Image
           source={gradeImg.source}
           style={{ width: gradeImg.width, height: gradeImg.height }}
@@ -117,7 +127,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       </Animated.View>
 
       {/* 성적 — 애니메이션 종료 후 fade in */}
-      <Animated.View style={[styles.statsWrap, { opacity: statsOpacity }]}>
+      <Animated.View style={[styles.statsWrap, { marginTop: gradeImg.statsMarginTop, opacity: statsOpacity }]}>
         <Text style={styles.statLabel}>GLOBAL RANK</Text>
         <Text style={[styles.statValue, { marginTop: 8 }]}>—%</Text>
         <Text style={[styles.statLabel, { marginTop: 24 }]}>TIME</Text>
@@ -158,7 +168,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statsWrap: {
-    marginTop: 28,
     alignItems: 'center',
   },
   statLabel: {
