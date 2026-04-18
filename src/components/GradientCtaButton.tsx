@@ -20,6 +20,7 @@ type GradientCtaButtonSingleProps = {
   onPressTextButton?: () => void;
   gradientStart?: string;
   gradientEnd?: string;
+  textColor?: string;
 };
 
 /** PITS + START 한 줄 (Figma 987:3121) */
@@ -74,6 +75,7 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
     onPressTextButton,
     gradientStart = '#E03A3E',
     gradientEnd = '#FF4D51',
+    textColor = '#FFFFFF',
   } = props;
 
   const width = widthProp ?? defaultWidth;
@@ -181,7 +183,7 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
             />
           </Svg>
           <Text
-            style={[styles.btnLabel, { opacity: enabled ? 1 : 0.3 }]}
+            style={[styles.btnLabel, { opacity: enabled ? 1 : 0.3, color: textColor, textShadowColor: textColor }]}
             allowFontScaling={false}
           >
             {label}

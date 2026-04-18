@@ -15,6 +15,18 @@ import { formatStopwatch, formatPace } from '../core/pace';
 import type { QualifyingPostScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 
+// ─── Grade-specific CTA colors ───────────────────────────────────────────────
+
+type CtaTheme = { gradientStart: string; gradientEnd: string; textColor: string };
+
+const CTA_THEME: Record<QualifyingGrade, CtaTheme> = {
+  f3:          { gradientStart: '#E03A3E', gradientEnd: '#FF4D51', textColor: '#FFFFFF' },
+  f2:          { gradientStart: '#FCB827', gradientEnd: '#FFBE35', textColor: '#17171C' },
+  f1_rookie:   { gradientStart: '#59B345', gradientEnd: '#50C736', textColor: '#FFFFFF' },
+  f1:          { gradientStart: '#8528C5', gradientEnd: '#8C29CF', textColor: '#FFFFFF' },
+  f1_champion: { gradientStart: '#E03A3E', gradientEnd: '#FF4D51', textColor: '#FFFFFF' },
+};
+
 // ─── Grade-specific Lottie sources ───────────────────────────────────────────
 
 const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
@@ -38,6 +50,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
 
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
   const grade = qualifyingResult?.grade ?? 'f3';
+  const ctaTheme = CTA_THEME[grade];
 
   const lottieRef = useRef<LottieView>(null);
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -105,9 +118,12 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         ]}
       >
         <GradientCtaButton
-          label="NEXT RACE"
+          label="To the GRID"
           enabled
           onPress={() => navigation.replace('NextRace')}
+          gradientStart={ctaTheme.gradientStart}
+          gradientEnd={ctaTheme.gradientEnd}
+          textColor={ctaTheme.textColor}
         />
       </Animated.View>
     </View>
