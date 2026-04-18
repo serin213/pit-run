@@ -192,6 +192,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
       paceSecPerKm,
       grade: gradeAssignment.grade,
       nextIntervalHint: GRADE_HINTS[gradeAssignment.grade],
+      qualifiedAt: Date.now(),
     };
     setQualifyingResult(result);
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
