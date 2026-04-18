@@ -50,6 +50,8 @@ const CTA_THEME: Record<QualifyingGrade, CtaTheme> = {
   f1_champion: { gradientStart: '#E03A3E', gradientEnd: '#FF4D51', textColor: '#FFFFFF' },
 };
 
+const GLOBE = require('../../assets/qualifying/globe.png');
+
 // ─── Grade-specific Lottie sources ───────────────────────────────────────────
 
 const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
@@ -117,6 +119,14 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         />
       </View>
 
+      {/* Globe 배경 — center trophy bottom(safeTop+60+195) + 12 */}
+      <View
+        style={[styles.globeWrap, { top: safeTop + 267 }]}
+        pointerEvents="none"
+      >
+        <Image source={GLOBE} style={styles.globe} resizeMode="contain" />
+      </View>
+
       {/* 등급 텍스트 이미지 — 글로우 시작 시 fade in */}
       <Animated.View style={[styles.gradeTextWrap, { marginTop: gradeImg.gradeTextMarginTop, opacity: gradeTextOpacity }]}>
         <Image
@@ -163,6 +173,16 @@ const styles = StyleSheet.create({
   lottie: {
     width: 462,
     height: 243,
+  },
+  globeWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  globe: {
+    width: 533,
+    height: 564,
   },
   gradeTextWrap: {
     alignItems: 'center',
