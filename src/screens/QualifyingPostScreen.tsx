@@ -5,7 +5,9 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
@@ -63,6 +65,7 @@ const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
 };
 
 export default function QualifyingPostScreen({ navigation }: QualifyingPostScreenProps) {
+  const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
@@ -124,8 +127,15 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         style={[styles.globeWrap, { top: safeTop + 267 }]}
         pointerEvents="none"
       >
-        <Image source={GLOBE} style={styles.globe} resizeMode="contain" />
+        <Image source={GLOBE} style={styles.globe} resizeMode="contain" opacity={0.5} />
       </View>
+
+      {/* 하단 그라데이션 — globe 하단 페이드 + CTA 배경 */}
+      <LinearGradient
+        colors={['transparent', '#17171C']}
+        style={[styles.bottomGradient, { width: windowW, height: windowH * 0.45, bottom: 0 }]}
+        pointerEvents="none"
+      />
 
       {/* 등급 텍스트 이미지 — 글로우 시작 시 fade in */}
       <Animated.View style={[styles.gradeTextWrap, { marginTop: gradeImg.gradeTextMarginTop, opacity: gradeTextOpacity }]}>
@@ -181,8 +191,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   globe: {
-    width: 533,
+    width: 544,
     height: 564,
+  },
+  bottomGradient: {
+    position: 'absolute',
   },
   gradeTextWrap: {
     alignItems: 'center',
