@@ -658,7 +658,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // 스크롤 콘텐츠 높이: 달력 접힘/펼침 상태에 따라 동적으로 계산, 카드 바깥 하단 여백 42px
   const activeCardH = showCircuitCard ? cardH : showRenewalCard ? renewalCardH : qCardH;
-  const scrollContentH = py(258) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
+  const scrollContentH = py(262) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -743,7 +743,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           style={{
             position: 'absolute',
             left: cardLeft,
-            top: py(258),
+            top: py(262),
             width: cardW,
             height: cardH,
             ...radius.lg,
@@ -815,7 +815,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             style={{
               position: 'absolute',
               left: cardLeft,
-              top: py(258),
+              top: py(262),
               width: cardW,
               height: renewalCardH,
               borderRadius: 16,
@@ -904,7 +904,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           style={{
             position: 'absolute',
             left: cardLeft,
-            top: py(258),
+            top: py(262),
             width: cardW,
             height: qCardH,
             borderRadius: 16,
