@@ -33,6 +33,12 @@ import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder'
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
 import { radius } from '../constants/radius';
+import {
+  MonthGrid,
+  WeekStrip,
+  calcColX,
+  toISO,
+} from '../components/MonthCalendar';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logSessionStarted } from '../lib/analytics/raceEvents';
@@ -46,11 +52,11 @@ const FLAME_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const QUALIFYING_TROPHY = require('../../assets/qualifying-card-trophy.png');
 
 const TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
-  f1_champion: require('../../assets/qualifying/trophy/f1-champion.png'),
-  f1: require('../../assets/qualifying/trophy/f1.png'),
-  f1_rookie: require('../../assets/qualifying/trophy/f1-rookie.png'),
-  f2: require('../../assets/qualifying/trophy/f2.png'),
-  f3: require('../../assets/qualifying/trophy/f3.png'),
+  f1_champion: require('../../assets/f1-champion.png'),
+  f1: require('../../assets/f1.png'),
+  f1_rookie: require('../../assets/f1-rookie.png'),
+  f2: require('../../assets/f2.png'),
+  f3: require('../../assets/f3.png'),
 };
 
 // ─── Grade renewal helpers ────────────────────────────────────────────────────
@@ -97,39 +103,6 @@ function formatGapSec(gapSec: number): string {
   return `${m}'${String(sec).padStart(2, '0')}"`;
 }
 
-// ─── Month navigation arrow paths (세린 연습장 (2)/Vector 1,2.svg) ─────────────
-
-// Vector 2.svg: left arrow ‹  (6×10 viewBox)
-const ARROW_LEFT_PATH =
-  'M4.58582 9L1.29292 5.70711C0.902397 5.31658 0.902398 4.68342 1.29292 4.29289L4.58582 1';
-// Vector 1.svg: right arrow ›  (6×10 viewBox)
-const ARROW_RIGHT_PATH =
-  'M1 1L4.29289 4.29289C4.68342 4.68342 4.68342 5.31658 4.29289 5.70711L1 9';
-
-// ─── Calendar helpers ────────────────────────────────────────────────────────
-
-const WEEK_LABELS = ['M', 'T', 'W', 'T', 'P', 'Q', 'R'];
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-function toISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function getWeekDates(ref: Date): Date[] {
-  const d = new Date(ref);
-  d.setHours(0, 0, 0, 0);
-  const dow = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - dow);
-  return Array.from({ length: 7 }, (_, i) => {
-    const dd = new Date(d);
-    dd.setDate(d.getDate() + i);
-    return dd;
-  });
-}
-
 function calcStreakSet(dates: string[]): Set<string> {
   const set = new Set(dates);
   const result = new Set<string>();
@@ -140,44 +113,6 @@ function calcStreakSet(dates: string[]): Set<string> {
     cur.setDate(cur.getDate() - 1);
   }
   return result;
-}
-
-// colX 동적 계산: M=left 20, R=right 20, 나머지 space-between
-function calcColX(cardW: number): number[] {
-  // step = (cardW - 2*margin - 7*labelW) / 6 gaps + labelW
-  // Simplified: step = (cardW - 64) / 6  (= (R_left - M_left) / 6)
-  const step = (cardW - 64) / 6;
-  return Array.from({ length: 7 }, (_, i) => Math.round(20 + i * step));
-}
-
-// pill 너비: 28px 원과 동일한 좌우 기준 → 단일: 28, 복수: colX[e]-colX[s]+28
-function pillGeometry(colX: number[], startCol: number, endCol: number) {
-  return {
-    left: colX[startCol] - 2,
-    width: colX[endCol] - colX[startCol] + 28,
-  };
-}
-
-// 연속 달린 날 그룹 찾기
-function findRunGroups(
-  cells: (number | null)[],
-  getISO: (d: number) => string,
-  activitySet: Set<string>,
-): { start: number; end: number }[] {
-  const groups: { start: number; end: number }[] = [];
-  let i = 0;
-  while (i < cells.length) {
-    const d = cells[i];
-    if (d && activitySet.has(getISO(d))) {
-      let j = i;
-      while (j < cells.length && cells[j] && activitySet.has(getISO(cells[j]!))) j++;
-      groups.push({ start: i, end: j - 1 });
-      i = j;
-    } else {
-      i++;
-    }
-  }
-  return groups;
 }
 
 // ─── GapRow (퀄리파잉 갱신 카드 프로그레스 섹션) ──────────────────────────────────
@@ -252,229 +187,6 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
       {/* 오른쪽 세로선 */}
       <View style={{ width: 1, height: LINE_H, backgroundColor: nextColor }} />
     </View>
-  );
-}
-
-// ─── GradPill ─────────────────────────────────────────────────────────────────
-
-let _pillId = 0;
-function GradPill({ left, top, width, height }: {
-  left: number; top: number; width: number; height: number;
-}) {
-  const id = useMemo(() => `p${_pillId++}`, []);
-  return (
-    <Svg style={{ position: 'absolute', left, top }} width={width} height={height}>
-      <Defs>
-        <SvgLG id={id} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0%" stopColor="#E03A3E" />
-          <Stop offset="100%" stopColor="#E03A8A" />
-        </SvgLG>
-      </Defs>
-      <Rect
-        x={0.25} y={0.25}
-        width={width - 0.5} height={height - 0.5}
-        rx={14}
-        fill={`url(#${id})`}
-        stroke="rgba(255,255,255,0.2)"
-        strokeWidth={1}
-      />
-    </Svg>
-  );
-}
-
-// ─── WeekStrip ────────────────────────────────────────────────────────────────
-
-type WeekStripProps = {
-  today: string;
-  activitySet: Set<string>;
-  colX: number[];
-};
-
-function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
-  const weekDates = getWeekDates(new Date(today));
-  const isoList = weekDates.map(toISO);
-
-  // 달린 날 그룹 (연속 포함)
-  const runGroups = findRunGroups(
-    weekDates.map((d, i) => i) as number[],
-    (i) => isoList[i],
-    activitySet,
-  );
-
-  const runCols = new Set(runGroups.flatMap((g) =>
-    Array.from({ length: g.end - g.start + 1 }, (_, k) => g.start + k),
-  ));
-
-  return (
-    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
-      {/* 요일 레이블 (top=16) */}
-      {WEEK_LABELS.map((label, col) => (
-        <Text key={`wl-${col}`} style={[s.calLabel, { left: colX[col] }]}>
-          {label}
-        </Text>
-      ))}
-
-      {/* 달리지 않은 날: 28×28 흰 원형 (opacity 0.1) */}
-      {weekDates.map((_, col) => {
-        if (runCols.has(col)) return null;
-        return <View key={`wc-${col}`} style={[s.dayCircle, { left: colX[col] - 2, top: 36 }]} />;
-      })}
-
-      {/* 달린 날: gradient pill (연속 그룹별로 하나) */}
-      {runGroups.map((g, k) => {
-        const { left, width } = pillGeometry(colX, g.start, g.end);
-        return <GradPill key={`wp-${k}`} left={left} top={36} width={width} height={28} />;
-      })}
-
-      {/* 날짜 숫자 */}
-      {weekDates.map((d, col) => {
-        const iso = isoList[col];
-        const isPast = iso <= today;
-        return (
-          <Text
-            key={`wn-${col}`}
-            style={[
-              s.calNum,
-              { left: colX[col] - 2, top: 42 },
-              isPast ? s.calNumPast : s.calNumFuture,
-              runCols.has(col) ? s.calNumRun : null,
-            ]}
-          >
-            {d.getDate()}
-          </Text>
-        );
-      })}
-    </GradientCardBorder>
-  );
-}
-
-// ─── MonthGrid ────────────────────────────────────────────────────────────────
-
-type MonthGridProps = {
-  today: string;
-  activitySet: Set<string>;
-  colX: number[];
-  monthOffset: number;
-  onPrev: () => void;
-  onNext: () => void;
-};
-
-function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNext }: MonthGridProps) {
-  const base = new Date(today);
-  const year = base.getFullYear();
-  const month = base.getMonth() + monthOffset;
-  const refYear = year + Math.floor(month / 12);
-  const refMonth = ((month % 12) + 12) % 12;
-  const daysInMonth = new Date(refYear, refMonth + 1, 0).getDate();
-  const firstDow = (new Date(refYear, refMonth, 1).getDay() + 6) % 7;
-
-  const cells: (number | null)[] = [
-    ...Array(firstDow).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (cells.length < 35) cells.push(null);
-
-  const rows: (number | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
-
-  const ROW_Y = [84, 124, 164, 204, 244];
-
-  function dayISO(d: number) {
-    return `${refYear}-${String(refMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  }
-
-  return (
-    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
-      {/* 월 이름 */}
-      <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
-
-      {/* ‹ 왼쪽 화살표: 박스 좌측에서 24px, April 텍스트 중앙(y=32)과 수직정렬 */}
-      <Pressable onPress={onPrev} hitSlop={14} style={{ position: 'absolute', left: 24, top: 27 }}>
-        <Svg width={6} height={10} viewBox="0 0 6 10">
-          <Path
-            d={ARROW_LEFT_PATH}
-            stroke="white"
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.5}
-          />
-        </Svg>
-      </Pressable>
-
-      {/* › 오른쪽 화살표: April 텍스트에서 8px 간격 */}
-      <Pressable onPress={onNext} hitSlop={14} style={{ position: 'absolute', left: 100, top: 27 }}>
-        <Svg width={6} height={10} viewBox="0 0 6 10">
-          <Path
-            d={ARROW_RIGHT_PATH}
-            stroke="white"
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.5}
-          />
-        </Svg>
-      </Pressable>
-
-      {/* 요일 레이블 (top=64) */}
-      {WEEK_LABELS.map((label, col) => (
-        <Text key={`ml-${col}`} style={[s.calLabel, { left: colX[col], top: 64 }]}>
-          {label}
-        </Text>
-      ))}
-
-      {/* 각 주 행 */}
-      {rows.map((row, ri) => {
-        if (ri >= ROW_Y.length) return null;
-        const ry = ROW_Y[ri];
-
-        // 이 행의 달린 날 그룹
-        const runGroups = findRunGroups(
-          row,
-          (d) => dayISO(d),
-          activitySet,
-        );
-        const runCols = new Set(runGroups.flatMap((g) =>
-          Array.from({ length: g.end - g.start + 1 }, (_, k) => g.start + k),
-        ));
-
-        return (
-          <React.Fragment key={`r-${ri}`}>
-            {/* 달리지 않은 날: 28×28 원형 */}
-            {row.map((d, col) => {
-              if (!d || runCols.has(col)) return null;
-              return <View key={`mc-${ri}-${col}`} style={[s.dayCircle, { left: colX[col] - 2, top: ry }]} />;
-            })}
-
-            {/* 달린 날: gradient pill */}
-            {runGroups.map((g, si) => {
-              const { left, width } = pillGeometry(colX, g.start, g.end);
-              return <GradPill key={`mp-${ri}-${si}`} left={left} top={ry} width={width} height={28} />;
-            })}
-
-            {/* 날짜 숫자 */}
-            {row.map((d, col) => {
-              if (!d) return null;
-              const iso = dayISO(d);
-              const isPast = iso <= today;
-              return (
-                <Text
-                  key={`mn-${ri}-${col}`}
-                  style={[
-                    s.calNum,
-                    { left: colX[col] - 2, top: ry + 6 },
-                    isPast ? s.calNumPast : s.calNumFuture,
-                    runCols.has(col) ? s.calNumRun : null,
-                  ]}
-                >
-                  {d}
-                </Text>
-              );
-            })}
-          </React.Fragment>
-        );
-      })}
-    </GradientCardBorder>
   );
 }
 
@@ -1015,70 +727,6 @@ const s = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 24,
     color: '#FFFFFF',
-  },
-
-  // 캘린더 카드
-  calCard: {
-    flex: 1,
-    ...radius.md,
-  },
-  monthCard: {
-    flex: 1,
-    ...radius.md,
-  },
-  monthTitle: {
-    position: 'absolute',
-    left: 36,
-    top: 20,
-    fontFamily: 'Formula1-Bold',
-    fontSize: 20,
-    lineHeight: 24,
-    color: '#FFFFFF',
-    includeFontPadding: false,
-  },
-  calLabel: {
-    position: 'absolute',
-    top: 16,
-    width: 24,
-    height: 16,
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.26,
-    textAlign: 'center',
-    color: '#FFFFFF',
-    opacity: 0.3,
-    includeFontPadding: false,
-  },
-  // 모든 날의 28×28 원형 배경 (달린 날은 pill로 대체)
-  dayCircle: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  // 날짜 숫자 (regular 13px, 28×16 텍스트박스, 원형 내 중앙)
-  calNum: {
-    position: 'absolute',
-    width: 28,
-    height: 16,
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.26,
-    textAlign: 'center',
-    color: '#FFFFFF',
-    includeFontPadding: false,
-  },
-  calNumPast: {
-    opacity: 1,
-  },
-  calNumFuture: {
-    opacity: 0.3,
-  },
-  calNumRun: {
-    fontFamily: 'Formula1-Bold',
   },
 
   // 서킷 카드
