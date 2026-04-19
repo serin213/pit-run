@@ -367,7 +367,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[s.statsRow, { marginTop: 36, marginLeft: SIDE_PAD }]}>
+        <View style={[s.statsRow, { marginTop: 36, marginLeft: 20 }]}>
           {/* TOTAL */}
           <View style={s.statGroup}>
             <Text style={s.statLabel}>TOTAL</Text>
@@ -390,7 +390,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: SIDE_PAD }]}>
+            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: 20 }]}>
               Qualifying Trend
             </Text>
 
@@ -741,7 +741,7 @@ const s = StyleSheet.create({
 
   // ── GP 카드 ──
   gpCardOuter: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
   gpCardInner: {
     flexDirection: 'row',
