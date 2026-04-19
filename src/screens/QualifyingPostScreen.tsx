@@ -34,11 +34,11 @@ type GradeImageInfo = {
 // gradeTextMarginTop = 28 − 48 + pad_top_pt
 // statsMarginTop     = 28 − pad_bottom_pt
 const GRADE_TEXT_IMAGES: Record<QualifyingGrade, GradeImageInfo> = {
-  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width:  98.5, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 38 },
-  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 103.8, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 38 },
-  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width:  98,   height:  54,    gradeTextMarginTop: -2, statsMarginTop: 38 },
-  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 136.4, height:  92.51, gradeTextMarginTop: -2, statsMarginTop: 38 },
-  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 205.4, height:  92.69, gradeTextMarginTop: -2, statsMarginTop: 38 },
+  f3:          { source: require('../../assets/qualifying/text/f3.png'),          width:  98.5, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 58},
+  f2:          { source: require('../../assets/qualifying/text/f2.png'),          width: 103.8, height:  54,    gradeTextMarginTop: -2, statsMarginTop: 58},
+  f1:          { source: require('../../assets/qualifying/text/f1.png'),          width:  98,   height:  54,    gradeTextMarginTop: -2, statsMarginTop: 58},
+  f1_rookie:   { source: require('../../assets/qualifying/text/f1-rookie.png'),   width: 136.4, height:  92.51, gradeTextMarginTop: -2, statsMarginTop: 58},
+  f1_champion: { source: require('../../assets/qualifying/text/f1-champion.png'), width: 205.4, height:  92.69, gradeTextMarginTop: -2, statsMarginTop: 58},
 };
 
 // ─── Grade-specific CTA colors ───────────────────────────────────────────────
@@ -120,17 +120,23 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         useNativeDriver: true,
       }).start();
     }, 800);
-    return () => clearTimeout(timer);
+
+    // CTA: 로띠 종료(2066ms) 0.5초 전에 등장
+    const ctaTimer = setTimeout(() => {
+      Animated.timing(ctaOpacity, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start();
+    }, 1566);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(ctaTimer);
+    };
   }, [grade]);
 
-  const handleAnimationFinish = () => {
-    Animated.timing(ctaOpacity, {
-      toValue: 1,
-      duration: 350,
-      delay: 0,
-      useNativeDriver: true,
-    }).start();
-  };
+  const handleAnimationFinish = () => {};
 
   const timeStr = qualifyingResult
     ? formatPace(qualifyingResult.paceSecPerKm)
