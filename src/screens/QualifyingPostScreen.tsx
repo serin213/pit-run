@@ -118,7 +118,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         duration: 400,
         useNativeDriver: true,
       }).start();
-    }, 500);
+    }, 700);
     return () => clearTimeout(timer);
   }, [grade]);
 
@@ -126,7 +126,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
     Animated.timing(ctaOpacity, {
       toValue: 1,
       duration: 350,
-      delay: 300,
+      delay: 0,
       useNativeDriver: true,
     }).start();
   };
