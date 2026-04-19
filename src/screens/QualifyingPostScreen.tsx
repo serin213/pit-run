@@ -105,10 +105,15 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       useNativeDriver: true,
     }).start();
 
-    // 콘페티: 0.5초 후 fade in 시작하며 재생
+    // 0.5초 후: 콘페티 재생 + 콘페티 fade in + 성적 fade in
     const timer = setTimeout(() => {
       confettiRef.current?.play();
       Animated.timing(confettiOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+      Animated.timing(statsOpacity, {
         toValue: 1,
         duration: 400,
         useNativeDriver: true,
@@ -118,20 +123,12 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
   }, [grade]);
 
   const handleAnimationFinish = () => {
-    Animated.sequence([
-      Animated.timing(statsOpacity, {
-        toValue: 1,
-        duration: 400,
-        delay: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(ctaOpacity, {
-        toValue: 1,
-        duration: 350,
-        delay: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(ctaOpacity, {
+      toValue: 1,
+      duration: 350,
+      delay: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
   const timeStr = qualifyingResult
