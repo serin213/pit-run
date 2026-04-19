@@ -5,13 +5,13 @@
  * Toss 미니앱: 향후 토스 SDK storage로 교체
  */
 
-import { createMMKV, type MMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 
 let storage: MMKV | null = null;
 
 function getStorage(): MMKV {
   if (!storage) {
-    storage = createMMKV({ id: 'pitrun-default' });
+    storage = new MMKV({ id: 'pitrun-default' });
   }
   return storage;
 }
@@ -33,7 +33,7 @@ export function setBoolean(key: string, value: boolean): void {
 }
 
 export function remove(key: string): void {
-  getStorage().remove(key);
+  getStorage().delete(key);
 }
 
 export function clearAll(): void {

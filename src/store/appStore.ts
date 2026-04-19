@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createMMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 import type { TireType } from '../constants/colors';
 import type { QualifyingResult, UserProfile } from '../types';
 
@@ -9,7 +9,7 @@ export type { QualifyingResult, UserProfile };
 
 // ─── MMKV persistence ───────────────────────────────────────────────────────
 
-const storage = createMMKV({ id: 'app-store' });
+const storage = new MMKV({ id: 'app-store' });
 
 type PersistedState = {
   profile: UserProfile;
