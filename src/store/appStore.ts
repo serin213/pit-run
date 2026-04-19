@@ -72,6 +72,9 @@ interface AppState {
   activityDates: string[];
   recordActivity: () => void;
 
+  /** 퀄리파잉 세션이 있었던 날짜 목록. 비지속(서버 동기화). */
+  qualifyingDates: string[];
+
   totalDistanceKm: number;
   addDistance: (km: number) => void;
 
@@ -135,6 +138,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       persist(extractPersisted({ ...get(), activityDates }));
     }
   },
+
+  qualifyingDates: [],
 
   totalDistanceKm: saved.totalDistanceKm ?? 0,
   addDistance: (km) => {

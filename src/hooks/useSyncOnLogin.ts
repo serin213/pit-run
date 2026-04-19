@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
-import { fetchLatestQualifying } from '../api/qualifying';
+import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying';
 import { fetchActivityDates } from '../api/activity';
 import { fetchProfile } from '../api/profiles';
 
@@ -48,6 +48,13 @@ export function useSyncOnLogin() {
             grade: qualifying.grade,
             nextIntervalHint: '', // 서버에서는 hint 미저장, 로컬 재생성 필요 시 core 사용
           });
+        }
+
+        // 퀄리파잉 날짜 동기화
+        const qualRows = await fetchQualifyingHistory();
+        if (qualRows.length > 0) {
+          const qualifyingDates = qualRows.map((r) => r.recorded_at.slice(0, 10));
+          useAppStore.setState({ qualifyingDates });
         }
 
         // 활동 날짜 동기화

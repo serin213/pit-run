@@ -228,12 +228,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const selectedTire       = useAppStore((s) => s.selectedTire);
   const paceRecords        = useAppStore((s) => s.paceRecords);
   const activityDates      = useAppStore((s) => s.activityDates);
+  const qualifyingDates    = useAppStore((s) => s.qualifyingDates);
   const qualifyingResult   = useAppStore((s) => s.qualifyingResult);
   const setQualifyingResult = useAppStore((s) => s.setQualifyingResult);
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
 
   const todayISO = useMemo(() => toISO(new Date()), []);
   const activitySet = useMemo(() => new Set(activityDates), [activityDates]);
+  const qualifyingSet = useMemo(() => new Set(qualifyingDates), [qualifyingDates]);
 
   const [weekDistKm, setWeekDistKm] = useState(0);
   const [monthDistKm, setMonthDistKm] = useState(0);
@@ -468,13 +470,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <MonthGrid
             today={todayISO}
             activitySet={activitySet}
+            qualifyingSet={qualifyingSet}
             colX={colX}
             monthOffset={monthOffset}
             onPrev={() => setMonthOffset((o) => o - 1)}
             onNext={() => setMonthOffset((o) => o + 1)}
           />
         ) : (
-          <WeekStrip today={todayISO} activitySet={activitySet} colX={colX} />
+          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
         )}
       </Animated.View>
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, {
   Defs,
   LinearGradient as SvgLG,
@@ -14,6 +14,10 @@ import Svg, {
 } from 'react-native-svg';
 import GradientCardBorder from './GradientCardBorder';
 import { radius } from '../constants/radius';
+
+// ─── Assets ──────────────────────────────────────────────────────────────────
+
+const QUAL_ICON = require('../../assets/calander-qualifying.png');
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -115,10 +119,11 @@ function GradPill({ left, top, width, height }: {
 export type WeekStripProps = {
   today: string;
   activitySet: Set<string>;
+  qualifyingSet?: Set<string>;
   colX: number[];
 };
 
-export function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
+export function WeekStrip({ today, activitySet, qualifyingSet, colX }: WeekStripProps) {
   const weekDates = getWeekDates(new Date(today));
   const isoList = weekDates.map(toISO);
 
@@ -153,6 +158,17 @@ export function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
       {weekDates.map((d, col) => {
         const iso = isoList[col];
         const isPast = iso <= today;
+        const isQual = qualifyingSet?.has(iso) ?? false;
+        if (isQual) {
+          return (
+            <Image
+              key={`wn-${col}`}
+              source={QUAL_ICON}
+              style={[s.qualIcon, { left: colX[col] + 4, top: 42 }]}
+              resizeMode="contain"
+            />
+          );
+        }
         return (
           <Text
             key={`wn-${col}`}
@@ -176,13 +192,14 @@ export function WeekStrip({ today, activitySet, colX }: WeekStripProps) {
 export type MonthGridProps = {
   today: string;
   activitySet: Set<string>;
+  qualifyingSet?: Set<string>;
   colX: number[];
   monthOffset: number;
   onPrev: () => void;
   onNext: () => void;
 };
 
-export function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNext }: MonthGridProps) {
+export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset, onPrev, onNext }: MonthGridProps) {
   const base = new Date(today);
   const year = base.getFullYear();
   const month = base.getMonth() + monthOffset;
@@ -268,6 +285,17 @@ export function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNex
               if (!d) return null;
               const iso = dayISO(d);
               const isPast = iso <= today;
+              const isQual = qualifyingSet?.has(iso) ?? false;
+              if (isQual) {
+                return (
+                  <Image
+                    key={`mn-${ri}-${col}`}
+                    source={QUAL_ICON}
+                    style={[s.qualIcon, { left: colX[col] + 4, top: ry + 6 }]}
+                    resizeMode="contain"
+                  />
+                );
+              }
               return (
                 <Text
                   key={`mn-${ri}-${col}`}
@@ -362,5 +390,10 @@ const s = StyleSheet.create({
   },
   calNumRun: {
     fontFamily: 'Formula1-Bold',
+  },
+  qualIcon: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
   },
 });

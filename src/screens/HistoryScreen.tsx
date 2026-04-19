@@ -179,6 +179,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Store ────────────────────────────────────────────────────────────────
   const totalDistanceKm = useAppStore((s) => s.totalDistanceKm);
   const activityDates = useAppStore((s) => s.activityDates);
+  const qualifyingDates = useAppStore((s) => s.qualifyingDates);
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
 
   // ─── Derived values ───────────────────────────────────────────────────────
@@ -187,6 +188,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   const todayISO = useMemo(() => toISO(new Date()), []);
   const activitySet = useMemo(() => new Set(activityDates), [activityDates]);
+  const qualifyingSet = useMemo(() => new Set(qualifyingDates), [qualifyingDates]);
 
   // 달력 월 offset (0 = 이번 달)
   const [monthOffset, setMonthOffset] = useState(0);
@@ -556,6 +558,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
           <MonthGrid
             today={todayISO}
             activitySet={activitySet}
+            qualifyingSet={qualifyingSet}
             colX={calColX}
             monthOffset={monthOffset}
             onPrev={() => setMonthOffset((o) => o - 1)}
@@ -820,7 +823,7 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
   },
   gpQualImg: {
-    width: 48,
-    height: 48,
+    width: 54,
+    height: 54,
   },
 });
