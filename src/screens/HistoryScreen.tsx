@@ -558,6 +558,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 key={gp.sortKey}
                 style={s.gpCardOuter}
                 innerStyle={s.gpCardInner}
+                borderRadius={16}
               >
                 <View style={s.gpTextCol}>
                   <Text style={s.gpDate}>{gp.dateDisplay}</Text>
