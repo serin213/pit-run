@@ -106,7 +106,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       useNativeDriver: true,
     }).start();
 
-    // 0.8초 후: 콘페티 + 성적 fade in
+    // 0.8초 후: 콘페티 + 성적 + CTA 동시 fade in
     const timer = setTimeout(() => {
       confettiRef.current?.play();
       Animated.timing(confettiOpacity, {
@@ -119,21 +119,14 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         duration: 400,
         useNativeDriver: true,
       }).start();
-    }, 800);
-
-    // CTA: 로띠 종료(2066ms) 0.5초 전에 등장
-    const ctaTimer = setTimeout(() => {
       Animated.timing(ctaOpacity, {
         toValue: 1,
         duration: 350,
         useNativeDriver: true,
       }).start();
-    }, 1566);
+    }, 800);
 
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(ctaTimer);
-    };
+    return () => clearTimeout(timer);
   }, [grade]);
 
   const handleAnimationFinish = () => {};
