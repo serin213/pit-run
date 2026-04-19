@@ -107,6 +107,8 @@ const FALLBACK_QUALIFYING: QHistRow[] = [
 
 const FALLBACK_HISTORY: HistoryRow[] = [
   { type: 'grand_prix', sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, circuitId: 'monaco' },
+  { type: 'qualifying', sortKey: '2023-01-20', dateDisplay: '20.01.23', distKm: 4.55, grade: 'f2' },
+  { type: 'practice',   sortKey: '2023-01-15', dateDisplay: '15.01.23', distKm: 3.21 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
