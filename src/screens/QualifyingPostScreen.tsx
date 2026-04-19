@@ -105,7 +105,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       useNativeDriver: true,
     }).start();
 
-    // 콘페티: 1초 후 fade in 시작하며 재생
+    // 콘페티: 0.5초 후 fade in 시작하며 재생
     const timer = setTimeout(() => {
       confettiRef.current?.play();
       Animated.timing(confettiOpacity, {
@@ -113,7 +113,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         duration: 400,
         useNativeDriver: true,
       }).start();
-    }, 1000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [grade]);
 
