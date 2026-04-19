@@ -65,6 +65,12 @@ const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
   f1_champion: require('../../assets/qualifying/lottie/f1-champion.json'),
 };
 
+const CONFETTI_SOURCE = require('../../assets/qualifying/lottie/confetti.json');
+
+// confetti comp 1200×1200, 원 반지름 ~30.5pt → 15px 표시 → scale = 15/(2×30.5) ≈ 0.246
+// 렌더 사이즈 = 1200 × 0.246 ≈ 295pt
+const CONFETTI_SIZE = 295;
+
 const GRADE_ORDER: QualifyingGrade[] = ['f3', 'f2', 'f1', 'f1_rookie', 'f1_champion'];
 const GRADE_LABELS_SHORT: Record<QualifyingGrade, string> = {
   f3: 'F3', f2: 'F2', f1: 'F1', f1_rookie: 'ROOKIE', f1_champion: 'CHAMP',
@@ -84,6 +90,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
   const gradeTextOpacity = useRef(new Animated.Value(0)).current;
   const statsOpacity = useRef(new Animated.Value(0)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
+  const confettiRef = useRef<LottieView>(null);
 
   // 글로우 효과(사다리꼴)가 프레임 0에서 시작 → 애니메이션 시작과 동시에 fade in
   useEffect(() => {
@@ -95,6 +102,12 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       duration: 600,
       useNativeDriver: true,
     }).start();
+
+    // 콘페티: 1초 후 재생
+    const timer = setTimeout(() => {
+      confettiRef.current?.play();
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [grade]);
 
   const handleAnimationFinish = () => {
@@ -195,6 +208,20 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
           textColor={ctaTheme.textColor}
         />
       </Animated.View>
+
+      {/* 콘페티 — 트로피 중앙 정렬, 1초 후 재생 */}
+      <LottieView
+        ref={confettiRef}
+        key={`confetti-${grade}`}
+        source={CONFETTI_SOURCE}
+        style={[
+          styles.confetti,
+          { top: safeTop + 10 },
+        ]}
+        autoPlay={false}
+        loop={false}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -276,5 +303,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
+  },
+  confetti: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -(CONFETTI_SIZE / 2),
+    width: CONFETTI_SIZE,
+    height: CONFETTI_SIZE,
+    pointerEvents: 'none',
   },
 });
