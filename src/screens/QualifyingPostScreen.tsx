@@ -90,6 +90,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
   const gradeTextOpacity = useRef(new Animated.Value(0)).current;
   const statsOpacity = useRef(new Animated.Value(0)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
+  const confettiOpacity = useRef(new Animated.Value(0)).current;
   const confettiRef = useRef<LottieView>(null);
 
   // 글로우 효과(사다리꼴)가 프레임 0에서 시작 → 애니메이션 시작과 동시에 fade in
@@ -97,15 +98,21 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
     gradeTextOpacity.setValue(0);
     statsOpacity.setValue(0);
     ctaOpacity.setValue(0);
+    confettiOpacity.setValue(0);
     Animated.timing(gradeTextOpacity, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
 
-    // 콘페티: 1초 후 재생
+    // 콘페티: 1초 후 fade in 시작하며 재생
     const timer = setTimeout(() => {
       confettiRef.current?.play();
+      Animated.timing(confettiOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
     }, 1000);
     return () => clearTimeout(timer);
   }, [grade]);
@@ -151,7 +158,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
       )}
 
       {/* Lottie 트로피 애니메이션 */}
-      <View style={[styles.lottieWrap, { marginTop: safeTop + 60 }]}>
+      <View style={[styles.lottieWrap, { marginTop: safeTop + 84 }]}>
         <LottieView
           key={grade}
           source={LOTTIE_SOURCE[grade]}
@@ -163,9 +170,9 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         />
       </View>
 
-      {/* Globe 배경 — center trophy bottom(safeTop+60+195) + 12 */}
+      {/* Globe 배경 — center trophy bottom(safeTop+84+195) + 12 */}
       <View
-        style={[styles.globeWrap, { top: safeTop + 267 }]}
+        style={[styles.globeWrap, { top: safeTop + 291 }]}
         pointerEvents="none"
       >
         <Image source={GLOBE} style={styles.globe} resizeMode="contain" opacity={0.5} />
@@ -209,19 +216,21 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         />
       </Animated.View>
 
-      {/* 콘페티 — 트로피 중앙 정렬, 1초 후 재생 */}
-      <LottieView
-        ref={confettiRef}
-        key={`confetti-${grade}`}
-        source={CONFETTI_SOURCE}
-        style={[
-          styles.confetti,
-          { top: safeTop + 10 },
-        ]}
-        autoPlay={false}
-        loop={false}
-        resizeMode="contain"
-      />
+      {/* 콘페티 — 트로피 중앙 정렬, 1초 후 fade in + 재생 */}
+      <Animated.View
+        style={[styles.confetti, { top: safeTop + 10, opacity: confettiOpacity }]}
+        pointerEvents="none"
+      >
+        <LottieView
+          ref={confettiRef}
+          key={`confetti-${grade}`}
+          source={CONFETTI_SOURCE}
+          style={{ width: CONFETTI_SIZE, height: CONFETTI_SIZE }}
+          autoPlay={false}
+          loop={false}
+          resizeMode="contain"
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -310,6 +319,5 @@ const styles = StyleSheet.create({
     marginLeft: -(CONFETTI_SIZE / 2),
     width: CONFETTI_SIZE,
     height: CONFETTI_SIZE,
-    pointerEvents: 'none',
   },
 });
