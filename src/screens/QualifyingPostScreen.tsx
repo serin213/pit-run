@@ -93,19 +93,23 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
   const confettiOpacity = useRef(new Animated.Value(0)).current;
   const confettiRef = useRef<LottieView>(null);
 
-  // 글로우 효과(사다리꼴)가 프레임 0에서 시작 → 애니메이션 시작과 동시에 fade in
+  // grade 변경 시 모든 opacity 초기화
   useEffect(() => {
     gradeTextOpacity.setValue(0);
     statsOpacity.setValue(0);
     ctaOpacity.setValue(0);
     confettiOpacity.setValue(0);
+  }, [grade]);
+
+  // Lottie 로드 완료 시점에 맞춰 텍스트 fade in — 파일 크기 차이(f1: 1.8MB 등) 대응
+  const handleAnimationLoaded = () => {
     Animated.timing(gradeTextOpacity, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
 
-    // 0.5초 후: 콘페티 재생 + 콘페티 fade in + 성적 fade in
+    // 0.8초 후: 콘페티 + 성적 fade in
     const timer = setTimeout(() => {
       confettiRef.current?.play();
       Animated.timing(confettiOpacity, {
@@ -119,8 +123,9 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         useNativeDriver: true,
       }).start();
     }, 800);
-    return () => clearTimeout(timer);
-  }, [grade]);
+    // timer는 컴포넌트 언마운트 시 정리할 수 없지만, grade key 변경으로 LottieView 자체가
+    // 재마운트되므로 이전 timer는 이미 새 grade의 opacity=0 상태에서 덮어쓰임
+  };
 
   const handleAnimationFinish = () => {
     Animated.timing(ctaOpacity, {
@@ -162,6 +167,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
           style={styles.lottie}
           autoPlay
           loop={false}
+          onAnimationLoaded={handleAnimationLoaded}
           onAnimationFinish={handleAnimationFinish}
           resizeMode="contain"
         />
