@@ -118,7 +118,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         duration: 400,
         useNativeDriver: true,
       }).start();
-    }, 700);
+    }, 800);
     return () => clearTimeout(timer);
   }, [grade]);
 
