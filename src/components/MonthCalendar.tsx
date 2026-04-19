@@ -207,33 +207,34 @@ export function MonthGrid({ today, activitySet, colX, monthOffset, onPrev, onNex
 
   return (
     <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
-      <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
-
-      <Pressable onPress={onPrev} hitSlop={14} style={{ position: 'absolute', left: 24, top: 27 }}>
-        <Svg width={6} height={10} viewBox="0 0 6 10">
-          <Path
-            d={ARROW_LEFT_PATH}
-            stroke="white"
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.5}
-          />
-        </Svg>
-      </Pressable>
-
-      <Pressable onPress={onNext} hitSlop={14} style={{ position: 'absolute', left: 100, top: 27 }}>
-        <Svg width={6} height={10} viewBox="0 0 6 10">
-          <Path
-            d={ARROW_RIGHT_PATH}
-            stroke="white"
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.5}
-          />
-        </Svg>
-      </Pressable>
+      {/* ‹ Month › — flex row so › always follows the month text */}
+      <View style={s.monthHeader}>
+        <Pressable onPress={onPrev} hitSlop={14} style={s.monthArrow}>
+          <Svg width={6} height={10} viewBox="0 0 6 10">
+            <Path
+              d={ARROW_LEFT_PATH}
+              stroke="white"
+              strokeWidth={2}
+              strokeLinecap="round"
+              fill="none"
+              opacity={0.5}
+            />
+          </Svg>
+        </Pressable>
+        <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
+        <Pressable onPress={onNext} hitSlop={14} style={[s.monthArrow, { marginLeft: 8 }]}>
+          <Svg width={6} height={10} viewBox="0 0 6 10">
+            <Path
+              d={ARROW_RIGHT_PATH}
+              stroke="white"
+              strokeWidth={2}
+              strokeLinecap="round"
+              fill="none"
+              opacity={0.5}
+            />
+          </Svg>
+        </Pressable>
+      </View>
 
       {WEEK_LABELS.map((label, col) => (
         <Text key={`ml-${col}`} style={[s.calLabel, { left: colX[col], top: 64 }]}>
@@ -298,15 +299,26 @@ const s = StyleSheet.create({
     flex: 1,
     ...radius.md,
   },
-  monthTitle: {
+  monthHeader: {
     position: 'absolute',
-    left: 36,
+    left: 24,
     top: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  monthArrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 16,
+    height: 24,
+  },
+  monthTitle: {
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
     color: '#FFFFFF',
     includeFontPadding: false,
+    marginLeft: 8,
   },
   calLabel: {
     position: 'absolute',

@@ -45,6 +45,9 @@ import { logSessionStarted } from '../lib/analytics/raceEvents';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { GRADE_ORDER } from '../constants/grade';
 import type { QualifyingGrade } from '../types';
+import { fetchSessions } from '../api/sessions';
+import { fmtDist } from '../utils/format';
+import { getWeekDates } from '../components/MonthCalendar';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -103,17 +106,6 @@ function formatGapSec(gapSec: number): string {
   return `${m}'${String(sec).padStart(2, '0')}"`;
 }
 
-function calcStreakSet(dates: string[]): Set<string> {
-  const set = new Set(dates);
-  const result = new Set<string>();
-  const cur = new Date();
-  cur.setHours(0, 0, 0, 0);
-  while (set.has(toISO(cur))) {
-    result.add(toISO(cur));
-    cur.setDate(cur.getDate() - 1);
-  }
-  return result;
-}
 
 // ─── GapRow (퀄리파잉 갱신 카드 프로그레스 섹션) ──────────────────────────────────
 
@@ -242,8 +234,43 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const todayISO = useMemo(() => toISO(new Date()), []);
   const activitySet = useMemo(() => new Set(activityDates), [activityDates]);
-  const streakSet = useMemo(() => calcStreakSet(activityDates), [activityDates]);
-  const streakDays = activitySet.size;
+
+  const [weekDistKm, setWeekDistKm] = useState(0);
+  const [monthDistKm, setMonthDistKm] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      (async () => {
+        try {
+          const sessions = await fetchSessions(100);
+          const completed = sessions.filter((s) => s.status === 'completed');
+
+          const now = new Date();
+          const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const weekDates = getWeekDates(now);
+          const weekStart = toISO(weekDates[0]);
+          const weekEnd = toISO(weekDates[6]);
+
+          const wDist = completed
+            .filter((s) => {
+              const d = s.started_at.slice(0, 10);
+              return d >= weekStart && d <= weekEnd;
+            })
+            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+
+          const mDist = completed
+            .filter((s) => s.started_at.slice(0, 7) === thisMonth)
+            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+
+          setWeekDistKm(wDist);
+          setMonthDistKm(mDist);
+        } catch (e) {
+          console.warn('[HomeScreen] sessions fetch error:', e);
+        }
+      })();
+    }, [user?.id]),
+  );
 
   // 인스턴스 고유 ID (여러 HomeScreen 인스턴스의 gradient ID 충돌 방지)
   const rawId = useId();
@@ -394,14 +421,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         resizeMode="contain"
       />
 
-      {/* ── ON TRACK ── */}
-      <Text style={[s.onTrack, { left: 80, top: py(105) }]}>ON TRACK</Text>
-
-      {/* ── "X days": 숫자 Bold + " days" Regular ── */}
-      <Text style={[s.streakDaysWrap, { left: 80, top: py(125) }]}>
-        <Text style={s.streakNum}>{streakDays}</Text>
-        <Text style={s.streakLabel}> days</Text>
+      {/* ── THIS WEEK / THIS MONTH ── */}
+      <Text style={[s.onTrack, { left: 80, top: py(105) }]}>
+        {calExpanded ? 'THIS MONTH' : 'THIS WEEK'}
       </Text>
+
+      {/* ── n.nn km ── */}
+      <View style={[s.streakDaysWrap, { left: 80, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
+        <Text style={s.streakNum}>{fmtDist(calExpanded ? monthDistKm : weekDistKm)}</Text>
+        <Text style={s.streakDistUnit}> km</Text>
+      </View>
 
       {/* ── 펼치기/접기 화살표 (Vector 1.svg: 16×10, 화면 오른쪽에서 35px) ── */}
       <Pressable
@@ -722,11 +751,14 @@ const s = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     color: '#FFFFFF',
+    includeFontPadding: false,
   },
-  streakLabel: {
+  streakDistUnit: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 24,
+    fontSize: 17,
+    lineHeight: 20,
     color: '#FFFFFF',
+    includeFontPadding: false,
   },
 
   // 서킷 카드

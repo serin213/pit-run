@@ -362,7 +362,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: SIDE_PAD }]}
+          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: 20 }]}
           resizeMode="contain"
         />
 
@@ -593,6 +593,7 @@ const s = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
     height: 55,
+    aspectRatio: 630 / 220,
   },
 
   // ── TOTAL / ON TRACK 스탯 ──
@@ -672,9 +673,9 @@ const s = StyleSheet.create({
   },
   flameUnit: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: -0.02 * 24,
+    fontSize: 17,
+    lineHeight: 20,
+    letterSpacing: -0.02 * 17,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
