@@ -533,7 +533,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         {/* ── 6. 월간 달력 ── */}
         <View
-          style={{ marginTop: 16, marginHorizontal: SIDE_PAD }}
+          style={{ marginTop: 16, marginHorizontal: SIDE_PAD, height: 292 }}
           onLayout={(e) => setCalCardW(e.nativeEvent.layout.width)}
         >
           <MonthGrid
@@ -583,23 +583,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
       </ScrollView>
 
-      {/* 탭바 위 페이드 */}
-      <Svg
-        width={windowW}
-        height={48}
-        style={{ position: 'absolute', bottom: tabH, left: 0 }}
-        pointerEvents="none"
-      >
-        {Array.from({ length: 8 }, (_, i) => (
-          <Rect
-            key={i}
-            x={0} y={i * 6}
-            width={windowW} height={6}
-            fill="#17171C"
-            fillOpacity={i / 7}
-          />
-        ))}
-      </Svg>
     </View>
   );
 }
@@ -609,7 +592,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 const s = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
-    width: 55,
     height: 55,
   },
 
