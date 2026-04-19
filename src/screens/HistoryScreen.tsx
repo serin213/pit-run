@@ -49,6 +49,14 @@ const TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
   f3: require('../../assets/f3.png'),
 };
 
+const HISTORY_QUAL_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
+  f1_champion: require('../../assets/qualifying/history-f1-champion.png'),
+  f1: require('../../assets/qualifying/history-f1.png'),
+  f1_rookie: require('../../assets/qualifying/history-f1-rookie.png'),
+  f2: require('../../assets/qualifying/history-f2.png'),
+  f3: require('../../assets/qualifying/history-f3.png'),
+};
+
 /** 레이서 카드(프로필)와 동일 F2 등급 배지 */
 const GRADE_F2_BADGE = require('../../assets/grade-f2.png') as ReturnType<typeof require>;
 
@@ -82,13 +90,10 @@ type QHistRow = {
   promotedGrade?: string;
 };
 
-type GpRow = {
-  sortKey: string;
-  dateDisplay: string;
-  venue: string;
-  distKm: number;
-  circuitId: string;
-};
+type HistoryRow =
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; venue: string; circuitId: string }
+  | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number }
+  | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade };
 
 // ─── Fallback demo data ───────────────────────────────────────────────────────
 
@@ -100,8 +105,8 @@ const FALLBACK_QUALIFYING: QHistRow[] = [
   { iso: '2025-02-02', label: '02.02', paceSec: 308 },
 ];
 
-const FALLBACK_GP: GpRow[] = [
-  { sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, circuitId: 'monaco' },
+const FALLBACK_HISTORY: HistoryRow[] = [
+  { type: 'grand_prix', sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, circuitId: 'monaco' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -190,7 +195,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   // ─── Supabase 데이터 fetch ────────────────────────────────────────────────
   const [qualifyingData, setQualifyingData] = useState<QHistRow[]>(FALLBACK_QUALIFYING);
-  const [gpData, setGpData] = useState<GpRow[]>(FALLBACK_GP);
+  const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
   const [thisMonthDistKm, setThisMonthDistKm] = useState(32.2);
 
   useFocusEffect(
@@ -224,7 +229,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         }
 
         try {
-          const sessions = await fetchSessions(200);
+          const [sessions, qualRows] = await Promise.all([
+            fetchSessions(200),
+            fetchQualifyingHistory(),
+          ]);
+
+          // qualifying 결과를 날짜(iso)로 빠르게 조회할 수 있도록 map 구성
+          const qualByDate = new Map<string, QualifyingGrade>();
+          for (const q of qualRows) {
+            qualByDate.set(q.recorded_at.slice(0, 10), q.grade);
+          }
 
           // 이번 달 달린 거리 계산
           const now = new Date();
@@ -234,26 +248,36 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
           if (monthDist > 0) setThisMonthDistKm(monthDist);
 
-          // 그랑프리 세션
-          const gpSessions = sessions.filter(
-            (s) => s.type === 'grand_prix' && s.status === 'completed',
-          );
-          if (gpSessions.length > 0) {
-            const mapped: GpRow[] = gpSessions.map((s) => {
+          // 완료된 세션 → HistoryRow 변환
+          const completed = sessions.filter((s) => s.status === 'completed');
+          if (completed.length > 0) {
+            const mapped: HistoryRow[] = completed.map((s) => {
               const d = new Date(s.started_at);
               const dd = String(d.getDate()).padStart(2, '0');
               const mm = String(d.getMonth() + 1).padStart(2, '0');
               const yy = String(d.getFullYear()).slice(2);
-              const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
-              return {
-                sortKey: s.started_at.slice(0, 10),
-                dateDisplay: `${dd}.${mm}.${yy}`,
-                venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
-                distKm: s.total_dist_km ?? 0,
-                circuitId: s.circuit_id ?? 'monaco',
-              };
+              const sortKey = s.started_at.slice(0, 10);
+              const dateDisplay = `${dd}.${mm}.${yy}`;
+              const distKm = s.total_dist_km ?? 0;
+
+              if (s.type === 'grand_prix') {
+                const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
+                return {
+                  type: 'grand_prix',
+                  sortKey,
+                  dateDisplay,
+                  distKm,
+                  venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
+                  circuitId: s.circuit_id ?? 'monaco',
+                };
+              } else if (s.type === 'qualifying') {
+                const grade = qualByDate.get(sortKey) ?? 'f3';
+                return { type: 'qualifying', sortKey, dateDisplay, distKm, grade };
+              } else {
+                return { type: 'practice', sortKey, dateDisplay, distKm };
+              }
             });
-            setGpData(mapped);
+            setHistoryData(mapped);
           }
         } catch (e) {
           console.warn('[HistoryScreen] sessions fetch error:', e);
@@ -323,10 +347,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     Math.min(windowW - SIDE_PAD - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
   );
 
-  // ─── GP cards ─────────────────────────────────────────────────────────────
-  const gpSorted = useMemo(
-    () => [...gpData].sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
-    [gpData],
+  // ─── History cards ────────────────────────────────────────────────────────
+  const historySorted = useMemo(
+    () => [...historyData].sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
+    [historyData],
   );
 
   const circuitTargetH = 65;
@@ -362,12 +386,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: SIDE_PAD }]}
+          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: 20 }]}
           resizeMode="contain"
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[s.statsRow, { marginTop: 36, marginLeft: SIDE_PAD }]}>
+        <View style={[s.statsRow, { marginTop: 36, marginLeft: 20 }]}>
           {/* TOTAL */}
           <View style={s.statGroup}>
             <Text style={s.statLabel}>TOTAL</Text>
@@ -390,7 +414,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: SIDE_PAD }]}>
+            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: 20 }]}>
               Qualifying Trend
             </Text>
 
@@ -533,7 +557,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         {/* ── 6. 월간 달력 ── */}
         <View
-          style={{ marginTop: 16, marginHorizontal: SIDE_PAD }}
+          style={{ marginTop: 16, marginHorizontal: SIDE_PAD, height: 292 }}
           onLayout={(e) => setCalCardW(e.nativeEvent.layout.width)}
         >
           <MonthGrid
@@ -551,31 +575,80 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
-          {gpSorted.map((gp) => {
-            const { circuit, vb, drawW } = getCircuitInfo(gp.circuitId);
+          {historySorted.map((row) => {
+            if (row.type === 'grand_prix') {
+              const { circuit, vb, drawW } = getCircuitInfo(row.circuitId);
+              return (
+                <GradientCardBorder
+                  key={row.sortKey}
+                  style={s.gpCardOuter}
+                  innerStyle={s.gpCardInner}
+                  borderRadius={16}
+                >
+                  <View style={s.gpTextCol}>
+                    <Text style={s.gpDate}>{row.dateDisplay}</Text>
+                    <Text style={s.gpVenue}>{row.venue}</Text>
+                    <View style={s.gpDistRow}>
+                      <Text style={s.gpDist}>{fmtDist(row.distKm)}</Text>
+                      <Text style={s.gpDistUnit}>km</Text>
+                    </View>
+                  </View>
+                  <View style={[s.gpCircuitWrap, { minWidth: drawW }]}>
+                    <Svg
+                      width={drawW}
+                      height={circuitTargetH}
+                      viewBox={`0 0 ${vb.width} ${vb.height}`}
+                      style={s.gpCircuitSvg}
+                    >
+                      <Path d={circuit.trackPath} stroke="#FFFFFF" strokeWidth={4} fill="none" />
+                    </Svg>
+                  </View>
+                </GradientCardBorder>
+              );
+            }
+
+            if (row.type === 'practice') {
+              return (
+                <GradientCardBorder
+                  key={row.sortKey}
+                  style={s.gpCardOuter}
+                  innerStyle={s.gpCardInner}
+                  borderRadius={16}
+                >
+                  <View style={s.gpTextCol}>
+                    <Text style={s.gpDate}>{row.dateDisplay}</Text>
+                    <Text style={s.gpVenue}>Practice</Text>
+                    <View style={s.gpDistRow}>
+                      <Text style={s.gpDist}>{fmtDist(row.distKm)}</Text>
+                      <Text style={s.gpDistUnit}>km</Text>
+                    </View>
+                  </View>
+                </GradientCardBorder>
+              );
+            }
+
+            // qualifying
             return (
               <GradientCardBorder
-                key={gp.sortKey}
+                key={row.sortKey}
                 style={s.gpCardOuter}
                 innerStyle={s.gpCardInner}
+                borderRadius={16}
               >
                 <View style={s.gpTextCol}>
-                  <Text style={s.gpDate}>{gp.dateDisplay}</Text>
-                  <Text style={s.gpVenue}>{gp.venue}</Text>
+                  <Text style={s.gpDate}>{row.dateDisplay}</Text>
+                  <Text style={s.gpVenue}>Qualifying</Text>
                   <View style={s.gpDistRow}>
-                    <Text style={s.gpDist}>{fmtDist(gp.distKm)}</Text>
+                    <Text style={s.gpDist}>{fmtDist(row.distKm)}</Text>
                     <Text style={s.gpDistUnit}>km</Text>
                   </View>
                 </View>
-                <View style={[s.gpCircuitWrap, { minWidth: drawW }]}>
-                  <Svg
-                    width={drawW}
-                    height={circuitTargetH}
-                    viewBox={`0 0 ${vb.width} ${vb.height}`}
-                    style={s.gpCircuitSvg}
-                  >
-                    <Path d={circuit.trackPath} stroke="#FFFFFF" strokeWidth={4} fill="none" />
-                  </Svg>
+                <View style={s.gpQualImgWrap}>
+                  <Image
+                    source={HISTORY_QUAL_IMAGES[row.grade]}
+                    style={s.gpQualImg}
+                    resizeMode="contain"
+                  />
                 </View>
               </GradientCardBorder>
             );
@@ -609,8 +682,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 const s = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
-    width: 55,
     height: 55,
+    aspectRatio: 630 / 220,
   },
 
   // ── TOTAL / ON TRACK 스탯 ──
@@ -690,9 +763,9 @@ const s = StyleSheet.create({
   },
   flameUnit: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: -0.02 * 24,
+    fontSize: 17,
+    lineHeight: 20,
+    letterSpacing: -0.02 * 17,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
@@ -758,7 +831,7 @@ const s = StyleSheet.create({
 
   // ── GP 카드 ──
   gpCardOuter: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
   gpCardInner: {
     flexDirection: 'row',
@@ -816,5 +889,15 @@ const s = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: -0.02 * 17,
     color: '#FFFFFF',
+  },
+  gpQualImgWrap: {
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    paddingBottom: 24,
+    paddingRight: 28,
+  },
+  gpQualImg: {
+    width: 87,
+    height: 87,
   },
 });
