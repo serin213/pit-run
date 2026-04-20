@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import AuthScreen from '../screens/AuthScreen';
@@ -47,6 +47,8 @@ export default function RootNavigator() {
   const profile = useAppStore((s) => s.profile);
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
   const [splashDone, setSplashDone] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
 
   // 프로필이 설정되었는지 확인 (displayName이 기본값 'LEC'가 아닌 경우)
   const hasProfile = profile.displayName !== 'LEC' || profile.raceNumber !== '16';
@@ -55,19 +57,27 @@ export default function RootNavigator() {
     initialize();
   }, [initialize]);
 
-  // 최소 1800ms 스플래시 노출 (confetti가 충분히 보이도록)
+  // 최소 1000ms 스플래시 노출
   useEffect(() => {
-    const timer = setTimeout(() => setSplashDone(true), 1800);
+    const timer = setTimeout(() => setSplashDone(true), 1000);
     return () => clearTimeout(timer);
   }, []);
+
+  // auth 완료 + 타이머 완료 → dissolve fade-out
+  useEffect(() => {
+    if (!isLoading && splashDone) {
+      Animated.timing(splashOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => setSplashVisible(false));
+    }
+  }, [isLoading, splashDone, splashOpacity]);
 
   // 로그인 시 Supabase 데이터 → 로컬 동기화
   useSyncOnLogin();
 
-  if (isLoading || !splashDone) {
-    return <SplashScreen grade={qualifyingResult?.grade ?? null} />;
-  }
-
+  const gradeForSplash = isAuthenticated ? (qualifyingResult?.grade ?? null) : null;
   const initialRoute = getInitialRoute(isAuthenticated, hasProfile);
 
   return (
@@ -123,6 +133,11 @@ export default function RootNavigator() {
         />
       </Stack.Navigator>
       {showTabBar && <TabBar activeTab={activeTab} />}
+      {splashVisible && (
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: splashOpacity }]}>
+          <SplashScreen grade={gradeForSplash} />
+        </Animated.View>
+      )}
     </View>
   );
 }
