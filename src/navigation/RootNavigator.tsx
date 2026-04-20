@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import AuthScreen from '../screens/AuthScreen';
@@ -24,6 +24,7 @@ import { useActiveTab } from './navigationRef';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
+import SplashScreen from '../screens/SplashScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -44,6 +45,8 @@ export default function RootNavigator() {
   const showTabBar = activeTab !== undefined;
   const { isLoading, isAuthenticated, initialize } = useAuthStore();
   const profile = useAppStore((s) => s.profile);
+  const qualifyingResult = useAppStore((s) => s.qualifyingResult);
+  const [splashDone, setSplashDone] = useState(false);
 
   // 프로필이 설정되었는지 확인 (displayName이 기본값 'LEC'가 아닌 경우)
   const hasProfile = profile.displayName !== 'LEC' || profile.raceNumber !== '16';
@@ -52,15 +55,17 @@ export default function RootNavigator() {
     initialize();
   }, [initialize]);
 
+  // 최소 1800ms 스플래시 노출 (confetti가 충분히 보이도록)
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), 1800);
+    return () => clearTimeout(timer);
+  }, []);
+
   // 로그인 시 Supabase 데이터 → 로컬 동기화
   useSyncOnLogin();
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#17171C', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#E03A3E" />
-      </View>
-    );
+  if (isLoading || !splashDone) {
+    return <SplashScreen grade={qualifyingResult?.grade ?? null} />;
   }
 
   const initialRoute = getInitialRoute(isAuthenticated, hasProfile);
