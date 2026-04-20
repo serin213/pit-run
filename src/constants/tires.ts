@@ -16,4 +16,4 @@ export const TIRES: Record<TireType, TireConfig> = {
 
 export const CIRCUIT_KM = 5.14;   // 상하이 서킷
 export const BASE_PACE_S = 301;   // 기본 목표 페이스 (5'01"/km)
-export const PACE_RECORD_INTERVAL_KM = 0.5; // 500m마다 페이스 기록
+export const PACE_RECORD_INTERVAL_KM = 1.0; // 1km마다 페이스 기록 (ResultScreen 섹터 단위)
