@@ -27,6 +27,7 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
+import { useRunStore } from '../store/runStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
@@ -702,23 +703,44 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
       {/* ── 데브 버튼 (달린 날 테스트 데이터 토글) ── */}
       {__DEV__ && (
-        <Pressable
-          onPress={toggleDevTest}
-          style={{
-            position: 'absolute',
-            top: safeTop + 4,
-            right: 8,
-            backgroundColor: devTestActive ? '#E03A3E' : '#444455',
-            borderRadius: 6,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            zIndex: 100,
-          }}
-        >
-          <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>
-            {devTestActive ? 'RESET' : 'DEV'}
-          </Text>
-        </Pressable>
+        <View style={{ position: 'absolute', top: safeTop + 4, right: 8, flexDirection: 'row', gap: 6, zIndex: 100 }}>
+          {/* 결과 화면 미리보기 */}
+          <Pressable
+            onPress={() => {
+              // 완주 mock 데이터 주입
+              useRunStore.setState({
+                distKm: 5.14,
+                elapsedMs: 29 * 60 * 1000 + 14 * 1000, // 29'14"
+                paceHistory: [345, 330, 320, 358, 340],  // 5 sectors (1km each)
+                paceS: 341,
+              });
+              navigation.navigate('Result');
+            }}
+            style={{
+              backgroundColor: '#3F5CFF',
+              borderRadius: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>→RESULT</Text>
+          </Pressable>
+
+          {/* 활동 날짜 토글 */}
+          <Pressable
+            onPress={toggleDevTest}
+            style={{
+              backgroundColor: devTestActive ? '#E03A3E' : '#444455',
+              borderRadius: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>
+              {devTestActive ? 'RESET' : 'DEV'}
+            </Text>
+          </Pressable>
+        </View>
       )}
 
 
