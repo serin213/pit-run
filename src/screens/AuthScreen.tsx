@@ -246,7 +246,7 @@ const s = StyleSheet.create({
   },
   gap12: { height: 12 },
   gap24: { height: 20 },
-  gap72: { height: 42 },
+  gap72: { height: 72 },
   error: {
     color: '#E03A3E',
     fontFamily: 'Formula1-Regular',
