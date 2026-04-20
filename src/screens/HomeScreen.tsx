@@ -62,6 +62,14 @@ const TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
   f3: require('../../assets/f3.png'),
 };
 
+const RENEWAL_TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
+  f1_champion: require('../../assets/qualifying/trophy/f1-champion.png'),
+  f1: require('../../assets/qualifying/trophy/f1.png'),
+  f1_rookie: require('../../assets/qualifying/trophy/f1-rookie.png'),
+  f2: require('../../assets/qualifying/trophy/f2.png'),
+  f3: require('../../assets/qualifying/trophy/f3.png'),
+};
+
 // ─── Grade renewal helpers ────────────────────────────────────────────────────
 
 const GRADE_COLORS: Record<QualifyingGrade, string> = {
@@ -589,14 +597,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
               {/* 현재 등급 트로피 (왼쪽) */}
               <Image
-                source={TROPHY_IMAGES[qualifyingResult.grade]}
+                source={RENEWAL_TROPHY_IMAGES[qualifyingResult.grade]}
                 style={{ position: 'absolute', left: 24, top: rqTrophyTop, width: 51, height: 52 }}
                 resizeMode="contain"
               />
 
               {/* 다음 등급 트로피 (오른쪽) */}
               <Image
-                source={TROPHY_IMAGES[renewalNextGrade]}
+                source={RENEWAL_TROPHY_IMAGES[renewalNextGrade]}
                 style={{ position: 'absolute', right: 24, top: rqTrophyTop, width: 51, height: 52 }}
                 resizeMode="contain"
               />

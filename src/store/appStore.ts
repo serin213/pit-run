@@ -139,7 +139,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  qualifyingDates: [],
+  qualifyingDates: ['2026-04-05', '2026-04-13', '2026-04-20'],
 
   totalDistanceKm: saved.totalDistanceKm ?? 0,
   addDistance: (km) => {

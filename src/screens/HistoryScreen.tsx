@@ -50,15 +50,20 @@ const TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
 };
 
 const HISTORY_QUAL_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
-  f1_champion: require('../../assets/qualifying/history-f1-champion.png'),
-  f1: require('../../assets/qualifying/history-f1.png'),
-  f1_rookie: require('../../assets/qualifying/history-f1-rookie.png'),
-  f2: require('../../assets/qualifying/history-f2.png'),
-  f3: require('../../assets/qualifying/history-f3.png'),
+  f1_champion: require('../../assets/qualifying/text/f1-champion.png'),
+  f1: require('../../assets/qualifying/text/f1.png'),
+  f1_rookie: require('../../assets/qualifying/text/f1-rookie.png'),
+  f2: require('../../assets/qualifying/text/f2.png'),
+  f3: require('../../assets/qualifying/text/f3.png'),
 };
 
-/** 레이서 카드(프로필)와 동일 F2 등급 배지 */
-const GRADE_F2_BADGE = require('../../assets/grade-f2.png') as ReturnType<typeof require>;
+const GRADE_TEXT_IMAGES: Record<string, ReturnType<typeof require>> = {
+  'F1 Champion': require('../../assets/qualifying/text/f1-champion.png'),
+  'F1':          require('../../assets/qualifying/text/f1.png'),
+  'F1 Rookie':   require('../../assets/qualifying/text/f1-rookie.png'),
+  'F2':          require('../../assets/qualifying/text/f2.png'),
+  'F3':          require('../../assets/qualifying/text/f3.png'),
+};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -422,9 +427,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 >
                   <View style={s.tooltipColumn}>
                     <View style={s.tooltipBubble}>
-                      {selected.promotedGrade ? (
+                      {selected.promotedGrade && GRADE_TEXT_IMAGES[selected.promotedGrade] ? (
                         <Image
-                          source={GRADE_F2_BADGE}
+                          source={GRADE_TEXT_IMAGES[selected.promotedGrade]}
                           style={{ width: GRADE_BADGE_W, height: GRADE_BADGE_H, marginRight: 6 }}
                           resizeMode="contain"
                         />
