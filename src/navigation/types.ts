@@ -17,7 +17,7 @@ export type RootStackParamList = {
   Running: undefined;
   Result: undefined;
   Practice: undefined;
-  PracticeResult: undefined;
+  PracticeResult: { distanceKm: number };
 };
 
 export type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;

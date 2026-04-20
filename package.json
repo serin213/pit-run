@@ -4,12 +4,12 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start --web --localhost --port 8081",
-    "android": "expo start --android --localhost --port 8081",
-    "ios": "expo start --ios --localhost --port 8081",
+    "android": "expo start --android --port 8081",
+    "ios": "expo start --ios --port 8081",
     "web": "expo start --web --localhost --port 8081",
     "web:clear": "expo start --web --clear --localhost --port 8081",
     "web:history": "EXPO_PUBLIC_WEB_INITIAL=History expo start --web --localhost --port 8081",
-    "start:native": "expo start --localhost --port 8081",
+    "start:native": "expo start --port 8081",
     "test": "vitest run"
   },
   "dependencies": {
