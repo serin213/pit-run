@@ -50,11 +50,11 @@ const TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
 };
 
 const HISTORY_QUAL_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> = {
-  f1_champion: require('../../assets/qualifying/text/f1-champion.png'),
-  f1: require('../../assets/qualifying/text/f1.png'),
-  f1_rookie: require('../../assets/qualifying/text/f1-rookie.png'),
-  f2: require('../../assets/qualifying/text/f2.png'),
-  f3: require('../../assets/qualifying/text/f3.png'),
+  f1_champion: require('../../assets/qualifying/history-f1-champion.png'),
+  f1: require('../../assets/qualifying/history-f1.png'),
+  f1_rookie: require('../../assets/qualifying/history-f1-rookie.png'),
+  f2: require('../../assets/qualifying/history-f2.png'),
+  f3: require('../../assets/qualifying/history-f3.png'),
 };
 
 const GRADE_TEXT_IMAGES: Record<string, ReturnType<typeof require>> = {
