@@ -18,7 +18,6 @@ import Svg, {
 
 import { signIn } from '../platform/auth';
 import { useAuthStore } from '../store/authStore';
-import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -71,7 +70,6 @@ function GoogleLogoSvg({ height: h }: { height: number }) {
 
 export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
-  const safeBottom = useSafeBottom();
   const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +122,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
       </Svg>
 
       {/* Bottom content — stacks upward from safe bottom */}
-      <View style={[s.bottomBlock, { paddingBottom: safeBottom + 40 }]}>
+      <View style={[s.bottomBlock, { paddingBottom: 40 }]}>
 
         {/* Flag + Text logo + Subtitle */}
         <Image source={FLAG_PNG} style={s.flag} resizeMode="contain" />
