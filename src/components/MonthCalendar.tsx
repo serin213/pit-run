@@ -127,10 +127,15 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX }: WeekStrip
   const weekDates = getWeekDates(new Date(today));
   const isoList = weekDates.map(toISO);
 
+  const activityOrQualSet = useMemo(() => {
+    if (!qualifyingSet?.size) return activitySet;
+    return new Set([...activitySet, ...qualifyingSet]);
+  }, [activitySet, qualifyingSet]);
+
   const runGroups = findRunGroups(
     weekDates.map((_, i) => i) as number[],
     (i) => isoList[i],
-    activitySet,
+    activityOrQualSet,
   );
 
   const runCols = new Set(runGroups.flatMap((g) =>
@@ -264,7 +269,11 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
         if (ri >= ROW_Y.length) return null;
         const ry = ROW_Y[ri];
 
-        const runGroups = findRunGroups(row, (d) => dayISO(d), activitySet);
+        const qualSet = qualifyingSet;
+        const actOrQualSet = qualSet?.size
+          ? new Set([...activitySet, ...qualSet])
+          : activitySet;
+        const runGroups = findRunGroups(row, (d) => dayISO(d), actOrQualSet);
         const runCols = new Set(runGroups.flatMap((g) =>
           Array.from({ length: g.end - g.start + 1 }, (_, k) => g.start + k),
         ));

@@ -51,12 +51,12 @@ const ARROW_PATH =
 // ─── Grade badge images ───────────────────────────────────────────────────────
 
 const GRADE_BADGES: Record<string, ReturnType<typeof require>> = {
-  f1_champion: require('../../assets/grade-f1-rainbow.png'),
-  f1: require('../../assets/grade-f1-purple.png'),
-  f1_rookie: require('../../assets/grade-f1-green.png'),
-  f2: require('../../assets/grade-f2.png'),
-  f3: require('../../assets/grade-unranked.png'),
-  none: require('../../assets/grade-unranked.png'),
+  f1_champion: require('../../assets/racer-card-f1-champion.png'),
+  f1: require('../../assets/racer-card-f1.png'),
+  f1_rookie: require('../../assets/racer-card-f1-rookie.png'),
+  f2: require('../../assets/racer-card-f2.png'),
+  f3: require('../../assets/racer-card-f3.png'),
+  none: require('../../assets/racer-card-f3.png'),
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────────
