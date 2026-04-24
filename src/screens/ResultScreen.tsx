@@ -9,6 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Image } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
 import ScreenHeader from '../components/ScreenHeader';
@@ -32,9 +33,10 @@ const BAR_GAP        = 5;
 const GRAPH_SIDE_PAD = 20;
 const GRAPH_BAR_H    = 160;
 const BAR_RADIUS     = 8;
-// Tooltip: bubble(39) + tail(10) + 3 buffer = 52
-const TOOLTIP_H      = 52;
-const TOOLTIP_GAP    = 4;  // gap between tooltip bottom and chart top
+// Tooltip zone: fastest bubble(53) + tail(10) = 63 (regular: 49)
+// Fixed zone height keeps chart position stable when switching sectors.
+const TOOLTIP_ZONE   = 63;
+const TOOLTIP_GAP    = 4;  // gap between tooltip zone bottom and chart top
 // Sector label row below chart
 const SECTOR_ROW_H   = 28;
 // AVG label text height estimate (fontSize 11)
@@ -384,24 +386,49 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   { bottom: graphBottom },
                 ]}
               >
-                {/* Tooltip — 4px above chart, centered on selected bar */}
-                <View
-                  style={[styles.tooltipWrap, { left: tooltipLeft }]}
-                  onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
-                >
-                  {/* Bubble */}
-                  <View style={[styles.tooltipBubble, { backgroundColor: `rgba(${themeRgb},0.15)` }]}>
-                    <Text style={styles.tooltipPace}>
-                      {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
-                    </Text>
-                  </View>
-                  {/* Tail */}
-                  <Svg width={14} height={10} viewBox="0 0 14 10">
-                    <Path
-                      d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                      fill="rgba(255,255,255,0.1)"
-                    />
-                  </Svg>
+                {/* Tooltip zone — fixed height so chart doesn't shift */}
+                <View style={{ height: TOOLTIP_ZONE }}>
+                  {(() => {
+                    const isFastest  = selectedSector === fastestSectorIdx;
+                    const tooltipBg  = isFastest
+                      ? 'rgba(133,40,197,0.15)'
+                      : `rgba(${themeRgb},0.15)`;
+                    return (
+                      <View
+                        style={[styles.tooltipWrap, { left: tooltipLeft }]}
+                        onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
+                      >
+                        {/* Bubble */}
+                        <View style={[styles.tooltipBubble, { backgroundColor: tooltipBg }]}>
+                          {isFastest && (
+                            <>
+                              {/* Purple icon box */}
+                              <View style={styles.fastestIconBox}>
+                                <Image
+                                  source={require('../../assets/icons/fastest-lap.PNG')}
+                                  style={{ width: 20, height: 23 }}
+                                  resizeMode="contain"
+                                />
+                              </View>
+                              <View style={{ width: 10 }} />
+                              <Text style={styles.fastestLabel}>Fastest Lap</Text>
+                              <View style={{ width: 10 }} />
+                            </>
+                          )}
+                          <Text style={styles.tooltipPace}>
+                            {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
+                          </Text>
+                        </View>
+                        {/* Tail — same color as bubble */}
+                        <Svg width={14} height={10} viewBox="0 0 14 10">
+                          <Path
+                            d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                            fill={tooltipBg}
+                          />
+                        </Svg>
+                      </View>
+                    );
+                  })()}
                 </View>
 
                 {/* Bar row (pressable) + line overlay */}
@@ -491,7 +518,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                     {
                       // dashed line sits at TOOLTIP_H + TOOLTIP_GAP + avgLineY inside graphSection
                       // we want label bottom = that position - 4px
-                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 2 - AVG_LABEL_TEXT_H,
+                      top: TOOLTIP_ZONE + TOOLTIP_GAP + avgLineY - 2 - AVG_LABEL_TEXT_H,
                     },
                   ]}
                   pointerEvents="none"
@@ -704,9 +731,8 @@ const styles = StyleSheet.create({
   // Tooltip (HistoryScreen 동일 스타일)
   tooltipWrap: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,           // zone 하단 기준 정렬 → 항상 chart 바로 위에 붙음
     alignItems: 'center',
-    // bubble(39) + tail(10) = 49, fits within TOOLTIP_H(52)
   },
   tooltipBubble: {
     flexDirection: 'row',
@@ -715,7 +741,28 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 7,
     borderRadius: 12,
-    // backgroundColor는 inline으로 themeRgb 적용
+    // backgroundColor는 inline으로 적용
+  },
+  // Fastest Lap 전용
+  fastestIconBox: {
+    width: 38,
+    height: 38,
+    backgroundColor: '#8528C5',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // bubble padding 상쇄: 좌우 패딩 안쪽에 바짝 붙도록 negative margin
+    marginLeft: -12,
+    marginRight: 0,
+  },
+  fastestLabel: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 20,
+    lineHeight: 24,
+    color: '#8528C5',
   },
   tooltipPace: {
     fontFamily: 'Formula1-Regular',
@@ -729,7 +776,7 @@ const styles = StyleSheet.create({
 
   // Bar columns + line overlay container
   chartArea: {
-    marginTop: TOOLTIP_H + TOOLTIP_GAP,
+    marginTop: TOOLTIP_GAP,
     height: GRAPH_BAR_H,
     flexDirection: 'row',
     gap: BAR_GAP,
