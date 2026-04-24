@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import {
   Animated,
@@ -28,18 +28,17 @@ import { GRADE_DISPLAY_NAME } from '../constants/grade';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const BAR_GAP = 5;
+const BAR_GAP        = 5;
 const GRAPH_SIDE_PAD = 20;
-const GRAPH_BAR_H = 160;
-// Height taken by AVG label row above the chart
-const AVG_LABEL_H = 20;
-// Height of sector label row below the chart
-const SECTOR_ROW_H = 32;
-// Total graph section height
-const GRAPH_SECTION_H = AVG_LABEL_H + GRAPH_BAR_H + SECTOR_ROW_H;
-// Bottom clearance to keep graph above the CTA gradient
-// CTA fade starts at 35% of 164px ≈ 57px; add 48px spec gap + safeBottom margin
-const GRAPH_BOTTOM_CLEARANCE = 48 + 57; // will add safeBottom dynamically
+const GRAPH_BAR_H    = 160;
+const BAR_RADIUS     = 8;
+// Tooltip bubble above chart
+const TOOLTIP_H      = 30; // bubble height
+const TOOLTIP_GAP    = 4;  // gap between tooltip bottom and chart top
+// Sector label row below chart
+const SECTOR_ROW_H   = 28;
+// Bottom clearance: CTA fade(~57) + 48 spec gap
+const GRAPH_BOTTOM_CLEARANCE = 48 + 57;
 
 const DIFFICULTY = [
   { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
@@ -50,10 +49,6 @@ const DIFFICULTY = [
 ] as const;
 
 // ─── Circuit name line-break rules ───────────────────────────────────────────
-// At Formula1-Bold 72px with ~350pt usable width (390 - 20*2 margins),
-// names longer than ~6 chars need a break.
-// Rule: apply break only if it produces exactly 1 newline (both halves fit).
-// If the rule would produce >1 break, natural wrapping is used instead.
 const CIRCUIT_BREAK_RULES: Record<string, string> = {
   'MONACO':      'MO\nNACO',
   'HUNGARY':     'HUN\nGARY',
@@ -62,15 +57,11 @@ const CIRCUIT_BREAK_RULES: Record<string, string> = {
   'SHANGHAI':    'SHANG\nHAI',
   'SILVERSTONE': 'SILVER\nSTONE',
   'LAS VEGAS':   'LAS\nVEGAS',
-  // BAKU, SPA, MONZA, SUZUKA → fit on one line → no rule needed
-  // HUNGARORING (11 chars) → >1 break → natural wrap → no rule
 };
 
 function getCircuitNameDisplay(displayName: string): string {
   const upper = displayName.toUpperCase();
-  const rule = CIRCUIT_BREAK_RULES[upper];
-  if (!rule) return upper;
-  return rule;
+  return CIRCUIT_BREAK_RULES[upper] ?? upper;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -83,19 +74,53 @@ function hexToRgb(hex: string): string {
   return `${r},${g},${b}`;
 }
 
-function makeSvgPath(
-  points: { x: number; y: number }[],
+/** SVG path for a rect with bottom-only corner radius */
+function bottomRoundedRect(x: number, y: number, w: number, h: number, r: number): string {
+  const r2 = Math.min(r, w / 2, h / 2);
+  return (
+    `M${x} ${y}` +
+    `H${x + w}` +
+    `V${y + h - r2}` +
+    `Q${x + w} ${y + h} ${x + w - r2} ${y + h}` +
+    `H${x + r2}` +
+    `Q${x} ${y + h} ${x} ${y + h - r2}` +
+    `Z`
+  );
+}
+
+/** Smooth cubic-Bézier line + closed area path, xs span 0→graphW */
+function makeLinePaths(
+  paces: number[],
+  graphW: number,
   barH: number,
-): { line: string; area: string } {
-  if (points.length === 0) return { line: '', area: '' };
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const cx = (points[i - 1].x + points[i].x) / 2;
-    d += ` C ${cx} ${points[i - 1].y}, ${cx} ${points[i].y}, ${points[i].x} ${points[i].y}`;
+  minP: number,
+  paceRange: number,
+): { linePath: string; areaPath: string; ys: number[] } {
+  const n = paces.length;
+  if (n === 0) return { linePath: '', areaPath: '', ys: [] };
+
+  const xs = n === 1
+    ? [graphW / 2]
+    : paces.map((_, i) => (i / (n - 1)) * graphW);
+
+  const ys = paces.map((pace) => {
+    const norm = paceRange > 0 ? (pace - minP) / paceRange : 0.5;
+    // faster (lower seconds) → top; slower → bottom
+    return barH * 0.1 + barH * 0.8 * norm;
+  });
+
+  let d = `M ${xs[0]} ${ys[0]}`;
+  for (let i = 1; i < n; i++) {
+    const cx = (xs[i - 1] + xs[i]) / 2;
+    d += ` C ${cx} ${ys[i - 1]}, ${cx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
   }
-  const lastX = points[points.length - 1].x;
-  const area = `${d} L ${lastX} ${barH} L ${points[0].x} ${barH} Z`;
-  return { line: d, area };
+
+  const area =
+    n > 1
+      ? `${d} L ${xs[n - 1]} ${barH} L ${xs[0]} ${barH} Z`
+      : '';
+
+  return { linePath: d, areaPath: area, ys };
 }
 
 // ─── Circuit SVG (decorative background, page 1) ─────────────────────────────
@@ -108,7 +133,7 @@ interface CircuitSvgLargeProps {
 
 function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
   const targetH = 275;
-  const scale = targetH / viewBox.height;
+  const scale   = targetH / viewBox.height;
   const scaledW = viewBox.width * scale;
   const strokeW = 7 / scale;
   return (
@@ -116,11 +141,7 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
       style={{ position: 'absolute', left: 83, top: 0, width: scaledW, height: targetH }}
       pointerEvents="none"
     >
-      <Svg
-        width={scaledW}
-        height={targetH}
-        viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
-      >
+      <Svg width={scaledW} height={targetH} viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}>
         <Path
           d={path}
           fill="none"
@@ -139,7 +160,7 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
 
 export default function ResultScreen({ navigation }: ResultScreenProps) {
   const { width: screenW } = useWindowDimensions();
-  const safeTop = useSafeTop();
+  const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
 
   const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
@@ -151,22 +172,19 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     currentRaceEventId,
     setCurrentRaceEventId,
   } = useAppStore();
-  const { endSession } = useSupabaseSession();
-  const { user } = useAuthStore();
+  const { endSession }  = useSupabaseSession();
+  const { user }        = useAuthStore();
 
-  const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
-  const topTheme = getCircuitTheme(circuit.displayName.toUpperCase());
-  const themeRgb = hexToRgb(topTheme.line);
-
+  const circuit          = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
+  const topTheme         = getCircuitTheme(circuit.displayName.toUpperCase());
+  const themeRgb         = hexToRgb(topTheme.line);
   const circuitNameDisplay = getCircuitNameDisplay(circuit.displayName);
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
-  const totalPaceS = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
-  const fastestPaceS = paceHistory.length > 0 ? Math.min(...paceHistory) : totalPaceS;
-
-  const grade = qualifyingResult?.grade ?? 'f3';
-  const gradeLabel = GRADE_DISPLAY_NAME[grade].toUpperCase();
+  const totalPaceS   = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
+  const grade        = qualifyingResult?.grade ?? 'f3';
+  const gradeLabel   = GRADE_DISPLAY_NAME[grade].toUpperCase();
 
   // ─── Sector paces (1 entry per km) ────────────────────────────────────────
 
@@ -174,48 +192,53 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   const sectorPaces = useMemo(() => {
     const fallback = totalPaceS > 0 ? totalPaceS : 300;
-    if (paceHistory.length === 0) return Array(sectorCount).fill(fallback) as number[];
-    return Array.from({ length: sectorCount }, (_, i) => {
-      return paceHistory[i] ?? paceHistory[paceHistory.length - 1] ?? fallback;
-    });
+    if (paceHistory.length === 0) return Array<number>(sectorCount).fill(fallback);
+    return Array.from({ length: sectorCount }, (_, i) =>
+      paceHistory[i] ?? paceHistory[paceHistory.length - 1] ?? fallback,
+    );
   }, [paceHistory, sectorCount, totalPaceS]);
+
+  const fastestSectorIdx = useMemo(
+    () => (sectorPaces.length > 0 ? sectorPaces.indexOf(Math.min(...sectorPaces)) : 0),
+    [sectorPaces],
+  );
+  const fastestPaceS = sectorPaces[fastestSectorIdx] ?? totalPaceS;
+
+  // ─── Selected sector (default = fastest) ──────────────────────────────────
+
+  const [selectedSector, setSelectedSector] = useState(0);
+  useEffect(() => { setSelectedSector(fastestSectorIdx); }, [fastestSectorIdx]);
 
   // ─── Graph geometry ────────────────────────────────────────────────────────
 
   const graphW = screenW - GRAPH_SIDE_PAD * 2;
-  const barW = Math.max(1, (graphW - BAR_GAP * (sectorCount - 1)) / sectorCount);
+  const barW   = Math.max(1, (graphW - BAR_GAP * (sectorCount - 1)) / sectorCount);
 
-  const minPace = Math.min(...sectorPaces);
-  const maxPace = Math.max(...sectorPaces);
+  const minPace  = Math.min(...sectorPaces);
+  const maxPace  = Math.max(...sectorPaces);
   const paceRange = maxPace - minPace || 1;
 
-  const linePoints = useMemo(
-    () =>
-      sectorPaces.map((pace, i) => {
-        const x = i * (barW + BAR_GAP) + barW / 2;
-        const normalized = (pace - minPace) / paceRange;
-        const y = GRAPH_BAR_H * 0.1 + GRAPH_BAR_H * 0.8 * normalized;
-        return { x, y };
-      }),
-    [sectorPaces, barW, minPace, paceRange],
+  const { linePath, areaPath, ys: lineYs } = useMemo(
+    () => makeLinePaths(sectorPaces, graphW, GRAPH_BAR_H, minPace, paceRange),
+    [sectorPaces, graphW, minPace, paceRange],
   );
 
-  const { line: linePath, area: areaPath } = useMemo(
-    () => makeSvgPath(linePoints, GRAPH_BAR_H),
-    [linePoints],
-  );
+  // AVG pace dashed-line Y position (within GRAPH_BAR_H coordinate space)
+  const avgNorm  = paceRange > 0 ? (totalPaceS - minPace) / paceRange : 0.5;
+  const avgLineY = GRAPH_BAR_H * 0.1 + GRAPH_BAR_H * 0.8 * Math.max(0, Math.min(1, avgNorm));
 
-  // Avg pace dashed line Y position
-  const avgNormalized = paceRange > 0 ? (totalPaceS - minPace) / paceRange : 0.5;
-  const avgLineY = GRAPH_BAR_H * 0.1 + GRAPH_BAR_H * 0.8 * Math.max(0, Math.min(1, avgNormalized));
+  // Tooltip horizontal centre (bar-row coordinates)
+  const [tooltipW, setTooltipW] = useState(80);
+  const barCenterX  = selectedSector * (barW + BAR_GAP) + barW / 2;
+  const tooltipLeft = Math.max(0, Math.min(graphW - tooltipW, barCenterX - tooltipW / 2));
 
-  // ─── Page layout height ────────────────────────────────────────────────────
+  // ─── Page height ───────────────────────────────────────────────────────────
 
   const [pageHeight, setPageHeight] = useState(0);
 
   // ─── Evaluation sheet ──────────────────────────────────────────────────────
 
-  const [showSheet, setShowSheet] = useState(false);
+  const [showSheet, setShowSheet]   = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
 
@@ -229,7 +252,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       setShowSheet(false);
       recordActivity();
       addDistance(distKm);
-      const avgPace = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
+      const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
       const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
       endSession({
         status: 'completed',
@@ -258,7 +281,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   ]);
 
   const sheetTranslateY = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [340, 0] });
-  const overlayOpacity = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const overlayOpacity  = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
   const graphBottom = GRAPH_BOTTOM_CLEARANCE + safeBottom;
 
@@ -289,19 +312,16 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             overScrollMode="never"
             scrollEventThrottle={16}
           >
-            {/* ── Page 1: Circuit name + Grade pos + Global rank ── */}
+            {/* ─── Page 1: Circuit name + Grade pos + Global rank ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
               <View style={styles.page1Content}>
-                {/* Circuit name */}
                 <Text style={[styles.circuitName, { color: topTheme.text }]}>
                   {circuitNameDisplay}
                 </Text>
 
-                {/* Grade POS */}
                 <Text style={[styles.label, { marginTop: 72 }]}>{gradeLabel} POS</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>—</Text>
 
-                {/* Global Rank */}
                 <Text style={[styles.label, { marginTop: 42 }]}>GLOBAL RANK</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>—%</Text>
               </View>
@@ -318,7 +338,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               </View>
             </View>
 
-            {/* ── Page 2: Stats + Pace graph ── */}
+            {/* ─── Page 2: Stats + Pace graph ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
               {/* Stats */}
               <View style={styles.page2Stats}>
@@ -328,100 +348,142 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   <Text style={styles.distUnit}>km</Text>
                 </View>
 
-                {/* TIME */}
                 <Text style={[styles.label, { marginTop: 32 }]}>TIME</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtTime(elapsedMs)}</Text>
 
-                {/* AVG PACE */}
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(totalPaceS)}</Text>
 
-                {/* FASTEST */}
                 <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(fastestPaceS)}</Text>
               </View>
 
-              {/* Pace graph — anchored to bottom */}
+              {/* ── Pace graph (anchored to bottom) ── */}
               <View
                 style={[
                   styles.graphSection,
-                  { bottom: graphBottom, height: GRAPH_SECTION_H },
+                  { bottom: graphBottom },
                 ]}
               >
-                {/* AVG pace label — positioned above the dashed line */}
-                <View style={[styles.avgLabelWrap, { top: avgLineY - AVG_LABEL_H }]}>
+                {/* Tooltip — 4px above chart, centered on selected bar */}
+                <View
+                  style={[styles.tooltip, { left: tooltipLeft }]}
+                  onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
+                >
+                  <Text style={[styles.tooltipText, { color: topTheme.text }]}>
+                    {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
+                  </Text>
+                </View>
+
+                {/* Bar row (pressable) + line overlay */}
+                <View style={styles.chartArea}>
+                  {/* Bars — individual pressable columns */}
+                  <View style={styles.barsRow}>
+                    {sectorPaces.map((_, i) => {
+                      const isSelected = i === selectedSector;
+                      return (
+                        <Pressable
+                          key={i}
+                          onPress={() => setSelectedSector(i)}
+                          style={{ width: barW }}
+                          hitSlop={4}
+                        >
+                          <Svg width={barW} height={GRAPH_BAR_H}>
+                            <Defs>
+                              <LinearGradient id={`rsBar${i}`} x1="0" y1="0" x2="0" y2="1">
+                                <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0" />
+                                <Stop offset="100%" stopColor={topTheme.line} stopOpacity="1" />
+                              </LinearGradient>
+                            </Defs>
+                            <Path
+                              d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
+                              fill={`url(#rsBar${i})`}
+                              opacity={isSelected ? 0.5 : 0.1}
+                            />
+                          </Svg>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  {/* Line + area + avg dashed — overlaid on bars */}
+                  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <Svg width={graphW} height={GRAPH_BAR_H}>
+                      <Defs>
+                        {/* Vertical gradient for area fill */}
+                        <LinearGradient id="rsArea" x1="0" y1="0" x2="0" y2="1">
+                          <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0.25" />
+                          <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0"    />
+                        </LinearGradient>
+                        {/* Horizontal gradient for line (fade in/out at edges) */}
+                        <LinearGradient
+                          id="rsLine"
+                          x1="0" y1="0" x2={graphW} y2="0"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0" />
+                          <Stop offset="10%"  stopColor={topTheme.line} stopOpacity="1" />
+                          <Stop offset="90%"  stopColor={topTheme.line} stopOpacity="1" />
+                          <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0" />
+                        </LinearGradient>
+                      </Defs>
+
+                      {/* Area under curve */}
+                      {areaPath ? <Path d={areaPath} fill="url(#rsArea)" /> : null}
+
+                      {/* Smooth curve line */}
+                      {linePath ? (
+                        <Path
+                          d={linePath}
+                          fill="none"
+                          stroke="url(#rsLine)"
+                          strokeWidth={3}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      ) : null}
+
+                      {/* AVG pace dashed line */}
+                      <Path
+                        d={`M 0 ${avgLineY} L ${graphW} ${avgLineY}`}
+                        fill="none"
+                        stroke={`rgba(${themeRgb},0.45)`}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                      />
+                    </Svg>
+                  </View>
+                </View>
+
+                {/* AVG label — 8px above dashed line, 4px from left */}
+                <View
+                  style={[
+                    styles.avgLabelWrap,
+                    {
+                      // avgLineY is within chartArea; add TOOLTIP_H+TOOLTIP_GAP for offset in section
+                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 8 - 14,
+                    },
+                  ]}
+                  pointerEvents="none"
+                >
                   <Text style={[styles.avgLabelText, { color: `rgba(${themeRgb},0.7)` }]}>
                     AVG {fmtPace(totalPaceS)}
                   </Text>
                 </View>
 
-                {/* Chart SVG */}
-                <View style={{ marginTop: AVG_LABEL_H }}>
-                  <Svg width={graphW} height={GRAPH_BAR_H}>
-                    <Defs>
-                      <LinearGradient id="rBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0%" stopColor={topTheme.line} stopOpacity="0" />
-                        <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0.9" />
-                      </LinearGradient>
-                      <LinearGradient id="rAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0%" stopColor={topTheme.line} stopOpacity="0.3" />
-                        <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0" />
-                      </LinearGradient>
-                      <LinearGradient id="rLineGrad" x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0"   />
-                        <Stop offset="10%"  stopColor={topTheme.line} stopOpacity="1"   />
-                        <Stop offset="90%"  stopColor={topTheme.line} stopOpacity="0.3" />
-                        <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0"   />
-                      </LinearGradient>
-                    </Defs>
-
-                    {/* Bar columns */}
-                    {sectorPaces.map((_, i) => {
-                      const x = i * (barW + BAR_GAP);
-                      return (
-                        <Path
-                          key={i}
-                          d={`M${x} 0 L${x + barW} 0 L${x + barW} ${GRAPH_BAR_H} L${x} ${GRAPH_BAR_H} Z`}
-                          fill="url(#rBarGrad)"
-                          opacity={0.55}
-                        />
-                      );
-                    })}
-
-                    {/* Area fill under curve */}
-                    {areaPath ? <Path d={areaPath} fill="url(#rAreaGrad)" /> : null}
-
-                    {/* Smooth curve line */}
-                    {linePath ? (
-                      <Path
-                        d={linePath}
-                        fill="none"
-                        stroke="url(#rLineGrad)"
-                        strokeWidth={3}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    ) : null}
-
-                    {/* Avg pace dashed line */}
-                    <Path
-                      d={`M 0 ${avgLineY} L ${graphW} ${avgLineY}`}
-                      fill="none"
-                      stroke={`rgba(${themeRgb},0.45)`}
-                      strokeWidth={1.5}
-                      strokeDasharray="4 4"
-                    />
-                  </Svg>
-                </View>
-
                 {/* Sector labels */}
-                <View style={[styles.sectorRow, { width: graphW }]}>
+                <View style={styles.sectorRow}>
                   {sectorPaces.map((_, i) => (
-                    <View key={i} style={[styles.sectorCell, { width: barW }]}>
+                    <Pressable
+                      key={i}
+                      style={{ width: barW, alignItems: 'center' }}
+                      onPress={() => setSelectedSector(i)}
+                      hitSlop={4}
+                    >
                       <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
                         S{i + 1}
                       </Text>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               </View>
@@ -532,13 +594,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#17171C',
   },
-
-  // Paging content area
   contentArea: {
     flex: 1,
   },
-
-  // Each page
   page: {
     overflow: 'hidden',
   },
@@ -603,33 +661,64 @@ const styles = StyleSheet.create({
     lineHeight: 36,
   },
 
-  // ── Graph ──
+  // ── Graph section ──
   graphSection: {
     position: 'absolute',
     left: GRAPH_SIDE_PAD,
     right: GRAPH_SIDE_PAD,
   },
+
+  // Tooltip pill — 4px above chart
+  tooltip: {
+    position: 'absolute',
+    top: 0,
+    height: TOOLTIP_H,
+    // bottom of tooltip = TOOLTIP_H, chart starts at TOOLTIP_H + TOOLTIP_GAP → 4px gap ✓
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  tooltipText: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 13,
+    letterSpacing: -0.26,
+  },
+
+  // Bar columns + line overlay container
+  chartArea: {
+    marginTop: TOOLTIP_H + TOOLTIP_GAP,
+    height: GRAPH_BAR_H,
+    flexDirection: 'row',
+    gap: BAR_GAP,
+  },
+  barsRow: {
+    flexDirection: 'row',
+    gap: BAR_GAP,
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  // AVG label (absolute within graphSection)
   avgLabelWrap: {
     position: 'absolute',
-    left: 0,
-    // top is set dynamically
+    left: 4,
   },
   avgLabelText: {
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
     letterSpacing: -0.22,
   },
+
+  // Sector labels
   sectorRow: {
     flexDirection: 'row',
     gap: BAR_GAP,
-    marginTop: 6,
-  },
-  sectorCell: {
-    alignItems: 'center',
+    marginTop: 8,
   },
   sectorLabel: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 15,
+    fontSize: 14,
     opacity: 0.5,
   },
 
@@ -643,7 +732,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
 
-  // ── Evaluation sheet ──
+  // ── Sheet ──
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
