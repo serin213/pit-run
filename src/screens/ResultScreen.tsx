@@ -232,6 +232,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
   // Skip spring on first mount so tooltip doesn't animate from 0 → correct pos
   const tooltipXMountedRef = useRef(false);
+  // Track previous sector to distinguish sector-change vs width-recalc springs
+  const prevTooltipSectorRef = useRef(-1);
 
   // ─── Graph geometry ────────────────────────────────────────────────────────
 
@@ -288,20 +290,29 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     ).start();
   }, [selectedSector, sectorCount]);
 
-  // Tooltip position: spring-slide to new bar centre X
+  // Tooltip position: spring when sector changes, snap when only width recalculates
+  // (fastest tooltip is wider → onLayout fires after cross-fade → would cause extra bounce)
   useEffect(() => {
     if (!tooltipXMountedRef.current) {
       tooltipXAnim.setValue(tooltipLeft);
       tooltipXMountedRef.current = true;
+      prevTooltipSectorRef.current = selectedSector;
       return;
     }
-    Animated.spring(tooltipXAnim, {
-      toValue: tooltipLeft,
-      useNativeDriver: false,
-      tension: 200,
-      friction: 14,
-    }).start();
-  }, [tooltipLeft, tooltipXAnim]);
+    if (selectedSector !== prevTooltipSectorRef.current) {
+      // Sector changed → spring-slide
+      prevTooltipSectorRef.current = selectedSector;
+      Animated.spring(tooltipXAnim, {
+        toValue: tooltipLeft,
+        useNativeDriver: false,
+        tension: 200,
+        friction: 14,
+      }).start();
+    } else {
+      // Only tooltipW changed (onLayout after content swap) → snap, no extra bounce
+      tooltipXAnim.setValue(tooltipLeft);
+    }
+  }, [tooltipLeft, tooltipXAnim, selectedSector]);
 
   // Tooltip content: cross-fade when switching between fastest / regular
   useEffect(() => {
