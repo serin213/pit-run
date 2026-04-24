@@ -234,9 +234,21 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const barCenterX  = selectedSector * (barW + BAR_GAP) + barW / 2;
   const tooltipLeft = Math.max(0, Math.min(graphW - tooltipW, barCenterX - tooltipW / 2));
 
-  // ─── Page height ───────────────────────────────────────────────────────────
+  // ─── Page height & active page ────────────────────────────────────────────
 
+  const TOTAL_PAGES = 3;
   const [pageHeight, setPageHeight] = useState(0);
+  const [activePage, setActivePage] = useState(0);
+  const ctaAnim = useRef(new Animated.Value(0)).current;
+
+  const handlePageChange = useCallback((page: number) => {
+    setActivePage(page);
+    Animated.timing(ctaAnim, {
+      toValue: page === TOTAL_PAGES - 1 ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [ctaAnim]);
 
   // ─── Evaluation sheet ──────────────────────────────────────────────────────
 
@@ -313,6 +325,10 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             bounces={false}
             overScrollMode="never"
             scrollEventThrottle={16}
+            onMomentumScrollEnd={(e) => {
+              const page = Math.round(e.nativeEvent.contentOffset.y / pageHeight);
+              handlePageChange(page);
+            }}
           >
             {/* ─── Page 1: Circuit name + Grade pos + Global rank ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
@@ -499,14 +515,17 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 </View>
               </View>
             </View>
+            {/* ─── Page 3: (내용 추후 추가) ─── */}
+            <View style={[styles.page, { height: pageHeight }]} />
+
           </ScrollView>
         )}
       </View>
 
-      {/* Fixed CTA */}
-      <View
-        style={[styles.ctaWrap, { height: 164 + safeBottom }]}
-        pointerEvents="box-none"
+      {/* Fixed CTA — 마지막 페이지에서만 표시 */}
+      <Animated.View
+        style={[styles.ctaWrap, { height: 164 + safeBottom, opacity: ctaAnim }]}
+        pointerEvents={activePage === TOTAL_PAGES - 1 ? 'box-none' : 'none'}
       >
         <Svg
           width={screenW}
@@ -535,7 +554,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             gradientEnd={topTheme.text}
           />
         </View>
-      </View>
+      </Animated.View>
 
       {/* Evaluation bottom sheet */}
       {showSheet && (
