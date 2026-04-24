@@ -399,7 +399,11 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                         onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
                       >
                         {/* Bubble */}
-                        <View style={[styles.tooltipBubble, { backgroundColor: tooltipBg }]}>
+                        <View style={[
+                          styles.tooltipBubble,
+                          { backgroundColor: tooltipBg },
+                          isFastest && { paddingTop: 0, paddingBottom: 0 },
+                        ]}>
                           {isFastest && (
                             <>
                               {/* Purple icon box */}
