@@ -32,7 +32,7 @@ import { GRADE_DISPLAY_NAME } from '../constants/grade';
 const BAR_GAP        = 5;
 const GRAPH_SIDE_PAD = 20;
 const GRAPH_BAR_H    = 160;
-const BAR_RADIUS     = 8;
+const BAR_RADIUS     = 12;
 // Tooltip zone: fastest bubble(53) + tail(10) = 63 (regular: 49)
 // Fixed zone height keeps chart position stable when switching sectors.
 const TOOLTIP_ZONE   = 63;
@@ -42,7 +42,7 @@ const SECTOR_ROW_H   = 28;
 // AVG label text height estimate (fontSize 11)
 const AVG_LABEL_TEXT_H = 14;
 // 화면 하단에서 48px 고정
-const GRAPH_BOTTOM_CLEARANCE = 48;
+const GRAPH_BOTTOM_CLEARANCE = 24;
 
 const DIFFICULTY = [
   { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
   distRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 12,
+    gap: 8,
   },
   distNumber: {
     fontFamily: 'Formula1-Black',
