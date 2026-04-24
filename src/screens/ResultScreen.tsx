@@ -39,8 +39,8 @@ const TOOLTIP_GAP    = 4;  // gap between tooltip bottom and chart top
 const SECTOR_ROW_H   = 28;
 // AVG label text height estimate (fontSize 11)
 const AVG_LABEL_TEXT_H = 14;
-// Bottom clearance: CTA fade(~57) + 48 spec gap
-const GRAPH_BOTTOM_CLEARANCE = 48 + 57;
+// 화면 하단에서 48px 고정
+const GRAPH_BOTTOM_CLEARANCE = 48;
 
 const DIFFICULTY = [
   { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
@@ -372,6 +372,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(totalPaceS)}</Text>
 
+                <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
+                <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(fastestPaceS)}</Text>
+
               </View>
 
               {/* ── Pace graph (anchored to bottom) ── */}
@@ -387,7 +390,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
                 >
                   {/* Bubble */}
-                  <View style={styles.tooltipBubble}>
+                  <View style={[styles.tooltipBubble, { backgroundColor: `rgba(${themeRgb},0.15)` }]}>
                     <Text style={styles.tooltipPace}>
                       {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
                     </Text>
@@ -438,8 +441,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                       <Defs>
                         {/* Vertical gradient for area fill */}
                         <LinearGradient id="rsArea" x1="0" y1="0" x2="0" y2="1">
-                          <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0.25" />
-                          <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0"    />
+                          <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0.2" />
+                          <Stop offset="100%" stopColor={topTheme.line} stopOpacity="0"   />
                         </LinearGradient>
                         {/* Horizontal gradient for line (fade in/out at edges) */}
                         <LinearGradient
@@ -708,12 +711,11 @@ const styles = StyleSheet.create({
   tooltipBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 10,
-    paddingRight: 12,
+    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 7,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
+    // backgroundColor는 inline으로 themeRgb 적용
   },
   tooltipPace: {
     fontFamily: 'Formula1-Regular',
