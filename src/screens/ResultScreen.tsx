@@ -213,6 +213,26 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [selectedSector, setSelectedSector] = useState(0);
   useEffect(() => { setSelectedSector(fastestSectorIdx); }, [fastestSectorIdx]);
 
+  // ─── Animation state / refs ────────────────────────────────────────────────
+  // Content shown in tooltip (lags behind selectedSector during cross-fade)
+  const [shownSector, setShownSector] = useState(0);
+  const prevIsFastestRef = useRef(false);
+
+  // One Animated.Value per bar for opacity (native driver → smooth spring)
+  const barAnimsRef = useRef<Animated.Value[]>([]);
+  while (barAnimsRef.current.length < sectorCount) {
+    barAnimsRef.current.push(
+      new Animated.Value(barAnimsRef.current.length === 0 ? 0.5 : 0.05),
+    );
+  }
+
+  // Tooltip slide position (JS driver — layout property)
+  const tooltipXAnim = useRef(new Animated.Value(0)).current;
+  // Tooltip content cross-fade (native driver)
+  const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
+  // Skip spring on first mount so tooltip doesn't animate from 0 → correct pos
+  const tooltipXMountedRef = useRef(false);
+
   // ─── Graph geometry ────────────────────────────────────────────────────────
 
   const graphW = screenW - GRAPH_SIDE_PAD * 2;
@@ -251,6 +271,59 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       useNativeDriver: true,
     }).start();
   }, [ctaAnim]);
+
+  // ─── Sector animation effects ──────────────────────────────────────────────
+
+  // Bar opacity: spring all bars to target opacity when selectedSector changes
+  useEffect(() => {
+    Animated.parallel(
+      barAnimsRef.current.slice(0, sectorCount).map((anim, i) =>
+        Animated.spring(anim, {
+          toValue: i === selectedSector ? 0.5 : 0.05,
+          useNativeDriver: true,
+          tension: 160,
+          friction: 9,
+        }),
+      ),
+    ).start();
+  }, [selectedSector, sectorCount]);
+
+  // Tooltip position: spring-slide to new bar centre X
+  useEffect(() => {
+    if (!tooltipXMountedRef.current) {
+      tooltipXAnim.setValue(tooltipLeft);
+      tooltipXMountedRef.current = true;
+      return;
+    }
+    Animated.spring(tooltipXAnim, {
+      toValue: tooltipLeft,
+      useNativeDriver: false,
+      tension: 200,
+      friction: 14,
+    }).start();
+  }, [tooltipLeft, tooltipXAnim]);
+
+  // Tooltip content: cross-fade when switching between fastest / regular
+  useEffect(() => {
+    const isFastest = selectedSector === fastestSectorIdx;
+    if (isFastest !== prevIsFastestRef.current) {
+      prevIsFastestRef.current = isFastest;
+      Animated.timing(tooltipFadeAnim, {
+        toValue: 0,
+        duration: 80,
+        useNativeDriver: true,
+      }).start(() => {
+        setShownSector(selectedSector);
+        Animated.timing(tooltipFadeAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      setShownSector(selectedSector);
+    }
+  }, [selectedSector, fastestSectorIdx, tooltipFadeAnim]);
 
   // ─── Evaluation sheet ──────────────────────────────────────────────────────
 
@@ -389,48 +462,51 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 {/* Tooltip zone — fixed height so chart doesn't shift */}
                 <View style={{ height: TOOLTIP_ZONE }}>
                   {(() => {
-                    const isFastest  = selectedSector === fastestSectorIdx;
-                    const tooltipBg  = isFastest
+                    const isFastest = shownSector === fastestSectorIdx;
+                    const tooltipBg = isFastest
                       ? 'rgba(133,40,197,0.15)'
                       : `rgba(${themeRgb},0.15)`;
                     return (
-                      <View
-                        style={[styles.tooltipWrap, { left: tooltipLeft }]}
+                      <Animated.View
+                        style={[styles.tooltipWrap, { left: tooltipXAnim }]}
                         onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
                       >
-                        {/* Bubble */}
-                        <View style={[
-                          styles.tooltipBubble,
-                          { backgroundColor: tooltipBg },
-                          isFastest && { paddingTop: 0, paddingBottom: 0 },
-                        ]}>
-                          {isFastest && (
-                            <>
-                              {/* Purple icon box */}
-                              <View style={styles.fastestIconBox}>
-                                <Image
-                                  source={require('../../assets/icons/fastest-lap.png')}
-                                  style={{ width: 20, height: 23 }}
-                                  resizeMode="contain"
-                                />
-                              </View>
-                              <View style={{ width: 10 }} />
-                              <Text style={styles.fastestLabel}>Fastest Lap</Text>
-                              <View style={{ width: 10 }} />
-                            </>
-                          )}
-                          <Text style={styles.tooltipPace}>
-                            {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
-                          </Text>
-                        </View>
-                        {/* Tail — same color as bubble */}
-                        <Svg width={14} height={10} viewBox="0 0 14 10">
-                          <Path
-                            d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                            fill={tooltipBg}
-                          />
-                        </Svg>
-                      </View>
+                        {/* Cross-fade wrapper */}
+                        <Animated.View style={{ opacity: tooltipFadeAnim, alignItems: 'center' }}>
+                          {/* Bubble */}
+                          <View style={[
+                            styles.tooltipBubble,
+                            { backgroundColor: tooltipBg },
+                            isFastest && { paddingTop: 0, paddingBottom: 0 },
+                          ]}>
+                            {isFastest && (
+                              <>
+                                {/* Purple icon box */}
+                                <View style={styles.fastestIconBox}>
+                                  <Image
+                                    source={require('../../assets/icons/fastest-lap.png')}
+                                    style={{ width: 20, height: 23 }}
+                                    resizeMode="contain"
+                                  />
+                                </View>
+                                <View style={{ width: 10 }} />
+                                <Text style={styles.fastestLabel}>Fastest Lap</Text>
+                                <View style={{ width: 10 }} />
+                              </>
+                            )}
+                            <Text style={styles.tooltipPace}>
+                              {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
+                            </Text>
+                          </View>
+                          {/* Tail — same color as bubble */}
+                          <Svg width={14} height={10} viewBox="0 0 14 10">
+                            <Path
+                              d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                              fill={tooltipBg}
+                            />
+                          </Svg>
+                        </Animated.View>
+                      </Animated.View>
                     );
                   })()}
                 </View>
@@ -439,14 +515,20 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <View style={styles.chartArea}>
                   {/* Bars — individual pressable columns */}
                   <View style={styles.barsRow}>
-                    {sectorPaces.map((_, i) => {
-                      const isSelected = i === selectedSector;
-                      return (
-                        <Pressable
-                          key={i}
-                          onPress={() => setSelectedSector(i)}
-                          style={{ width: barW }}
-                          hitSlop={4}
+                    {sectorPaces.map((_, i) => (
+                      <Pressable
+                        key={i}
+                        onPress={() => setSelectedSector(i)}
+                        style={{ width: barW }}
+                        hitSlop={4}
+                      >
+                        {/* Animated.View wraps SVG so opacity springs via native driver */}
+                        <Animated.View
+                          style={{
+                            opacity: barAnimsRef.current[i] ?? 0.05,
+                            width: barW,
+                            height: GRAPH_BAR_H,
+                          }}
                         >
                           <Svg width={barW} height={GRAPH_BAR_H}>
                             <Defs>
@@ -458,12 +540,11 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                             <Path
                               d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
                               fill={`url(#rsBar${i})`}
-                              opacity={isSelected ? 0.5 : 0.05}
                             />
                           </Svg>
-                        </Pressable>
-                      );
-                    })}
+                        </Animated.View>
+                      </Pressable>
+                    ))}
                   </View>
 
                   {/* Line + area + avg dashed — overlaid on bars */}
