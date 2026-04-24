@@ -356,8 +356,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(totalPaceS)}</Text>
 
-                <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(fastestPaceS)}</Text>
               </View>
 
               {/* ── Pace graph (anchored to bottom) ── */}
@@ -474,7 +472,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                     {
                       // dashed line sits at TOOLTIP_H + TOOLTIP_GAP + avgLineY inside graphSection
                       // we want label bottom = that position - 4px
-                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 4 - AVG_LABEL_TEXT_H,
+                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 2 - AVG_LABEL_TEXT_H,
                     },
                   ]}
                   pointerEvents="none"
