@@ -32,11 +32,13 @@ const BAR_GAP        = 5;
 const GRAPH_SIDE_PAD = 20;
 const GRAPH_BAR_H    = 160;
 const BAR_RADIUS     = 8;
-// Tooltip bubble above chart
-const TOOLTIP_H      = 30; // bubble height
+// Tooltip: bubble(39) + tail(10) + 3 buffer = 52
+const TOOLTIP_H      = 52;
 const TOOLTIP_GAP    = 4;  // gap between tooltip bottom and chart top
 // Sector label row below chart
 const SECTOR_ROW_H   = 28;
+// AVG label text height estimate (fontSize 11)
+const AVG_LABEL_TEXT_H = 14;
 // Bottom clearance: CTA fade(~57) + 48 spec gap
 const GRAPH_BOTTOM_CLEARANCE = 48 + 57;
 
@@ -367,12 +369,22 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               >
                 {/* Tooltip — 4px above chart, centered on selected bar */}
                 <View
-                  style={[styles.tooltip, { left: tooltipLeft }]}
+                  style={[styles.tooltipWrap, { left: tooltipLeft }]}
                   onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
                 >
-                  <Text style={[styles.tooltipText, { color: topTheme.text }]}>
-                    {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
-                  </Text>
+                  {/* Bubble */}
+                  <View style={styles.tooltipBubble}>
+                    <Text style={styles.tooltipPace}>
+                      {fmtPace(sectorPaces[selectedSector] ?? totalPaceS)}
+                    </Text>
+                  </View>
+                  {/* Tail */}
+                  <Svg width={14} height={10} viewBox="0 0 14 10">
+                    <Path
+                      d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                      fill="rgba(255,255,255,0.1)"
+                    />
+                  </Svg>
                 </View>
 
                 {/* Bar row (pressable) + line overlay */}
@@ -398,7 +410,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                             <Path
                               d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
                               fill={`url(#rsBar${i})`}
-                              opacity={isSelected ? 0.5 : 0.1}
+                              opacity={isSelected ? 0.5 : 0.05}
                             />
                           </Svg>
                         </Pressable>
@@ -455,19 +467,20 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   </View>
                 </View>
 
-                {/* AVG label — 8px above dashed line, 4px from left */}
+                {/* AVG label — value only, bottom edge 4px above dashed line */}
                 <View
                   style={[
                     styles.avgLabelWrap,
                     {
-                      // avgLineY is within chartArea; add TOOLTIP_H+TOOLTIP_GAP for offset in section
-                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 8 - 14,
+                      // dashed line sits at TOOLTIP_H + TOOLTIP_GAP + avgLineY inside graphSection
+                      // we want label bottom = that position - 4px
+                      top: TOOLTIP_H + TOOLTIP_GAP + avgLineY - 4 - AVG_LABEL_TEXT_H,
                     },
                   ]}
                   pointerEvents="none"
                 >
                   <Text style={[styles.avgLabelText, { color: `rgba(${themeRgb},0.7)` }]}>
-                    AVG {fmtPace(totalPaceS)}
+                    {fmtPace(totalPaceS)}
                   </Text>
                 </View>
 
@@ -668,22 +681,31 @@ const styles = StyleSheet.create({
     right: GRAPH_SIDE_PAD,
   },
 
-  // Tooltip pill — 4px above chart
-  tooltip: {
+  // Tooltip (HistoryScreen 동일 스타일)
+  tooltipWrap: {
     position: 'absolute',
     top: 0,
-    height: TOOLTIP_H,
-    // bottom of tooltip = TOOLTIP_H, chart starts at TOOLTIP_H + TOOLTIP_GAP → 4px gap ✓
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    // bubble(39) + tail(10) = 49, fits within TOOLTIP_H(52)
   },
-  tooltipText: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 13,
-    letterSpacing: -0.26,
+  tooltipBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+    paddingRight: 12,
+    paddingTop: 8,
+    paddingBottom: 7,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+  },
+  tooltipPace: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    opacity: 0.7,
   },
 
   // Bar columns + line overlay container
