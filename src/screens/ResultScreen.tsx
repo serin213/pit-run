@@ -405,7 +405,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                               {/* Purple icon box */}
                               <View style={styles.fastestIconBox}>
                                 <Image
-                                  source={require('../../assets/icons/fastest-lap.PNG')}
+                                  source={require('../../assets/icons/fastest-lap.png')}
                                   style={{ width: 20, height: 23 }}
                                   resizeMode="contain"
                                 />
