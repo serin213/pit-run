@@ -30,6 +30,7 @@ import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { useAuthStore } from '../store/authStore';
 import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
+import { selectCommentary } from '../lib/commentary/selectCommentary';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -299,6 +300,27 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   // TODO: 실제 등수 로직 추후 추가
   const rankNumber: number | null = null;
 
+  // ─── Commentary ───────────────────────────────────────────────────────────
+  // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
+  const completedAtRef = useRef(Date.now());
+  const commentary = useMemo(() => selectCommentary({
+    completedAt:       completedAtRef.current,
+    circuitId:         circuit.id,
+    tire:              null,   // TODO: run store에 타이어 추가 후 연결
+    avgPaceSec:        totalPaceS,
+    sectorPaces:       paceHistory,
+    isOverallPB:       false,  // TODO: 전체 기록 비교 후 연결
+    isCircuitPB:       false,  // TODO: 서킷 기록 비교 후 연결
+    goalPaceSec:       null,   // TODO: qualifyingResult 목표 페이스 연결
+    userGrade:         qualifyingResult?.grade ?? 'f3',
+    nextGradeName:     null,   // TODO: 등급 임계값 정의 후 연결
+    nextGradePaceSec:  null,   // TODO: 등급 임계값 정의 후 연결
+    totalRaceCount:    0,      // TODO: 유저 히스토리 연결
+    daysSinceLastRace: null,   // TODO: 유저 히스토리 연결
+    currentStreakDays:  0,      // TODO: 유저 히스토리 연결
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []); // 마운트 시 한 번만 계산
+
   // ─── Sector paces (1 entry per km) ────────────────────────────────────────
 
   const sectorCount = Math.max(1, Math.floor(distKm));
@@ -516,7 +538,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
                 {/* Summary text */}
                 <Text style={styles.summaryText}>
-                  Evening run to close the day. Nice job, mate.
+                  {commentary.message}
                 </Text>
               </View>
 
