@@ -50,7 +50,7 @@ const AVG_LABEL_TEXT_H = 14;
 const GRAPH_BOTTOM_CLEARANCE = 24;
 
 // Shared paddingTop for page 1 and page 2 content — change here to update both
-const PAGE_CONTENT_TOP = 66;
+const PAGE_CONTENT_TOP = 46;
 
 const DIFFICULTY = [
   { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
   },
   circuitWrap: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 20,
     left: 0,
     right: 0,
     height: 275,
