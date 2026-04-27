@@ -819,11 +819,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    height: 275,
     overflow: 'hidden',
   },
   circuitResultImage: {
     width: '100%',
-    height: 275,
+    height: '100%',
   },
 
   // ── Page 2 ──
