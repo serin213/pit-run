@@ -502,7 +502,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   <Image
                     source={circuitResultImage}
                     style={styles.circuitResultImage}
-                    resizeMode="contain"
+                    resizeMode="cover"
                   />
                 </View>
               )}
