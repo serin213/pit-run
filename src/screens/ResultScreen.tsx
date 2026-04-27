@@ -11,6 +11,11 @@ import {
 } from 'react-native';
 import { Image } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import GradientCtaButton from '../components/GradientCtaButton';
 import ScreenHeader from '../components/ScreenHeader';
 import { useRunStore } from '../store/runStore';
@@ -160,6 +165,81 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
   );
 }
 
+// ─── BarItem ──────────────────────────────────────────────────────────────────
+// Separate component so Reanimated hooks can be called per-bar (hooks-in-loop rule)
+
+interface BarItemProps {
+  barW: number;
+  isSelected: boolean;
+  themeColor: string;
+  index: number;
+  onPress: () => void;
+}
+
+function BarItem({ barW, isSelected, themeColor, index, onPress }: BarItemProps) {
+  const revealH = useSharedValue(0);
+
+  useEffect(() => {
+    revealH.value = withSpring(isSelected ? GRAPH_BAR_H : 0, {
+      damping: 22,
+      stiffness: 200,
+      mass: 1,
+    });
+  }, [isSelected, revealH]);
+
+  const revealStyle = useAnimatedStyle(() => ({
+    height: revealH.value,
+  }));
+
+  const bgId  = `rsBarBg${index}`;
+  const selId = `rsBarSel${index}`;
+
+  return (
+    <Pressable onPress={onPress} style={{ width: barW }} hitSlop={4}>
+      {/* Layer 1: Static dim background — always full height, no animation */}
+      <Svg width={barW} height={GRAPH_BAR_H}>
+        <Defs>
+          <LinearGradient id={bgId} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%"   stopColor={themeColor} stopOpacity="0" />
+            <Stop offset="100%" stopColor={themeColor} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Path
+          d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
+          fill={`url(#${bgId})`}
+          opacity={0.05}
+        />
+      </Svg>
+
+      {/* Layer 2: Reveal overlay — height springs 0 → GRAPH_BAR_H from bottom */}
+      <Reanimated.View
+        style={[
+          revealStyle,
+          { position: 'absolute', bottom: 0, width: barW, overflow: 'hidden' },
+        ]}
+      >
+        <Svg
+          width={barW}
+          height={GRAPH_BAR_H}
+          style={{ position: 'absolute', bottom: 0 }}
+        >
+          <Defs>
+            <LinearGradient id={selId} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%"   stopColor={themeColor} stopOpacity="0" />
+              <Stop offset="100%" stopColor={themeColor} stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          <Path
+            d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
+            fill={`url(#${selId})`}
+            opacity={0.5}
+          />
+        </Svg>
+      </Reanimated.View>
+    </Pressable>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ResultScreen({ navigation }: ResultScreenProps) {
@@ -218,14 +298,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [shownSector, setShownSector] = useState(0);
   const prevIsFastestRef = useRef(false);
 
-  // One Animated.Value per bar for opacity (native driver → smooth spring)
-  const barAnimsRef = useRef<Animated.Value[]>([]);
-  while (barAnimsRef.current.length < sectorCount) {
-    barAnimsRef.current.push(
-      new Animated.Value(barAnimsRef.current.length === 0 ? 0.5 : 0.05),
-    );
-  }
-
   // Tooltip slide position (JS driver — layout property)
   const tooltipXAnim = useRef(new Animated.Value(0)).current;
   // Tooltip content cross-fade (native driver)
@@ -273,20 +345,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   }, [ctaAnim]);
 
   // ─── Sector animation effects ──────────────────────────────────────────────
-
-  // Bar opacity: spring all bars to target opacity when selectedSector changes
-  useEffect(() => {
-    Animated.parallel(
-      barAnimsRef.current.slice(0, sectorCount).map((anim, i) =>
-        Animated.spring(anim, {
-          toValue: i === selectedSector ? 0.5 : 0.05,
-          useNativeDriver: true,
-          tension: 160,
-          friction: 9,
-        }),
-      ),
-    ).start();
-  }, [selectedSector, sectorCount]);
 
   // Tooltip position: spring-slide to new bar centre X
   // friction 26 keeps it critically damped → smooth slide, minimal overshoot
@@ -514,37 +572,17 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
                 {/* Bar row (pressable) + line overlay */}
                 <View style={styles.chartArea}>
-                  {/* Bars — individual pressable columns */}
+                  {/* Bars — BarItem handles Reanimated reveal per bar */}
                   <View style={styles.barsRow}>
                     {sectorPaces.map((_, i) => (
-                      <Pressable
+                      <BarItem
                         key={i}
+                        index={i}
+                        barW={barW}
+                        isSelected={i === selectedSector}
+                        themeColor={topTheme.line}
                         onPress={() => setSelectedSector(i)}
-                        style={{ width: barW }}
-                        hitSlop={4}
-                      >
-                        {/* Animated.View wraps SVG so opacity springs via native driver */}
-                        <Animated.View
-                          style={{
-                            opacity: barAnimsRef.current[i] ?? 0.05,
-                            width: barW,
-                            height: GRAPH_BAR_H,
-                          }}
-                        >
-                          <Svg width={barW} height={GRAPH_BAR_H}>
-                            <Defs>
-                              <LinearGradient id={`rsBar${i}`} x1="0" y1="0" x2="0" y2="1">
-                                <Stop offset="0%"   stopColor={topTheme.line} stopOpacity="0" />
-                                <Stop offset="100%" stopColor={topTheme.line} stopOpacity="1" />
-                              </LinearGradient>
-                            </Defs>
-                            <Path
-                              d={bottomRoundedRect(0, 0, barW, GRAPH_BAR_H, BAR_RADIUS)}
-                              fill={`url(#rsBar${i})`}
-                            />
-                          </Svg>
-                        </Animated.View>
-                      </Pressable>
+                      />
                     ))}
                   </View>
 
