@@ -30,7 +30,6 @@ import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { useAuthStore } from '../store/authStore';
 import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
-import { GRADE_DISPLAY_NAME } from '../constants/grade';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -48,6 +47,9 @@ const SECTOR_ROW_H   = 28;
 const AVG_LABEL_TEXT_H = 14;
 // 화면 하단에서 48px 고정
 const GRAPH_BOTTOM_CLEARANCE = 24;
+
+// Shared paddingTop for page 1 and page 2 content — change here to update both
+const PAGE_CONTENT_TOP = 66;
 
 const DIFFICULTY = [
   { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
@@ -74,21 +76,28 @@ const CIRCUIT_RESULT_IMAGES: Record<string, number> = {
   'spa':         require('../../assets/circuits/results/spa.png'),
 };
 
-// ─── Circuit name line-break rules ───────────────────────────────────────────
-const CIRCUIT_BREAK_RULES: Record<string, string> = {
-  'MONACO':      'MO\nNACO',
-  'HUNGARY':     'HUN\nGARY',
-  'MARINA BAY':  'MARINA\nBAY',
-  'ALBERT PARK': 'ALBERT\nPARK',
-  'SHANGHAI':    'SHANG\nHAI',
-  'SILVERSTONE': 'SILVER\nSTONE',
-  'LAS VEGAS':   'LAS\nVEGAS',
+// ─── Checker-flag images ──────────────────────────────────────────────────────
+
+const CHECKER_FLAG_COLOR: Record<string, string> = {
+  'baku':        'teal',
+  'monaco':      'red',
+  'shanghai':    'red',
+  'marina-bay':  'red',
+  'hungaroring': 'green',
+  'monza':       'green',
+  'albert-park': 'blue',
+  'silverstone': 'blue',
+  'las-vegas':   'blue',
+  'spa':         'yellow',
 };
 
-function getCircuitNameDisplay(displayName: string): string {
-  const upper = displayName.toUpperCase();
-  return CIRCUIT_BREAK_RULES[upper] ?? upper;
-}
+const CHECKER_FLAG_IMAGES: Record<string, number> = {
+  'teal':   require('../../assets/circuits/checker-flag/teal.png'),
+  'red':    require('../../assets/circuits/checker-flag/red.png'),
+  'green':  require('../../assets/circuits/checker-flag/green.png'),
+  'blue':   require('../../assets/circuits/checker-flag/blue.png'),
+  'yellow': require('../../assets/circuits/checker-flag/yellow.png'),
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -276,17 +285,19 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
 
-  const circuit          = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
-  const topTheme         = getCircuitTheme(circuit.displayName.toUpperCase());
-  const themeRgb         = hexToRgb(topTheme.line);
-  const circuitNameDisplay = getCircuitNameDisplay(circuit.displayName);
+  const circuit            = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
+  const topTheme           = getCircuitTheme(circuit.displayName.toUpperCase());
+  const themeRgb           = hexToRgb(topTheme.line);
   const circuitResultImage = CIRCUIT_RESULT_IMAGES[circuit.id] ?? null;
+  const checkerFlagColor   = CHECKER_FLAG_COLOR[circuit.id] ?? null;
+  const checkerFlagImage   = checkerFlagColor ? CHECKER_FLAG_IMAGES[checkerFlagColor] : null;
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
-  const totalPaceS   = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
-  const grade        = qualifyingResult?.grade ?? 'f3';
-  const gradeLabel   = GRADE_DISPLAY_NAME[grade].toUpperCase();
+  const totalPaceS = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
+
+  // TODO: 실제 등수 로직 추후 추가
+  const rankNumber: number | null = null;
 
   // ─── Sector paces (1 entry per km) ────────────────────────────────────────
 
@@ -461,6 +472,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         flagAsset={circuit.flagAsset}
         circuitLabel={circuit.displayName}
         circuitKm={circuit.distanceKm}
+        hideKm
         theme={topTheme}
         statusLabel="FINISH"
       />
@@ -482,18 +494,30 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               handlePageChange(page);
             }}
           >
-            {/* ─── Page 1: Circuit name + Grade pos + Global rank ─── */}
+            {/* ─── Page 1: Rank + Flag + Summary ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
               <View style={styles.page1Content}>
-                <Text style={[styles.circuitName, { color: topTheme.text }]}>
-                  {circuitNameDisplay}
+                {/* P + rank number + checker flag row */}
+                <View style={styles.rankRow}>
+                  <Text style={styles.rankText}>P</Text>
+                  <View style={{ width: 8 }} />
+                  <Text style={styles.rankText}>{rankNumber ?? '—'}</Text>
+                  {checkerFlagImage && (
+                    <>
+                      <View style={{ width: 16 }} />
+                      <Image
+                        source={checkerFlagImage}
+                        style={styles.checkerFlag}
+                        resizeMode="contain"
+                      />
+                    </>
+                  )}
+                </View>
+
+                {/* Summary text */}
+                <Text style={styles.summaryText}>
+                  Evening run to close the day. Nice job, mate.
                 </Text>
-
-                <Text style={[styles.label, { marginTop: 72 }]}>{gradeLabel} POS</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>—</Text>
-
-                <Text style={[styles.label, { marginTop: 42 }]}>GLOBAL RANK</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>—%</Text>
               </View>
 
               {/* Circuit result image — full width, anchored to bottom */}
@@ -806,13 +830,33 @@ const styles = StyleSheet.create({
   // ── Page 1 ──
   page1Content: {
     paddingLeft: 20,
-    paddingTop: 77,
+    paddingTop: PAGE_CONTENT_TOP,
   },
-  circuitName: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 72,
-    lineHeight: 82,
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rankText: {
+    fontFamily: 'Formula1-Black',
+    fontSize: 100,
+    lineHeight: 110,
+    letterSpacing: -2,
+    color: '#FFFFFF',
     includeFontPadding: false,
+  },
+  checkerFlag: {
+    width: 92,
+    height: 92,
+  },
+  summaryText: {
+    marginTop: 24,
+    fontFamily: 'Formula1-Regular',
+    fontSize: 24,
+    lineHeight: 24 * 1.3,   // 130%
+    letterSpacing: 24 * -0.01, // -1%
+    fontStyle: 'italic',
+    color: 'rgba(255,255,255,0.5)',
+    paddingRight: 20,
   },
   circuitWrap: {
     position: 'absolute',
@@ -830,7 +874,7 @@ const styles = StyleSheet.create({
   // ── Page 2 ──
   page2Stats: {
     paddingLeft: 20,
-    paddingTop: 66,
+    paddingTop: PAGE_CONTENT_TOP,
   },
   distRow: {
     flexDirection: 'row',
