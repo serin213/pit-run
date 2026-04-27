@@ -57,6 +57,23 @@ const DIFFICULTY = [
   { id: 'too-hard', emoji: '🔥', label: 'Too Hard' },
 ] as const;
 
+// ─── Circuit result images ────────────────────────────────────────────────────
+// Static require map: Metro bundler cannot resolve dynamic paths
+
+const CIRCUIT_RESULT_IMAGES: Record<string, number> = {
+  'shanghai':    require('../../assets/circuits/results/shanghai.png'),
+  'las-vegas':   require('../../assets/circuits/results/lasvegas.png'),
+  'suzuka':      require('../../assets/circuits/results/suzuka.png'),
+  'monaco':      require('../../assets/circuits/results/monaco.png'),
+  'hungaroring': require('../../assets/circuits/results/hungary.png'),
+  'marina-bay':  require('../../assets/circuits/results/marinabay.png'),
+  'monza':       require('../../assets/circuits/results/monza.png'),
+  'baku':        require('../../assets/circuits/results/baku.png'),
+  'albert-park': require('../../assets/circuits/results/albertpark.png'),
+  'silverstone': require('../../assets/circuits/results/silverstone.png'),
+  'spa':         require('../../assets/circuits/results/spa.png'),
+};
+
 // ─── Circuit name line-break rules ───────────────────────────────────────────
 const CIRCUIT_BREAK_RULES: Record<string, string> = {
   'MONACO':      'MO\nNACO',
@@ -263,6 +280,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const topTheme         = getCircuitTheme(circuit.displayName.toUpperCase());
   const themeRgb         = hexToRgb(topTheme.line);
   const circuitNameDisplay = getCircuitNameDisplay(circuit.displayName);
+  const circuitResultImage = CIRCUIT_RESULT_IMAGES[circuit.id] ?? null;
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
@@ -478,16 +496,16 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Text style={[styles.contentValue, { marginTop: 8 }]}>—%</Text>
               </View>
 
-              {/* Decorative circuit SVG */}
-              <View style={styles.circuitWrap} pointerEvents="none">
-                {circuit.viewBox && (
-                  <CircuitSvgLarge
-                    path={circuit.trackPath}
-                    viewBox={circuit.viewBox}
-                    color={topTheme.line}
+              {/* Circuit result image — full width, anchored to bottom */}
+              {circuitResultImage && (
+                <View style={styles.circuitWrap} pointerEvents="none">
+                  <Image
+                    source={circuitResultImage}
+                    style={styles.circuitResultImage}
+                    resizeMode="contain"
                   />
-                )}
-              </View>
+                </View>
+              )}
             </View>
 
             {/* ─── Page 2: Stats + Pace graph ─── */}
@@ -801,8 +819,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 275,
     overflow: 'hidden',
+  },
+  circuitResultImage: {
+    width: '100%',
+    height: 275,
   },
 
   // ── Page 2 ──
