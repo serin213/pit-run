@@ -774,7 +774,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
                 {selectedTire && (
                   <View style={{ marginTop: 12, alignSelf: 'flex-start', marginRight: 24 }}>
-                    <TireIcon type={selectedTire} width={30} height={30} />
+                    <TireIcon type={selectedTire} width={44} height={41} />
                   </View>
                 )}
 
