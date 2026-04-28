@@ -999,7 +999,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               styles.sheet,
               {
                 transform: [{ translateY: sheetTranslateY }],
-                paddingBottom: safeBottom + 16,
+                paddingBottom: 36,
                 backgroundColor: 'transparent',
                 overflow: 'hidden',
               },
@@ -1299,7 +1299,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-    marginBottom: 36,
   },
   emojiLabelEdge: {
     fontFamily: 'Formula1-Regular',
