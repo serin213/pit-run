@@ -20,6 +20,7 @@ import Reanimated, {
   Easing,
 } from 'react-native-reanimated';
 import GradientCtaButton from '../components/GradientCtaButton';
+import ResultSharePage from './ResultSharePage';
 import ScreenHeader from '../components/ScreenHeader';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
@@ -918,8 +919,22 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 </View>
               </View>
             </View>
-            {/* ─── Page 3: (내용 추후 추가) ─── */}
-            <View style={[styles.page, { height: pageHeight }]} />
+            {/* ─── Page 3: Share ─── */}
+            <View style={[styles.page, { height: pageHeight }]}>
+              <ResultSharePage
+                distKm={distKm}
+                elapsedMs={elapsedMs}
+                totalPaceS={totalPaceS}
+                fastestPaceS={fastestPaceS}
+                circuitName={circuit.displayName}
+                circuitKm={circuit.distanceKm}
+                statusLabel={statusLabel}
+                flagAsset={circuit.flagAsset}
+                trackPath={circuit.trackPath}
+                viewBox={circuit.viewBox}
+                themeColor={topTheme.line}
+              />
+            </View>
 
           </ScrollView>
         )}
