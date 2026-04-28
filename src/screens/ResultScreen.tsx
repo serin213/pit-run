@@ -22,6 +22,7 @@ import Reanimated, {
 import GradientCtaButton from '../components/GradientCtaButton';
 import ResultSharePage from './ResultSharePage';
 import ScreenHeader from '../components/ScreenHeader';
+import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
@@ -420,6 +421,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
   const {
     selectedCircuitId,
+    selectedTire,
     qualifyingResult,
     recordActivity,
     addDistance,
@@ -769,14 +771,12 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   digitH={36}
                 />
 
-                <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
-                <RollingText
-                  target={fmtPace(fastestPaceS)}
-                  active={activePage === 1}
-                  containerStyle={{ marginTop: 8 }}
-                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
-                  digitH={36}
-                />
+                <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
+                {selectedTire && (
+                  <View style={{ marginTop: 12, alignSelf: 'flex-start', marginRight: 24 }}>
+                    <TireIcon type={selectedTire} width={30} height={30} />
+                  </View>
+                )}
 
               </View>
 
