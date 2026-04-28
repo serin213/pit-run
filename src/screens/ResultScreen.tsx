@@ -193,6 +193,13 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
 }
 
 // ─── RollingPNumber ───────────────────────────────────────────────────────────
+// Ease-out delays: 20 steps summing to ~1000ms (quadratic: a=10, b≈0.324)
+const ROLL_STEPS = 20;
+function buildEaseOutDelays(): number[] {
+  const a = 10, b = 800 / 2470;
+  return Array.from({ length: ROLL_STEPS }, (_, i) => a + b * i * i);
+}
+
 // Slot-machine animation: cycles through random P1–P22 values then settles on target.
 
 interface RollingPNumberProps {
@@ -201,17 +208,14 @@ interface RollingPNumberProps {
 }
 
 function RollingPNumber({ target, color }: RollingPNumberProps) {
-  // Initialize directly with target so the number is visible before animation starts
   const [display, setDisplay] = useState<number | null>(target);
 
   useEffect(() => {
     if (target === null) { setDisplay(null); return; }
 
-    // Build sequence: 19 random non-consecutive values ending with target
-    const TOTAL = 20;
     const seq: number[] = [];
     let prev = 0;
-    for (let i = 0; i < TOTAL - 1; i++) {
+    for (let i = 0; i < ROLL_STEPS - 1; i++) {
       let n: number;
       do { n = Math.floor(Math.random() * 22) + 1; } while (n === prev);
       prev = n;
@@ -219,15 +223,15 @@ function RollingPNumber({ target, color }: RollingPNumberProps) {
     }
     seq.push(target);
 
-    let index = 0;
-    // setInterval is more reliable than recursive setTimeout in RN
-    const timer = setInterval(() => {
-      setDisplay(seq[index]);
-      index += 1;
-      if (index >= seq.length) clearInterval(timer);
-    }, 80);
+    const delays = buildEaseOutDelays();
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let elapsed = 0;
+    seq.forEach((val, i) => {
+      elapsed += delays[i];
+      timers.push(setTimeout(() => setDisplay(val), elapsed));
+    });
 
-    return () => clearInterval(timer);
+    return () => timers.forEach(clearTimeout);
   }, [target]);
 
   return (
@@ -235,6 +239,47 @@ function RollingPNumber({ target, color }: RollingPNumberProps) {
       {display ?? '—'}
     </Text>
   );
+}
+
+// Slot-machine animation for formatted strings (TIME / PACE), triggered on active.
+
+interface RollingTextProps {
+  target: string;
+  active: boolean;
+  style?: object;
+  randomValue: () => string;
+}
+
+function RollingText({ target, active, style, randomValue }: RollingTextProps) {
+  const [display, setDisplay] = useState('');
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (!active || hasAnimated.current) return;
+    hasAnimated.current = true;
+
+    const seq: string[] = [];
+    let prev = '';
+    for (let i = 0; i < ROLL_STEPS - 1; i++) {
+      let v: string;
+      do { v = randomValue(); } while (v === prev);
+      prev = v;
+      seq.push(v);
+    }
+    seq.push(target);
+
+    const delays = buildEaseOutDelays();
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let elapsed = 0;
+    seq.forEach((val, i) => {
+      elapsed += delays[i];
+      timers.push(setTimeout(() => setDisplay(val), elapsed));
+    });
+
+    return () => timers.forEach(clearTimeout);
+  }, [active, target, randomValue]);
+
+  return <Text style={style}>{display || target}</Text>;
 }
 
 // ─── BarItem ──────────────────────────────────────────────────────────────────
@@ -432,6 +477,18 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const TOTAL_PAGES = 3;
   const [pageHeight, setPageHeight] = useState(0);
   const [activePage, setActivePage] = useState(0);
+
+  // Random value generators for Page 2 slot-machine animation
+  const randPaceValue = useCallback(() => {
+    const m = Math.floor(Math.random() * 6) + 3;
+    const s = Math.floor(Math.random() * 60);
+    return `${m}'${s < 10 ? '0' : ''}${s}"`;
+  }, []);
+  const randTimeValue = useCallback(() => {
+    const m = Math.floor(Math.random() * 30) + 1;
+    const s = Math.floor(Math.random() * 60);
+    return `${m}'${s < 10 ? '0' : ''}${s}"`;
+  }, []);
   const ctaAnim = useRef(new Animated.Value(0)).current;
 
   const handlePageChange = useCallback((page: number) => {
@@ -613,13 +670,28 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 </View>
 
                 <Text style={[styles.label, { marginTop: 32 }]}>TIME</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtTime(elapsedMs)}</Text>
+                <RollingText
+                  target={fmtTime(elapsedMs)}
+                  active={activePage === 1}
+                  style={[styles.contentValue, { marginTop: 8 }]}
+                  randomValue={randTimeValue}
+                />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(totalPaceS)}</Text>
+                <RollingText
+                  target={fmtPace(totalPaceS)}
+                  active={activePage === 1}
+                  style={[styles.contentValue, { marginTop: 8 }]}
+                  randomValue={randPaceValue}
+                />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
-                <Text style={[styles.contentValue, { marginTop: 8 }]}>{fmtPace(fastestPaceS)}</Text>
+                <RollingText
+                  target={fmtPace(fastestPaceS)}
+                  active={activePage === 1}
+                  style={[styles.contentValue, { marginTop: 8 }]}
+                  randomValue={randPaceValue}
+                />
 
               </View>
 
