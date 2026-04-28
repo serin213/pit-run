@@ -269,19 +269,15 @@ export default function ResultSharePage(props: SharePageProps) {
         <SmallPortraitCard {...props} leftAlign />
       </View>
 
-      {/* Row 2 & 3: Sticker badges 2×2 */}
-      <View style={st.row}>
-        <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
-          themeColor={themeColor} themeTextColor={themeColor} variant="solid" />
-        <StickerCard
-          label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
-      </View>
-      <View style={st.row}>
-        <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
-          themeColor={themeColor} themeTextColor={themeColor} variant="ghost" />
-        <StickerCard
-          label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
-      </View>
+      {/* Row 2~5: Sticker badges 1열 */}
+      <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
+        themeColor={themeColor} themeTextColor={themeColor} variant="solid" />
+      <StickerCard
+        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
+      <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
+        themeColor={themeColor} themeTextColor={themeColor} variant="ghost" />
+      <StickerCard
+        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
 
       {/* Row 4: Wide header */}
       <WideHeaderCard {...props} />
@@ -375,7 +371,6 @@ const st = StyleSheet.create({
 
   // Sticker 167×51
   stickerCard: {
-    flex: 1,
     height: 51,
     backgroundColor: CARD_BG,
     borderRadius: 12,
@@ -389,7 +384,7 @@ const st = StyleSheet.create({
   circuitPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 2,
     paddingHorizontal: 6,
     paddingVertical: 4,
   },
