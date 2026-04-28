@@ -59,25 +59,25 @@ function ShareBtn({ onPress }: { onPress: () => void }) {
 
 // ─── Circuit SVG (small, for cards) ──────────────────────────────────────────
 
-function CardCircuitSvg({ path, viewBox, color, size }: {
-  path: string; viewBox: { width: number; height: number }; color: string; size: number;
+function CardCircuitSvg({ path, viewBox, color, size, strokePx = 5 }: {
+  path: string; viewBox: { width: number; height: number }; color: string; size: number; strokePx?: number;
 }) {
   const scale  = size / Math.max(viewBox.width, viewBox.height);
   const w      = viewBox.width * scale;
   const h      = viewBox.height * scale;
-  const strokeW = 5 / scale;
+  const strokeW = strokePx / scale;
   return (
     <Svg width={w} height={h} viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}>
       <Path d={path} fill="none" stroke={color} strokeWidth={strokeW}
-        strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+        strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
 // ─── Card 1 & 2: Small portrait (167×286) ────────────────────────────────────
 
-function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName, circuitKm,
-  trackPath, viewBox, themeColor, withSvg }: SharePageProps & { withSvg: boolean }) {
+function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
+  trackPath, viewBox, themeColor }: SharePageProps) {
   const ref = useRef<View>(null);
   const share = useShareCard();
   return (
@@ -85,31 +85,29 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName, circuit
       <ShareBtn onPress={() => share(ref)} />
 
       {/* Circuit badge */}
-      <View style={[st.badge, { backgroundColor: themeColor + '28', borderColor: themeColor + '60' }]}>
-        <Text style={[st.badgeText, { color: themeColor }]} numberOfLines={1}>
+      <View style={[st.smallBadge, { backgroundColor: themeColor }]}>
+        <Text style={st.smallBadgeText} numberOfLines={1}>
           {circuitName.toUpperCase()} GP
         </Text>
       </View>
 
       {/* Distance */}
-      <Text style={st.smallDistKm} numberOfLines={1}>
-        {fmtDist(distKm)}<Text style={st.smallDistUnit}>km</Text>
+      <Text style={st.smallDist} numberOfLines={1}>
+        {fmtDist(distKm)}km
       </Text>
 
-      {/* Stats */}
-      <View style={st.smallStatRow}>
-        <Text style={st.statLabel}>TIME</Text>
-        <Text style={st.statValue}>{fmtTime(elapsedMs)}</Text>
-      </View>
-      <View style={[st.smallStatRow, { marginTop: 10 }]}>
-        <Text style={st.statLabel}>PACE AVG</Text>
-        <Text style={st.statValue}>{fmtPace(totalPaceS)}</Text>
-      </View>
+      {/* TIME */}
+      <Text style={[st.smallLabel, { marginTop: 16 }]}>TIME</Text>
+      <Text style={[st.smallVal, { marginTop: 6 }]}>{fmtTime(elapsedMs)}</Text>
+
+      {/* PACE AVG */}
+      <Text style={[st.smallLabel, { marginTop: 20 }]}>PACE AVG</Text>
+      <Text style={[st.smallVal, { marginTop: 6 }]}>{fmtPace(totalPaceS)}</Text>
 
       {/* Circuit SVG */}
-      {withSvg && trackPath && viewBox && (
-        <View style={st.smallSvgWrap}>
-          <CardCircuitSvg path={trackPath} viewBox={viewBox} color="rgba(255,255,255,0.6)" size={120} />
+      {trackPath && viewBox && (
+        <View style={{ marginTop: 20, alignItems: 'center' }}>
+          <CardCircuitSvg path={trackPath} viewBox={viewBox} color="#FFFFFF" size={52} strokePx={2} />
         </View>
       )}
     </View>
@@ -235,8 +233,8 @@ export default function ResultSharePage(props: SharePageProps) {
 
       {/* Row 1: Two small portrait cards */}
       <View style={st.row}>
-        <SmallPortraitCard {...props} withSvg={false} />
-        <SmallPortraitCard {...props} withSvg />
+        <SmallPortraitCard {...props} />
+        <SmallPortraitCard {...props} />
       </View>
 
       {/* Row 2 & 3: Sticker badges 2×2 */}
@@ -306,43 +304,40 @@ const st = StyleSheet.create({
     backgroundColor: CARD_BG,
     borderRadius: 12,
     ...BORDER,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     overflow: 'hidden',
+    alignItems: 'center',
   },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 8,
+  smallBadge: {
+    borderRadius: 2,
+    paddingHorizontal: 6,
     paddingVertical: 3,
-    marginBottom: 14,
   },
-  badgeText: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 9,
-    letterSpacing: 0.3,
-  },
-  smallDistKm: {
-    fontFamily: 'Formula1-Black',
-    fontSize: 44,
-    color: '#FFFFFF',
-    lineHeight: 48,
-    includeFontPadding: false,
-    letterSpacing: -1,
-  },
-  smallDistUnit: {
+  smallBadgeText: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 18,
+    fontSize: 10,
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
-  smallStatRow: {
-    marginTop: 14,
+  smallDist: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 22,
+    color: '#FFFFFF',
+    includeFontPadding: false,
+    marginTop: 8,
   },
-  smallSvgWrap: {
-    position: 'absolute',
-    bottom: 12,
-    right: 8,
-    opacity: 0.8,
+  smallLabel: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.2,
+  },
+  smallVal: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 16,
+    color: '#FFFFFF',
+    includeFontPadding: false,
   },
 
   // Sticker 167×51
