@@ -62,9 +62,9 @@ function ShareBtn({ onPress }: { onPress: () => void }) {
 function CardCircuitSvg({ path, viewBox, color, size, strokePx = 5 }: {
   path: string; viewBox: { width: number; height: number }; color: string; size: number; strokePx?: number;
 }) {
-  const scale  = size / Math.max(viewBox.width, viewBox.height);
+  const scale  = size / viewBox.height;
   const w      = viewBox.width * scale;
-  const h      = viewBox.height * scale;
+  const h      = size;
   const strokeW = strokePx / scale;
   return (
     <Svg width={w} height={h} viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}>
@@ -335,7 +335,7 @@ const st = StyleSheet.create({
   },
   smallVal: {
     fontFamily: 'Formula1-Bold',
-    fontSize: 16,
+    fontSize: 22,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
