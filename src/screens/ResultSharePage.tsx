@@ -106,7 +106,7 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
 
       {/* Circuit SVG */}
       {trackPath && viewBox && (
-        <View style={{ marginTop: 40, alignItems: 'center' }}>
+        <View style={{ marginTop: 28, alignItems: 'center' }}>
           <CardCircuitSvg path={trackPath} viewBox={viewBox} color="#FFFFFF" size={52} strokePx={3} />
         </View>
       )}
