@@ -93,6 +93,7 @@ const CHECKER_FLAG_COLOR: Record<string, string> = {
   'silverstone': 'blue',
   'las-vegas':   'blue',
   'spa':         'yellow',
+  'suzuka':      'red',
 };
 
 const CHECKER_FLAG_IMAGES: Record<string, number> = {
@@ -692,10 +693,10 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   <RollingPNumber target={12} color={topTheme.text} />
                   {checkerFlagImage && (
                     <>
-                      <View style={{ width: 16 }} />
+                      <View style={{ width: 12 }} />
                       <Image
                         source={checkerFlagImage}
-                        style={styles.checkerFlag}
+                        style={[styles.checkerFlag, { marginTop: -1 }]}
                         resizeMode="contain"
                       />
                     </>
