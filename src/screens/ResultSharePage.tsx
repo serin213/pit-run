@@ -268,15 +268,13 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
           </View>
         </View>
 
-        {/* Right: PNG — right-aligned, top = PACE AVG value */}
+        {/* Right: PNG — top = PACE AVG value */}
         {circuitPng && (
-          <View style={st.largePngWrap}>
-            <Image
-              source={circuitPng}
-              style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '100%' }}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={circuitPng}
+            style={st.largePngWrap}
+            resizeMode="contain"
+          />
         )}
       </View>
     </View>
@@ -515,7 +513,6 @@ const st = StyleSheet.create({
     flex: 1,
     height: 190,
     marginTop: 22,   // label(~14) + gap(8) → aligns with PACE AVG value text
-    overflow: 'hidden',
   },
 
   // Shared wide card stat styles
