@@ -86,7 +86,7 @@ function CopyBtn({ cardRef }: { cardRef: RefObject<View | null> }) {
         source={confirming
           ? require('../../assets/double-check.png')
           : require('../../assets/copy.png')}
-        style={{ width: 20, height: 20 }}
+        style={{ width: 20, height: 20, opacity: 0.5 }}
         resizeMode="contain"
       />
     </Pressable>
