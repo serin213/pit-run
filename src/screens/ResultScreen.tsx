@@ -237,15 +237,16 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
 
   return (
     <View style={{ height: digitH, overflow: 'hidden', marginHorizontal: -2 }}>
-      <Reanimated.View style={animStyle}>
+      <Reanimated.View style={[{ flexDirection: 'column' }, animStyle]}>
         {items.map((d, i) => (
-          <Text
-            key={i}
-            allowFontScaling={false}
-            style={[textStyle, { height: digitH, lineHeight: digitH, fontVariant: ['tabular-nums'] }]}
-          >
-            {d}
-          </Text>
+          <View key={i} style={{ height: digitH, justifyContent: 'center' }}>
+            <Text
+              allowFontScaling={false}
+              style={[textStyle, { lineHeight: digitH, fontVariant: ['tabular-nums'] }]}
+            >
+              {d}
+            </Text>
+          </View>
         ))}
       </Reanimated.View>
     </View>
@@ -260,9 +261,15 @@ interface RollingPNumberProps {
 }
 
 function RollingPNumber({ target, color }: RollingPNumberProps) {
-  const DIGIT_H = 110; // matches rankText lineHeight
+  const DIGIT_H = 110;
   const textStyle = useMemo(
-    () => ({ ...styles.rankText, color, height: DIGIT_H, lineHeight: DIGIT_H }),
+    () => ({
+      fontFamily: 'Formula1-Black',
+      fontSize: 100,
+      letterSpacing: -2,
+      includeFontPadding: false,
+      color,
+    }),
     [color],
   );
 
@@ -705,7 +712,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   target={fmtTime(elapsedMs)}
                   active={activePage === 1}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={styles.contentValue}
+                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
                   digitH={36}
                 />
 
@@ -714,7 +721,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   target={fmtPace(totalPaceS)}
                   active={activePage === 1}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={styles.contentValue}
+                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
                   digitH={36}
                 />
 
@@ -723,7 +730,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   target={fmtPace(fastestPaceS)}
                   active={activePage === 1}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={styles.contentValue}
+                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
                   digitH={36}
                 />
 
