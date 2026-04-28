@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { radius } from '../constants/radius';
 
@@ -44,6 +44,9 @@ export default function BoxBoxSheet({
   const [waveTime, setWaveTime] = useState(0);
   const rafRef = useRef<number | null>(null);
   const waveStartRef = useRef<number>(0);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [340, 0] });
+  const overlayOpacity  = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
   const sheetWidth = windowW - 40;
   const waveWidth = Math.max(1, sheetWidth - WAVE_BASE_SIDE * 2);
   const colCount = Math.max(1, Math.floor(waveWidth / WAVE_MIN_COLUMN_WIDTH));
@@ -84,6 +87,14 @@ export default function BoxBoxSheet({
   );
 
   useEffect(() => {
+    Animated.timing(sheetAnim, {
+      toValue: visible ? 1 : 0,
+      duration: visible ? 320 : 200,
+      useNativeDriver: true,
+    }).start();
+  }, [visible, sheetAnim]);
+
+  useEffect(() => {
     if (!visible) return;
     waveStartRef.current = 0;
     const loop = (ts: number) => {
@@ -109,7 +120,10 @@ export default function BoxBoxSheet({
 
   return (
     <View style={s.root} pointerEvents="box-none">
-      <Pressable style={s.overlay} onPress={onClose} />
+      <Animated.View style={[s.overlay, { opacity: overlayOpacity }]} pointerEvents="box-none">
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+      <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
       <BlurView intensity={10} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
         <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.35)' }}>
           <Text style={[s.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
@@ -184,13 +198,14 @@ export default function BoxBoxSheet({
           )}
         </View>
       </BlurView>
+      </Animated.View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: {
     marginHorizontal: 20,
     marginBottom: 26,
