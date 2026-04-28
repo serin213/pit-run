@@ -192,6 +192,51 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
   );
 }
 
+// ─── RollingPNumber ───────────────────────────────────────────────────────────
+// Slot-machine animation: cycles through random P1–P22 values then settles on target.
+
+interface RollingPNumberProps {
+  target: number | null;
+  color: string;
+}
+
+function RollingPNumber({ target, color }: RollingPNumberProps) {
+  // Initialize directly with target so the number is visible before animation starts
+  const [display, setDisplay] = useState<number | null>(target);
+
+  useEffect(() => {
+    if (target === null) { setDisplay(null); return; }
+
+    // Build sequence: 19 random non-consecutive values ending with target
+    const TOTAL = 20;
+    const seq: number[] = [];
+    let prev = 0;
+    for (let i = 0; i < TOTAL - 1; i++) {
+      let n: number;
+      do { n = Math.floor(Math.random() * 22) + 1; } while (n === prev);
+      prev = n;
+      seq.push(n);
+    }
+    seq.push(target);
+
+    let index = 0;
+    // setInterval is more reliable than recursive setTimeout in RN
+    const timer = setInterval(() => {
+      setDisplay(seq[index]);
+      index += 1;
+      if (index >= seq.length) clearInterval(timer);
+    }, 80);
+
+    return () => clearInterval(timer);
+  }, [target]);
+
+  return (
+    <Text style={[styles.rankText, { color }]}>
+      {display ?? '—'}
+    </Text>
+  );
+}
+
 // ─── BarItem ──────────────────────────────────────────────────────────────────
 // Separate component so Reanimated hooks can be called per-bar (hooks-in-loop rule)
 
@@ -296,6 +341,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
   const totalPaceS = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
+
+  // DNF when runner covers less than 98% of circuit distance
+  const statusLabel = distKm >= circuit.distanceKm * 0.98 ? 'FINISH' : 'DNF';
 
   // TODO: 실제 등수 로직 추후 추가
   const rankNumber: number | null = null;
@@ -496,7 +544,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         circuitKm={circuit.distanceKm}
         hideKm
         theme={topTheme}
-        statusLabel="FINISH"
+        statusLabel={statusLabel}
       />
 
       {/* Paging content area */}
@@ -521,9 +569,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               <View style={styles.page1Content}>
                 {/* P + rank number + checker flag row */}
                 <View style={styles.rankRow}>
-                  <Text style={styles.rankText}>P</Text>
+                  <Text style={[styles.rankText, { color: topTheme.text }]}>P</Text>
                   <View style={{ width: 8 }} />
-                  <Text style={styles.rankText}>{rankNumber ?? '—'}</Text>
+                  <RollingPNumber target={12} color={topTheme.text} />
                   {checkerFlagImage && (
                     <>
                       <View style={{ width: 16 }} />
@@ -872,11 +920,10 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     marginTop: 24,
-    fontFamily: 'Formula1-Regular',
+    fontFamily: 'Formula1-Italic',
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
     letterSpacing: 24 * -0.01, // -1%
-    fontStyle: 'italic',
     color: 'rgba(255,255,255,0.5)',
     paddingRight: 20,
   },
