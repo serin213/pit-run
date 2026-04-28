@@ -77,11 +77,16 @@ function CardCircuitSvg({ path, viewBox, color, size, strokePx = 5 }: {
 // ─── Card 1 & 2: Small portrait (167×286) ────────────────────────────────────
 
 function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
-  trackPath, viewBox, themeColor }: SharePageProps) {
+  trackPath, viewBox, themeColor, leftAlign }: SharePageProps & { leftAlign?: boolean }) {
   const ref = useRef<View>(null);
   const share = useShareCard();
   return (
-    <View ref={ref} style={st.smallCard} collapsable={false}>
+    <View ref={ref} style={[
+      st.smallCard,
+      leftAlign
+        ? { alignItems: 'flex-start', paddingHorizontal: 20 }
+        : null,
+    ]} collapsable={false}>
       <ShareBtn onPress={() => share(ref)} />
 
       {/* Circuit badge */}
@@ -234,7 +239,7 @@ export default function ResultSharePage(props: SharePageProps) {
       {/* Row 1: Two small portrait cards */}
       <View style={st.row}>
         <SmallPortraitCard {...props} />
-        <SmallPortraitCard {...props} />
+        <SmallPortraitCard {...props} leftAlign />
       </View>
 
       {/* Row 2 & 3: Sticker badges 2×2 */}
@@ -308,6 +313,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     overflow: 'hidden',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   smallBadge: {
     borderRadius: 2,
