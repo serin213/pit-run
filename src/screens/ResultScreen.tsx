@@ -423,6 +423,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     addDistance,
     currentRaceEventId,
     setCurrentRaceEventId,
+    setSelectedCircuitId,
   } = useAppStore();
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
@@ -629,6 +630,13 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   const graphBottom = GRAPH_BOTTOM_CLEARANCE + safeBottom;
 
+  // ─── Dev: cycle through circuits ──────────────────────────────────────────
+  const devCycleCircuit = useCallback(() => {
+    const idx = CIRCUITS.findIndex((c) => c.id === circuit.id);
+    const next = CIRCUITS[(idx + 1) % CIRCUITS.length];
+    setSelectedCircuitId(next.id);
+  }, [circuit.id, setSelectedCircuitId]);
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -643,6 +651,19 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         theme={topTheme}
         statusLabel={statusLabel}
       />
+
+      {/* Dev: circuit switcher */}
+      {__DEV__ && (
+        <Pressable
+          onPress={devCycleCircuit}
+          style={{ position: 'absolute', top: safeTop + 8, right: 16, zIndex: 9999,
+            backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}
+        >
+          <Text style={{ color: '#fff', fontSize: 11, fontFamily: 'Formula1-Regular' }}>
+            {`⟳ ${circuit.displayName}`}
+          </Text>
+        </Pressable>
+      )}
 
       {/* Paging content area */}
       <View
