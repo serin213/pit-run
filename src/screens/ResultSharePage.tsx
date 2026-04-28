@@ -132,21 +132,34 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
   );
 }
 
-// ─── Card 4 & 6: Generic sticker (Fastest Lap etc.) ─────────────────────────
+// ─── Card 5 & 6: Fastest Lap sticker ─────────────────────────────────────────
+// variant='default' → #8528c5 bg, white text, fastest-lap.png
+// variant='purple'  → #AF3AFF 30% bg, #AF3AFF text, fastest-lap-purple.png
 
-function StickerCard({ label, sub, themeColor, purple }: {
-  label: string; sub: string; themeColor: string; purple?: boolean;
+function FastestLapStickerCard({ fastestPaceS, variant = 'default' }: {
+  fastestPaceS: number; variant?: 'default' | 'purple';
 }) {
   const ref = useRef<View>(null);
   const share = useShareCard();
-  const color = purple ? '#A855F7' : themeColor;
+  const isDefault  = variant === 'default';
+  const pillBg     = isDefault ? '#8528c5' : '#AF3AFF4D';
+  const textColor  = isDefault ? '#FFFFFF' : '#AF3AFF';
+  const iconSource = isDefault
+    ? require('../../assets/icons/fastest-lap.png')
+    : require('../../assets/icons/fastest-lap-purple.png');
   return (
-    <View ref={ref} style={st.stickerCard} collapsable={false}>
+    <View ref={ref} style={st.fastestCard} collapsable={false}>
       <ShareBtn onPress={() => share(ref)} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-        <View style={[st.stickerDot, { backgroundColor: color }]} />
-        <Text style={st.stickerLabel} numberOfLines={1}>{label}</Text>
-        <Text style={[st.stickerSub, { color }]} numberOfLines={1}>{' '}{sub}</Text>
+      <View style={[st.fastestPill, { backgroundColor: pillBg }]}>
+        <Image source={iconSource} style={{ width: undefined, height: 20, aspectRatio: 1 }} resizeMode="contain" />
+        <View style={{ width: 6 }} />
+        <Text style={[st.fastestLabelText, { color: textColor }]} numberOfLines={1}>
+          FASTEST LAP
+        </Text>
+        <View style={{ width: 6 }} />
+        <Text style={[st.fastestValueText, { color: textColor }]} numberOfLines={1}>
+          {fmtPace(fastestPaceS)}
+        </Text>
       </View>
     </View>
   );
@@ -283,10 +296,8 @@ export default function ResultSharePage(props: SharePageProps) {
         themeColor={themeColor} themeTextColor={themeColor} variant="solid" />
       <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
         themeColor={themeColor} themeTextColor={themeColor} variant="ghost" />
-      <StickerCard
-        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
-      <StickerCard
-        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
+      <FastestLapStickerCard fastestPaceS={fastestPaceS} variant="default" />
+      <FastestLapStickerCard fastestPaceS={fastestPaceS} variant="purple" />
 
       {/* Row 4: Wide header */}
       <WideHeaderCard {...props} />
@@ -429,6 +440,38 @@ const st = StyleSheet.create({
   stickerSub: {
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
+  },
+
+  // Fastest Lap sticker
+  fastestCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
+    ...BORDER,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fastestPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  fastestLabelText: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 20,
+    lineHeight: 20,
+    letterSpacing: 20 * -0.02,
+    includeFontPadding: false,
+  },
+  fastestValueText: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 20,
+    lineHeight: 20,
+    letterSpacing: 20 * -0.02,
+    includeFontPadding: false,
   },
 
   // Wide header 346×51
