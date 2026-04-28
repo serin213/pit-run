@@ -248,15 +248,17 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
       <ShareBtn onPress={() => share(ref)} />
       <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
 
-      {/* Stats + circuit PNG — top-aligned */}
-      <View style={{ flexDirection: 'row', marginTop: 24, alignItems: 'flex-start' }}>
-        {/* Left: stats */}
+      {/* TIME — full width */}
+      <View style={{ marginTop: 24 }}>
+        <Text style={st.wideStatLabel}>TIME</Text>
+        <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
+      </View>
+
+      {/* PACE AVG + FASTEST (left) / circuit PNG (right, top = PACE AVG value) */}
+      <View style={{ flexDirection: 'row', marginTop: 20, alignItems: 'flex-start' }}>
+        {/* Left: PACE AVG + FASTEST */}
         <View>
           <View>
-            <Text style={st.wideStatLabel}>TIME</Text>
-            <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
-          </View>
-          <View style={{ marginTop: 20 }}>
             <Text style={st.wideStatLabel}>PACE AVG</Text>
             <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
           </View>
@@ -266,7 +268,7 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
           </View>
         </View>
 
-        {/* Right: circuit PNG flush to card right edge */}
+        {/* Right: PNG — top offset to align with PACE AVG value text */}
         {circuitPng && (
           <Image
             source={circuitPng}
@@ -497,19 +499,21 @@ const st = StyleSheet.create({
     flex: 1,
   },
 
-  // Wide large
+  // Wide large (height driven by content)
   wideLargeCard: {
-    height: 360,
     backgroundColor: CARD_BG,
     borderRadius: 12,
     ...BORDER,
-    padding: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingLeft: 20,
     overflow: 'hidden',
   },
   largePngWrap: {
     flex: 1,
-    height: 200,
-    marginRight: -20,
+    height: 190,
+    // label(~14) + gap(8) = ~22 offset so PNG top aligns with value text
+    marginTop: 22,
   },
 
   // Shared wide card stat styles
