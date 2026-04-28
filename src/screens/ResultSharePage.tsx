@@ -150,19 +150,19 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
 }) {
   const ref = useRef<View>(null);
   const share = useShareCard();
-  const pillBg   = variant === 'solid' ? themeColor : themeColor + '4D';
+  const pillBg    = variant === 'solid' ? themeColor : themeColor + '4D';
   const textColor = variant === 'solid' ? '#FFFFFF' : themeTextColor;
   return (
-    <View ref={ref} style={st.stickerCard} collapsable={false}>
+    <View ref={ref} style={st.circuitStickerCard} collapsable={false}>
       <ShareBtn onPress={() => share(ref)} />
       <View style={[st.circuitPill, { backgroundColor: pillBg }]}>
         <Text style={[st.circuitPillText, { color: textColor }]} numberOfLines={1}>
           {`${circuitName.toUpperCase()} GP ${fmtDist(distKm)}km`}
         </Text>
-        <View style={{ width: 2 }} />
+        <View style={{ width: 4 }} />
         <Image
           source={require('../../assets/check-certifiacte.png')}
-          style={{ width: 10, height: 10 }}
+          style={{ width: 20, height: 20 }}
           resizeMode="contain"
         />
       </View>
@@ -269,13 +269,13 @@ export default function ResultSharePage(props: SharePageProps) {
         <SmallPortraitCard {...props} leftAlign />
       </View>
 
-      {/* Row 2~5: Sticker badges 1열 */}
+      {/* Stickers 1열 — 3:solid 4:ghost 5:fastest 6:fastest */}
       <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
         themeColor={themeColor} themeTextColor={themeColor} variant="solid" />
-      <StickerCard
-        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
       <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
         themeColor={themeColor} themeTextColor={themeColor} variant="ghost" />
+      <StickerCard
+        label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
       <StickerCard
         label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
 
@@ -381,17 +381,28 @@ const st = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+  circuitStickerCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
+    ...BORDER,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   circuitPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   circuitPillText: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 10,
-    letterSpacing: -0.2,
+    fontSize: 20,
+    lineHeight: 20,
+    letterSpacing: 20 * -0.02,
+    color: '#FFFFFF',
     includeFontPadding: false,
   },
   stickerDot: {
