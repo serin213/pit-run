@@ -1252,9 +1252,9 @@ const styles = StyleSheet.create({
     zIndex: 500,
   },
   sheet: {
-    borderTopLeftRadius: radius.lg.borderRadius,
-    borderTopRightRadius: radius.lg.borderRadius,
-    borderCurve: radius.lg.borderCurve,
+    ...radius.lg,
+    marginHorizontal: 20,
+    marginBottom: 26,
     paddingHorizontal: 20,
     paddingTop: 32,
   },
