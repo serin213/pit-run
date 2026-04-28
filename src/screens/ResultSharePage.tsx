@@ -106,8 +106,8 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
 
       {/* Circuit SVG */}
       {trackPath && viewBox && (
-        <View style={{ marginTop: 20, alignItems: 'center' }}>
-          <CardCircuitSvg path={trackPath} viewBox={viewBox} color="#FFFFFF" size={52} strokePx={2} />
+        <View style={{ marginTop: 40, alignItems: 'center' }}>
+          <CardCircuitSvg path={trackPath} viewBox={viewBox} color="#FFFFFF" size={52} strokePx={3} />
         </View>
       )}
     </View>
@@ -323,9 +323,10 @@ const st = StyleSheet.create({
   smallDist: {
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
+    lineHeight: 22,
     color: '#FFFFFF',
     includeFontPadding: false,
-    marginTop: 8,
+    marginTop: 12,
   },
   smallLabel: {
     fontFamily: 'Formula1-Regular',
@@ -336,6 +337,7 @@ const st = StyleSheet.create({
   smallVal: {
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
+    lineHeight: 22,
     color: '#FFFFFF',
     includeFontPadding: false,
   },
