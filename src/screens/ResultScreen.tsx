@@ -490,7 +490,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   // ─── Selected sector (default = fastest) ──────────────────────────────────
 
-  const [selectedSector, setSelectedSector] = useState(0);
+  const [selectedSector, setSelectedSector] = useState(fastestSectorIdx);
   useEffect(() => { setSelectedSector(fastestSectorIdx); }, [fastestSectorIdx]);
 
   // ─── Animation state / refs ────────────────────────────────────────────────
@@ -773,7 +773,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
                 <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
                 {selectedTire && (
-                  <View style={{ marginTop: 12, alignSelf: 'flex-start', marginLeft: 4, marginRight: 24 }}>
+                  <View style={{ marginTop: 12, alignSelf: 'flex-start', marginLeft: 2, marginRight: 24 }}>
                     <TireIcon type={selectedTire} width={44} height={41} />
                   </View>
                 )}
