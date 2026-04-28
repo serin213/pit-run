@@ -6,6 +6,7 @@ interface ScreenHeaderProps {
   flagAsset?: ImageSourcePropType;
   circuitLabel: string;
   circuitKm: number;
+  hideKm?: boolean;
   theme: { line: string; text: string };
   statusLabel: string;
   statusColor?: string;
@@ -17,12 +18,16 @@ export default function ScreenHeader({
   flagAsset,
   circuitLabel,
   circuitKm,
+  hideKm = false,
   theme,
   statusLabel,
   statusColor,
   statusOpacity = 1,
 }: ScreenHeaderProps) {
   const labelColor = statusColor ?? theme.text;
+  const circuitText = hideKm
+    ? circuitLabel.toUpperCase()
+    : `${circuitLabel.toUpperCase()} (${circuitKm.toFixed(2)}km)`;
 
   return (
     <View style={[st.header, { paddingTop: safeTop }]}>
@@ -34,7 +39,7 @@ export default function ScreenHeader({
             </View>
           ) : null}
           <Text style={[st.circuitName, { color: theme.text }]} numberOfLines={1}>
-            {circuitLabel.toUpperCase()} ({circuitKm.toFixed(2)}km)
+            {circuitText}
           </Text>
         </View>
         <Text style={[st.statusLabel, { color: labelColor, opacity: statusOpacity }]}>
