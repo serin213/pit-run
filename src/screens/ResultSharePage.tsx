@@ -119,7 +119,7 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
   );
 }
 
-// ─── Card 3 & 4: Sticker badge (167×51) ──────────────────────────────────────
+// ─── Card 4 & 6: Generic sticker (Fastest Lap etc.) ─────────────────────────
 
 function StickerCard({ label, sub, themeColor, purple }: {
   label: string; sub: string; themeColor: string; purple?: boolean;
@@ -132,12 +132,39 @@ function StickerCard({ label, sub, themeColor, purple }: {
       <ShareBtn onPress={() => share(ref)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
         <View style={[st.stickerDot, { backgroundColor: color }]} />
-        <Text style={st.stickerLabel} numberOfLines={1}>
-          {label}
+        <Text style={st.stickerLabel} numberOfLines={1}>{label}</Text>
+        <Text style={[st.stickerSub, { color }]} numberOfLines={1}>{' '}{sub}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Card 3 & 5: Circuit sticker (167×51) ────────────────────────────────────
+// variant='solid'  → themeColor fill, white text   (3rd sticker)
+// variant='ghost'  → themeColor 30% fill, theme text color (5th sticker)
+
+function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
+  variant = 'solid' }: {
+  circuitName: string; distKm: number; themeColor: string; themeTextColor: string;
+  variant?: 'solid' | 'ghost';
+}) {
+  const ref = useRef<View>(null);
+  const share = useShareCard();
+  const pillBg   = variant === 'solid' ? themeColor : themeColor + '4D';
+  const textColor = variant === 'solid' ? '#FFFFFF' : themeTextColor;
+  return (
+    <View ref={ref} style={st.stickerCard} collapsable={false}>
+      <ShareBtn onPress={() => share(ref)} />
+      <View style={[st.circuitPill, { backgroundColor: pillBg }]}>
+        <Text style={[st.circuitPillText, { color: textColor }]} numberOfLines={1}>
+          {`${circuitName.toUpperCase()} GP ${fmtDist(distKm)}km`}
         </Text>
-        <Text style={[st.stickerSub, { color }]} numberOfLines={1}>
-          {' '}{sub}
-        </Text>
+        <View style={{ width: 2 }} />
+        <Image
+          source={require('../../assets/check-certifiacte.png')}
+          style={{ width: 10, height: 10 }}
+          resizeMode="contain"
+        />
       </View>
     </View>
   );
@@ -244,16 +271,14 @@ export default function ResultSharePage(props: SharePageProps) {
 
       {/* Row 2 & 3: Sticker badges 2×2 */}
       <View style={st.row}>
-        <StickerCard
-          label={`${circuitName.toUpperCase()} GP  ${fmtDist(props.distKm)}km`}
-          sub="✓" themeColor={themeColor} />
+        <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
+          themeColor={themeColor} themeTextColor={themeColor} variant="solid" />
         <StickerCard
           label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
       </View>
       <View style={st.row}>
-        <StickerCard
-          label={`${circuitName.toUpperCase()} GP  ${fmtDist(props.distKm)}km`}
-          sub="✓" themeColor={themeColor} />
+        <CircuitStickerCard circuitName={circuitName} distKm={props.distKm}
+          themeColor={themeColor} themeTextColor={themeColor} variant="ghost" />
         <StickerCard
           label="Fastest Lap" sub={fmtPace(fastestPaceS)} themeColor={themeColor} purple />
       </View>
@@ -360,6 +385,19 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  circuitPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  circuitPillText: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 10,
+    letterSpacing: -0.2,
+    includeFontPadding: false,
   },
   stickerDot: {
     width: 7,
