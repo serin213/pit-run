@@ -226,7 +226,7 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
       delay,
       withTiming(-(ROLL_ROUNDS * 10) * digitH, {
         duration: 500,
-        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        easing: Easing.out(Easing.quad),
       }),
     );
   }, [active, digit, digitH, delay, ty]);
@@ -236,7 +236,7 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
   }));
 
   return (
-    <View style={{ height: digitH, overflow: 'hidden' }}>
+    <View style={{ height: digitH, overflow: 'hidden', marginHorizontal: -2 }}>
       <Reanimated.View style={animStyle}>
         {items.map((d, i) => (
           <Text
