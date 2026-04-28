@@ -1013,7 +1013,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                   <Pressable
                     key={opt.id}
                     style={[styles.emojiBtn, selectedDiff === opt.id && styles.emojiBtnActive]}
-                    onPress={() => setSelectedDiff(opt.id)}
+                    onPress={() => { setSelectedDiff(opt.id); handleConfirm(); }}
                   >
                     <Text style={styles.emojiChar}>{opt.emoji}</Text>
                   </Pressable>
@@ -1027,12 +1027,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               <Text style={styles.emojiLabelEdge}>Too Hard</Text>
             </View>
 
-            <Pressable
-              style={[styles.confirmBtn, selectedDiff && styles.confirmBtnActive]}
-              onPress={selectedDiff ? handleConfirm : undefined}
-            >
-              <Text style={styles.confirmBtnText}>Confirm</Text>
-            </Pressable>
           </Animated.View>
         </Animated.View>
       )}
