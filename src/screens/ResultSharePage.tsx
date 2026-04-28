@@ -494,6 +494,7 @@ const st = StyleSheet.create({
 
   // Wide large
   wideLargeCard: {
+    height: 360,
     backgroundColor: CARD_BG,
     borderRadius: 12,
     ...BORDER,
