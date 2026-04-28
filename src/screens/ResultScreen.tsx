@@ -205,9 +205,10 @@ interface DigitColumnProps {
   textStyle: any;
   delay?: number;
   active?: boolean;
+  spacing?: number;
 }
 
-function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: DigitColumnProps) {
+function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true, spacing = -4 }: DigitColumnProps) {
   // Stack: ROLL_ROUNDS × [0..9] then target digit at the bottom
   const items = useMemo(
     () => Array.from({ length: ROLL_ROUNDS * 10 + 1 }, (_, i) =>
@@ -236,7 +237,7 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
   }));
 
   return (
-    <View style={{ height: digitH, overflow: 'hidden', marginHorizontal: -4 }}>
+    <View style={{ height: digitH, overflow: 'hidden', marginHorizontal: spacing }}>
       <Reanimated.View style={[{ flexDirection: 'column' }, animStyle]}>
         {items.map((d, i) => (
           <View key={i} style={{ height: digitH, justifyContent: 'center' }}>
@@ -325,6 +326,7 @@ function RollingText({ target, active, containerStyle, textStyle, digitH }: Roll
               textStyle={textStyle}
               delay={p.idx * 60}
               active={active}
+              spacing={-2}
             />,
       )}
     </View>
