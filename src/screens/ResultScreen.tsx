@@ -197,7 +197,7 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
 
 // ─── Digit column (slot-machine, per-digit) ──────────────────────────────────
 
-const ROLL_ROUNDS = 3; // full 0-9 rounds before landing
+const ROLL_ROUNDS = 1; // full 0-9 rounds before landing
 
 interface DigitColumnProps {
   digit: number;
@@ -226,7 +226,7 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
       delay,
       withTiming(-(ROLL_ROUNDS * 10) * digitH, {
         duration: 500,
-        easing: Easing.out(Easing.cubic),
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
       }),
     );
   }, [active, digit, digitH, delay, ty]);
