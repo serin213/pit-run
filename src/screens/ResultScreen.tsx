@@ -601,6 +601,12 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     Animated.timing(sheetAnim, { toValue: 1, duration: 320, useNativeDriver: true }).start();
   };
 
+  const closeSheet = useCallback(() => {
+    Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setShowSheet(false);
+    });
+  }, [sheetAnim]);
+
   const handleConfirm = useCallback(() => {
     Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setShowSheet(false);
@@ -651,6 +657,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   return (
     <View style={styles.root}>
+      {/* Paging content area */}
+      <Animated.View style={{ flex: 1, opacity: bgOpacity }}>
       {/* Fixed header */}
       <ScreenHeader
         safeTop={safeTop}
@@ -674,9 +682,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           </Text>
         </Pressable>
       )}
-
-      {/* Paging content area */}
-      <Animated.View style={{ flex: 1, opacity: bgOpacity }}>
       <View
         style={styles.contentArea}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
@@ -993,7 +998,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       {/* Evaluation bottom sheet */}
       {showSheet && (
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleConfirm} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
           <Animated.View
             style={[
               styles.sheet,
