@@ -225,7 +225,7 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: Dig
     ty.value = withDelay(
       delay,
       withTiming(-(ROLL_ROUNDS * 10) * digitH, {
-        duration: 1000,
+        duration: 500,
         easing: Easing.out(Easing.cubic),
       }),
     );
