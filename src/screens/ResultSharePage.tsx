@@ -456,8 +456,8 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   fastestLabelText: {
     fontFamily: 'Formula1-Bold',
