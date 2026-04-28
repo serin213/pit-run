@@ -248,28 +248,33 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
       <ShareBtn onPress={() => share(ref)} />
       <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
 
-      <View style={{ marginTop: 24 }}>
-        <Text style={st.wideStatLabel}>TIME</Text>
-        <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
-      </View>
-      <View style={{ marginTop: 20 }}>
-        <Text style={st.wideStatLabel}>PACE AVG</Text>
-        <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
-      </View>
-      <View style={{ marginTop: 20 }}>
-        <Text style={st.wideStatLabel}>FASTEST</Text>
-        <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
-      </View>
+      {/* Stats + circuit PNG — top-aligned */}
+      <View style={{ flexDirection: 'row', marginTop: 24, alignItems: 'flex-start' }}>
+        {/* Left: stats */}
+        <View>
+          <View>
+            <Text style={st.wideStatLabel}>TIME</Text>
+            <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
+          </View>
+          <View style={{ marginTop: 20 }}>
+            <Text style={st.wideStatLabel}>PACE AVG</Text>
+            <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
+          </View>
+          <View style={{ marginTop: 20 }}>
+            <Text style={st.wideStatLabel}>FASTEST</Text>
+            <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+          </View>
+        </View>
 
-      {/* Circuit PNG — flush to right edge */}
-      {circuitPng && (
-        <Image
-          source={circuitPng}
-          style={st.largePngWrap}
-          resizeMode="contain"
-          pointerEvents="none"
-        />
-      )}
+        {/* Right: circuit PNG flush to card right edge */}
+        {circuitPng && (
+          <Image
+            source={circuitPng}
+            style={st.largePngWrap}
+            resizeMode="contain"
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -502,11 +507,9 @@ const st = StyleSheet.create({
     overflow: 'hidden',
   },
   largePngWrap: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 0,
-    width: '55%',
+    flex: 1,
+    height: 200,
+    marginRight: -20,
   },
 
   // Shared wide card stat styles
