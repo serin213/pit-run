@@ -636,6 +636,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   const sheetTranslateY = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [340, 0] });
   const overlayOpacity  = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const bgOpacity       = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.2] });
 
   const graphBottom = GRAPH_BOTTOM_CLEARANCE + safeBottom;
 
@@ -675,6 +676,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       )}
 
       {/* Paging content area */}
+      <Animated.View style={{ flex: 1, opacity: bgOpacity }}>
       <View
         style={styles.contentArea}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
@@ -986,6 +988,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           />
         </View>
       </Animated.View>
+      </Animated.View>
 
       {/* Evaluation bottom sheet */}
       {showSheet && (
@@ -1296,7 +1299,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-    marginBottom: 32,
+    marginBottom: 36,
   },
   emojiLabelEdge: {
     fontFamily: 'Formula1-Regular',
