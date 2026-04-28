@@ -531,8 +531,15 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const TOTAL_PAGES = 3;
   const [pageHeight, setPageHeight] = useState(0);
   const [activePage, setActivePage] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
   const ctaAnim = useRef(new Animated.Value(0)).current;
+
+  const goNextPage = useCallback(() => {
+    if (pageHeight > 0 && activePage < TOTAL_PAGES - 1) {
+      scrollRef.current?.scrollTo({ y: (activePage + 1) * pageHeight, animated: true });
+    }
+  }, [activePage, pageHeight]);
 
   const handlePageChange = useCallback((page: number) => {
     setActivePage(page);
@@ -674,6 +681,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       >
         {pageHeight > 0 && (
           <ScrollView
+            ref={scrollRef}
             pagingEnabled
             showsVerticalScrollIndicator={false}
             bounces={false}
@@ -686,6 +694,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           >
             {/* ─── Page 1: Rank + Flag + Summary ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
+              {/* Tap anywhere → next page */}
+              <Pressable style={StyleSheet.absoluteFill} onPress={goNextPage} />
               <View style={styles.page1Content}>
                 {/* P + rank number + checker flag row */}
                 <View style={styles.rankRow}>
@@ -724,6 +734,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
             {/* ─── Page 2: Stats + Pace graph ─── */}
             <View style={[styles.page, { height: pageHeight }]}>
+              {/* Tap anywhere except graph → next page (graph is absolute + rendered later, wins touches) */}
+              <Pressable style={StyleSheet.absoluteFill} onPress={goNextPage} />
               {/* Stats */}
               <View style={styles.page2Stats}>
                 {/* Distance */}
@@ -965,7 +977,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         <View style={{ paddingBottom: safeBottom + 16 }}>
           <GradientCtaButton
             height={58}
-            label="Finish Race"
+            label="To the GRID"
+            textColor={topTheme.line === '#FCB827' ? '#17171C' : '#FFFFFF'}
             enabled
             onPress={openSheet}
             gradientStart={topTheme.line}
