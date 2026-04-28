@@ -15,6 +15,9 @@ import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  withDelay,
+  Easing,
 } from 'react-native-reanimated';
 import GradientCtaButton from '../components/GradientCtaButton';
 import ScreenHeader from '../components/ScreenHeader';
@@ -192,15 +195,64 @@ function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
   );
 }
 
-// ─── RollingPNumber ───────────────────────────────────────────────────────────
-// Ease-out delays: 20 steps summing to ~1000ms (quadratic: a=10, b≈0.324)
-const ROLL_STEPS = 20;
-function buildEaseOutDelays(): number[] {
-  const a = 10, b = 800 / 2470;
-  return Array.from({ length: ROLL_STEPS }, (_, i) => a + b * i * i);
+// ─── Digit column (slot-machine, per-digit) ──────────────────────────────────
+
+const ROLL_ROUNDS = 3; // full 0-9 rounds before landing
+
+interface DigitColumnProps {
+  digit: number;
+  digitH: number;
+  textStyle: any;
+  delay?: number;
+  active?: boolean;
 }
 
-// Slot-machine animation: cycles through random P1–P22 values then settles on target.
+function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true }: DigitColumnProps) {
+  // Stack: ROLL_ROUNDS × [0..9] then target digit at the bottom
+  const items = useMemo(
+    () => Array.from({ length: ROLL_ROUNDS * 10 + 1 }, (_, i) =>
+      i < ROLL_ROUNDS * 10 ? i % 10 : digit,
+    ),
+    [digit],
+  );
+
+  const ty = useSharedValue(0);
+  const triggered = useRef(false);
+
+  useEffect(() => {
+    if (!active || triggered.current) return;
+    triggered.current = true;
+    ty.value = withDelay(
+      delay,
+      withTiming(-(ROLL_ROUNDS * 10) * digitH, {
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+      }),
+    );
+  }, [active, digit, digitH, delay, ty]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: ty.value }],
+  }));
+
+  return (
+    <View style={{ height: digitH, overflow: 'hidden' }}>
+      <Reanimated.View style={animStyle}>
+        {items.map((d, i) => (
+          <Text
+            key={i}
+            allowFontScaling={false}
+            style={[textStyle, { height: digitH, lineHeight: digitH, fontVariant: ['tabular-nums'] }]}
+          >
+            {d}
+          </Text>
+        ))}
+      </Reanimated.View>
+    </View>
+  );
+}
+
+// ─── RollingPNumber ───────────────────────────────────────────────────────────
 
 interface RollingPNumberProps {
   target: number | null;
@@ -208,78 +260,68 @@ interface RollingPNumberProps {
 }
 
 function RollingPNumber({ target, color }: RollingPNumberProps) {
-  const [display, setDisplay] = useState<number | null>(target);
+  const DIGIT_H = 110; // matches rankText lineHeight
+  const textStyle = useMemo(
+    () => ({ ...styles.rankText, color, height: DIGIT_H, lineHeight: DIGIT_H }),
+    [color],
+  );
 
-  useEffect(() => {
-    if (target === null) { setDisplay(null); return; }
+  if (target === null) {
+    return <Text style={[styles.rankText, { color }]}>—</Text>;
+  }
 
-    const seq: number[] = [];
-    let prev = 0;
-    for (let i = 0; i < ROLL_STEPS - 1; i++) {
-      let n: number;
-      do { n = Math.floor(Math.random() * 22) + 1; } while (n === prev);
-      prev = n;
-      seq.push(n);
-    }
-    seq.push(target);
-
-    const delays = buildEaseOutDelays();
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    let elapsed = 0;
-    seq.forEach((val, i) => {
-      elapsed += delays[i];
-      timers.push(setTimeout(() => setDisplay(val), elapsed));
-    });
-
-    return () => timers.forEach(clearTimeout);
-  }, [target]);
+  const digits = String(target).split('').map(Number);
 
   return (
-    <Text style={[styles.rankText, { color }]}>
-      {display ?? '—'}
-    </Text>
+    <View style={{ flexDirection: 'row' }}>
+      {digits.map((d, i) => (
+        <DigitColumn key={i} digit={d} digitH={DIGIT_H} textStyle={textStyle} delay={i * 100} />
+      ))}
+    </View>
   );
 }
 
-// Slot-machine animation for formatted strings (TIME / PACE), triggered on active.
+// ─── RollingText ─────────────────────────────────────────────────────────────
+// Splits formatted string (e.g. "5'23"") into digit columns + fixed separators.
 
 interface RollingTextProps {
   target: string;
   active: boolean;
-  style?: object;
-  randomValue: () => string;
+  containerStyle?: any;
+  textStyle: any;
+  digitH: number;
 }
 
-function RollingText({ target, active, style, randomValue }: RollingTextProps) {
-  const [display, setDisplay] = useState('');
-  const hasAnimated = useRef(false);
+function RollingText({ target, active, containerStyle, textStyle, digitH }: RollingTextProps) {
+  type Part =
+    | { type: 'digit'; value: number; idx: number }
+    | { type: 'sep'; ch: string };
 
-  useEffect(() => {
-    if (!active || hasAnimated.current) return;
-    hasAnimated.current = true;
+  const parts = useMemo<Part[]>(() => {
+    let digitCount = 0;
+    return [...target].map((ch) =>
+      ch >= '0' && ch <= '9'
+        ? { type: 'digit', value: parseInt(ch, 10), idx: digitCount++ }
+        : { type: 'sep', ch },
+    );
+  }, [target]);
 
-    const seq: string[] = [];
-    let prev = '';
-    for (let i = 0; i < ROLL_STEPS - 1; i++) {
-      let v: string;
-      do { v = randomValue(); } while (v === prev);
-      prev = v;
-      seq.push(v);
-    }
-    seq.push(target);
-
-    const delays = buildEaseOutDelays();
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    let elapsed = 0;
-    seq.forEach((val, i) => {
-      elapsed += delays[i];
-      timers.push(setTimeout(() => setDisplay(val), elapsed));
-    });
-
-    return () => timers.forEach(clearTimeout);
-  }, [active, target, randomValue]);
-
-  return <Text style={style}>{display || target}</Text>;
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center' }, containerStyle]}>
+      {parts.map((p, i) =>
+        p.type === 'sep'
+          ? <Text key={i} allowFontScaling={false} style={textStyle}>{p.ch}</Text>
+          : <DigitColumn
+              key={i}
+              digit={p.value}
+              digitH={digitH}
+              textStyle={textStyle}
+              delay={p.idx * 60}
+              active={active}
+            />,
+      )}
+    </View>
+  );
 }
 
 // ─── BarItem ──────────────────────────────────────────────────────────────────
@@ -478,17 +520,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [pageHeight, setPageHeight] = useState(0);
   const [activePage, setActivePage] = useState(0);
 
-  // Random value generators for Page 2 slot-machine animation
-  const randPaceValue = useCallback(() => {
-    const m = Math.floor(Math.random() * 6) + 3;
-    const s = Math.floor(Math.random() * 60);
-    return `${m}'${s < 10 ? '0' : ''}${s}"`;
-  }, []);
-  const randTimeValue = useCallback(() => {
-    const m = Math.floor(Math.random() * 30) + 1;
-    const s = Math.floor(Math.random() * 60);
-    return `${m}'${s < 10 ? '0' : ''}${s}"`;
-  }, []);
   const ctaAnim = useRef(new Animated.Value(0)).current;
 
   const handlePageChange = useCallback((page: number) => {
@@ -673,24 +704,27 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <RollingText
                   target={fmtTime(elapsedMs)}
                   active={activePage === 1}
-                  style={[styles.contentValue, { marginTop: 8 }]}
-                  randomValue={randTimeValue}
+                  containerStyle={{ marginTop: 8 }}
+                  textStyle={styles.contentValue}
+                  digitH={36}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <RollingText
                   target={fmtPace(totalPaceS)}
                   active={activePage === 1}
-                  style={[styles.contentValue, { marginTop: 8 }]}
-                  randomValue={randPaceValue}
+                  containerStyle={{ marginTop: 8 }}
+                  textStyle={styles.contentValue}
+                  digitH={36}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>FASTEST</Text>
                 <RollingText
                   target={fmtPace(fastestPaceS)}
                   active={activePage === 1}
-                  style={[styles.contentValue, { marginTop: 8 }]}
-                  randomValue={randPaceValue}
+                  containerStyle={{ marginTop: 8 }}
+                  textStyle={styles.contentValue}
+                  digitH={36}
                 />
 
               </View>
