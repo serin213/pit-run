@@ -13,6 +13,23 @@ import { captureRef } from 'react-native-view-shot';
 import type { ImageSourcePropType } from 'react-native';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 
+// ─── Circuit result PNG map (static requires for RN bundler) ──────────────────
+
+const CIRCUIT_RESULT_PNG: Record<string, ImageSourcePropType> = {
+  SHANGHAI:      require('../../assets/circuits/results/shanghai.png'),
+  'LAS VEGAS':   require('../../assets/circuits/results/lasvegas.png'),
+  SUZUKA:        require('../../assets/circuits/results/suzuka.png'),
+  MONACO:        require('../../assets/circuits/results/monaco.png'),
+  HUNGARY:       require('../../assets/circuits/results/hungary.png'),
+  HUNGARORING:   require('../../assets/circuits/results/hungary.png'),
+  'MARINA BAY':  require('../../assets/circuits/results/marinabay.png'),
+  MONZA:         require('../../assets/circuits/results/monza.png'),
+  BAKU:          require('../../assets/circuits/results/baku.png'),
+  'ALBERT PARK': require('../../assets/circuits/results/albertpark.png'),
+  SILVERSTONE:   require('../../assets/circuits/results/silverstone.png'),
+  SPA:           require('../../assets/circuits/results/spa.png'),
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SharePageProps {
@@ -192,26 +209,7 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
   );
 }
 
-// ─── Card 5: Wide header bar (346×51) ────────────────────────────────────────
-
-function WideHeaderCard({ circuitName, circuitKm, statusLabel, flagAsset, themeColor }: SharePageProps) {
-  const ref = useRef<View>(null);
-  const share = useShareCard();
-  return (
-    <View ref={ref} style={st.wideHeaderCard} collapsable={false}>
-      <ShareBtn onPress={() => share(ref)} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-        {flagAsset && <Image source={flagAsset} style={{ width: 20, height: 14, marginRight: 8 }} resizeMode="contain" />}
-        <Text style={st.wideHeaderTitle} numberOfLines={1}>
-          {circuitName.toUpperCase()} ({circuitKm.toFixed(2)}km)
-        </Text>
-      </View>
-      <Text style={[st.wideHeaderStatus, { color: themeColor }]}>{statusLabel}</Text>
-    </View>
-  );
-}
-
-// ─── Card 6: Wide medium stats (346×218) ─────────────────────────────────────
+// ─── Card 8: Wide medium stats ───────────────────────────────────────────────
 
 function WideMediumCard({ distKm, elapsedMs, totalPaceS, fastestPaceS }: SharePageProps) {
   const ref = useRef<View>(null);
@@ -220,53 +218,57 @@ function WideMediumCard({ distKm, elapsedMs, totalPaceS, fastestPaceS }: SharePa
     <View ref={ref} style={st.wideMedCard} collapsable={false}>
       <ShareBtn onPress={() => share(ref)} />
       <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
-      <View style={st.medStatRow}>
+      <View style={[st.medStatRow, { marginTop: 24 }]}>
         <View style={st.medStatCol}>
-          <Text style={st.statLabel}>TIME</Text>
-          <Text style={st.medStatValue}>{fmtTime(elapsedMs)}</Text>
+          <Text style={st.wideStatLabel}>TIME</Text>
+          <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
         </View>
         <View style={st.medStatCol}>
-          <Text style={st.statLabel}>PACE AVG</Text>
-          <Text style={st.medStatValue}>{fmtPace(totalPaceS)}</Text>
+          <Text style={st.wideStatLabel}>PACE AVG</Text>
+          <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
         </View>
         <View style={st.medStatCol}>
-          <Text style={st.statLabel}>FASTEST</Text>
-          <Text style={st.medStatValue}>{fmtPace(fastestPaceS)}</Text>
+          <Text style={st.wideStatLabel}>FASTEST</Text>
+          <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
         </View>
       </View>
     </View>
   );
 }
 
-// ─── Card 7: Wide large stats + SVG (346×411) ────────────────────────────────
+// ─── Card 9: Wide large stats + circuit PNG ──────────────────────────────────
 
 function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
-  trackPath, viewBox, themeColor }: SharePageProps) {
+  circuitName }: SharePageProps) {
   const ref = useRef<View>(null);
   const share = useShareCard();
+  const circuitPng = CIRCUIT_RESULT_PNG[circuitName.toUpperCase()];
   return (
     <View ref={ref} style={st.wideLargeCard} collapsable={false}>
       <ShareBtn onPress={() => share(ref)} />
       <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
 
       <View style={{ marginTop: 24 }}>
-        <Text style={st.statLabel}>TIME</Text>
-        <Text style={st.largeStatValue}>{fmtTime(elapsedMs)}</Text>
+        <Text style={st.wideStatLabel}>TIME</Text>
+        <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
       </View>
       <View style={{ marginTop: 20 }}>
-        <Text style={st.statLabel}>PACE AVG</Text>
-        <Text style={st.largeStatValue}>{fmtPace(totalPaceS)}</Text>
+        <Text style={st.wideStatLabel}>PACE AVG</Text>
+        <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
       </View>
       <View style={{ marginTop: 20 }}>
-        <Text style={st.statLabel}>FASTEST</Text>
-        <Text style={st.largeStatValue}>{fmtPace(fastestPaceS)}</Text>
+        <Text style={st.wideStatLabel}>FASTEST</Text>
+        <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
       </View>
 
-      {/* Circuit SVG bottom-right */}
-      {trackPath && viewBox && (
-        <View style={st.largeSvgWrap} pointerEvents="none">
-          <CardCircuitSvg path={trackPath} viewBox={viewBox} color="rgba(255,255,255,0.5)" size={160} />
-        </View>
+      {/* Circuit PNG — flush to right edge */}
+      {circuitPng && (
+        <Image
+          source={circuitPng}
+          style={st.largePngWrap}
+          resizeMode="contain"
+          pointerEvents="none"
+        />
       )}
     </View>
   );
@@ -299,14 +301,14 @@ export default function ResultSharePage(props: SharePageProps) {
       <FastestLapStickerCard fastestPaceS={fastestPaceS} variant="default" />
       <FastestLapStickerCard fastestPaceS={fastestPaceS} variant="purple" />
 
-      {/* Row 4: Wide header */}
-      <WideHeaderCard {...props} />
-
-      {/* Row 5: Wide medium */}
+      {/* Card 8: Wide medium */}
       <WideMediumCard {...props} />
 
-      {/* Row 6: Wide large */}
+      {/* Card 9: Wide large */}
       <WideLargeCard {...props} />
+
+      {/* Safe area */}
+      <View style={{ height: 52 }} />
     </ScrollView>
   );
 }
@@ -474,37 +476,12 @@ const st = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Wide header 346×51
-  wideHeaderCard: {
-    height: 51,
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    ...BORDER,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  wideHeaderTitle: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 11,
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  wideHeaderStatus: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-
-  // Wide medium 346×218
+  // Wide medium
   wideMedCard: {
-    height: 218,
     backgroundColor: CARD_BG,
     borderRadius: 12,
     ...BORDER,
     padding: 20,
-    justifyContent: 'space-between',
     overflow: 'hidden',
   },
   medStatRow: {
@@ -514,45 +491,46 @@ const st = StyleSheet.create({
   medStatCol: {
     flex: 1,
   },
-  medStatValue: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginTop: 4,
-    includeFontPadding: false,
-  },
 
-  // Wide large 346×411
+  // Wide large
   wideLargeCard: {
-    height: 411,
     backgroundColor: CARD_BG,
     borderRadius: 12,
     ...BORDER,
     padding: 20,
     overflow: 'hidden',
   },
-  largeSvgWrap: {
+  largePngWrap: {
     position: 'absolute',
-    bottom: 16,
-    right: 12,
-    opacity: 0.7,
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: '55%',
   },
-  largeStatValue: {
+
+  // Shared wide card stat styles
+  wideStatLabel: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.3,
+  },
+  wideStatValue: {
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     color: '#FFFFFF',
-    marginTop: 4,
+    marginTop: 8,
     includeFontPadding: false,
   },
 
   // Shared
   bigDist: {
     fontFamily: 'Formula1-Black',
-    fontSize: 80,
+    fontSize: 85,
     color: '#FFFFFF',
-    lineHeight: 84,
+    lineHeight: 85,
     includeFontPadding: false,
-    letterSpacing: -2,
+    letterSpacing: 85 * 0.05,
   },
   statLabel: {
     fontFamily: 'Formula1-Regular',
