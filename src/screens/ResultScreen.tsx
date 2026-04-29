@@ -549,32 +549,34 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   }, [sheetAnim]);
 
   const handleConfirm = useCallback(() => {
+    // 홈 이동 + 데이터 저장을 즉시 실행, 시트 닫힘 애니메이션은 독립적으로 실행
+    recordActivity();
+    addDistance(distKm);
+    const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
+    const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
+    endSession({
+      status: 'completed',
+      total_dist_km: distKm,
+      total_time_ms: elapsedMs,
+      avg_pace_sec_per_km: avgPace,
+      best_pace_sec_per_km: bestPace,
+    }).catch(() => {});
+    if (user?.id && currentRaceEventId) {
+      logRaceCompleted({
+        raceStartedEventId: currentRaceEventId,
+        userId: user.id,
+        completedReps: 0,
+        actualHardPace: avgPace ?? 0,
+        actualEasyPace: null,
+        totalDurationSec: Math.round(elapsedMs / 1000),
+      }).catch(() => {});
+      setCurrentRaceEventId(null);
+    }
+    navigation.navigate('Home');
+    setTimeout(() => resetRun(), 500);
+    // 시트 닫힘은 fire-and-forget
     Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setShowSheet(false);
-      recordActivity();
-      addDistance(distKm);
-      const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
-      const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
-      endSession({
-        status: 'completed',
-        total_dist_km: distKm,
-        total_time_ms: elapsedMs,
-        avg_pace_sec_per_km: avgPace,
-        best_pace_sec_per_km: bestPace,
-      }).catch(() => {});
-      if (user?.id && currentRaceEventId) {
-        logRaceCompleted({
-          raceStartedEventId: currentRaceEventId,
-          userId: user.id,
-          completedReps: 0,
-          actualHardPace: avgPace ?? 0,
-          actualEasyPace: null,
-          totalDurationSec: Math.round(elapsedMs / 1000),
-        }).catch(() => {});
-        setCurrentRaceEventId(null);
-      }
-      navigation.navigate('Home');
-      setTimeout(() => resetRun(), 500);
     });
   }, [
     sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
