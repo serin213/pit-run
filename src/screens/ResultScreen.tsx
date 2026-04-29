@@ -228,8 +228,8 @@ function DigitColumn({ digit, digitH, textStyle, delay = 0, active = true, spaci
     ty.value = withDelay(
       delay,
       withTiming(-(ROLL_ROUNDS * 10) * digitH, {
-        duration: 700,
-        easing: Easing.out(Easing.exp),
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
       }),
     );
   }, [active, digit, digitH, delay, ty]);
