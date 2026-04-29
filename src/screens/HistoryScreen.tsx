@@ -328,11 +328,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const nextGrade = GRADE_NEXT[currentGrade] ?? null;
   const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
-  // 도트 x 기준: 스크린 좌표 — 라벨(width 64) 중심에 도트 위치
-  // 라벨 왼쪽 끝 20px → 중심 52px, 라벨 오른쪽 끝 windowW-20 → 중심 windowW-52
-  const CHART_X0 = 52;               // 최신(왼쪽) 스크린 x
-  const CHART_XN = windowW - 52;     // 오래된(오른쪽) 스크린 x
-
   const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
     const fallback = {
       linePath: '', areaPath: '',
@@ -345,29 +340,25 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
-    // 커브·그라데이션: 스크린 좌우 20px 마진 (windowW - 40)
-    const xsCurve = n <= 1
+    // 커브·도트 모두 동일 x 범위 (스크린 좌우 20px 마진) — 커브가 각 dot 중심을 통과
+    const xs = n <= 1
       ? [windowW / 2]
       : visible.map((_, i) => 20 + ((n - 1 - i) / (n - 1)) * (windowW - 40));
-    // 도트·실선·pill: 라벨 중심 기준 (CHART_X0 ~ CHART_XN)
-    const xsDot = n <= 1
-      ? [(CHART_X0 + CHART_XN) / 2]
-      : visible.map((_, i) => CHART_X0 + ((n - 1 - i) / (n - 1)) * (CHART_XN - CHART_X0));
-    const lp = smoothLinePath(xsCurve, ys);
+    const lp = smoothLinePath(xs, ys);
     const baseY = barH - 2;
-    const ap = `${lp} L ${xsCurve[xsCurve.length - 1]} ${baseY} L ${xsCurve[0]} ${baseY} Z`;
+    const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
     const inRange = (sec: number) => sec >= minP && sec <= maxP;
     const cty = currentThresholdSec != null && inRange(currentThresholdSec)
       ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
     const nty = nextThresholdSec != null && inRange(nextThresholdSec)
       ? paceToY(nextThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
-    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xsDot, dotYs: ys };
-  }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec, CHART_X0, CHART_XN]);
+    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
+  }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
   const selected = visible[selectedIdx];
-  const selDotX = dotXs[selectedIdx] ?? (CHART_X0 + CHART_XN) / 2;
+  const selDotX = dotXs[selectedIdx] ?? windowW / 2;
   const selDotY = dotYs[selectedIdx] ?? plotTopInBlock + plotH / 2;
   const bubbleCenterX = selDotX;
 
@@ -377,6 +368,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     SIDE_PAD,
     Math.min(windowW - 20 - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
   );
+  // 꼬리를 pill 중심(selDotX)에 정렬: 버블이 클램핑돼도 꼬리는 pill 쪽으로 오프셋
+  const tooltipTailShift = selDotX - (tooltipWrapLeft + tooltipWrapClamped / 2);
 
   // ─── History cards ────────────────────────────────────────────────────────
   const historySorted = useMemo(
@@ -458,7 +451,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       ) : null}
                       <Text style={s.tooltipPace}>{fmtPace(selected.paceSec)}</Text>
                     </View>
-                    <Svg width={14} height={10} viewBox="0 0 14 10" style={s.tooltipTailSvg}>
+                    <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: tooltipTailShift }]}>
                       <Path
                         d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
                         fill="rgba(224,58,62,0.15)"
@@ -568,9 +561,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                 {/* Invisible pressable zones per data point */}
                 {visible.map((row, i) => {
-                  const cx = dotXs[i] ?? CHART_X0;
+                  const cx = dotXs[i] ?? windowW / 2;
                   const n = visible.length;
-                  const half = n <= 1 ? windowW / 2 : (CHART_XN - CHART_X0) / (2 * (n - 1));
+                  const half = n <= 1 ? windowW / 2 : (windowW - 40) / (2 * (n - 1));
                   const left = Math.max(0, cx - half);
                   const right = Math.min(windowW, cx + half);
                   return (
@@ -582,13 +575,20 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   );
                 })}
 
-                {/* Date labels: 모두 도트 중심 기준 center-align */}
+                {/* Date labels: 첫(왼쪽) left-align, 마지막(오른쪽) right-align, 나머지 center */}
                 {visible.map((row, i) => {
-                  const cx = dotXs[i] ?? CHART_X0;
+                  const cx = dotXs[i] ?? windowW / 2;
+                  const isNewest = i === visible.length - 1;
+                  const isOldest = i === 0;
+                  const labelStyle = isNewest
+                    ? { left: cx, width: 64, textAlign: 'left' as const }
+                    : isOldest
+                    ? { left: cx - 64, width: 64, textAlign: 'right' as const }
+                    : { left: cx - 32, width: 64, textAlign: 'center' as const };
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64, textAlign: 'center' }]}
+                      style={[s.colDate, { position: 'absolute', top: barH + 8, ...labelStyle }]}
                     >
                       {row.label}
                     </Text>
@@ -797,7 +797,7 @@ const s = StyleSheet.create({
   tooltipBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 10,
+    paddingLeft: 12,
     paddingRight: 12,
     paddingTop: 8,
     paddingBottom: 7,
