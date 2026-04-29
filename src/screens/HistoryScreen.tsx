@@ -16,10 +16,11 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
+  Circle,
   Defs,
+  Line,
   LinearGradient as SvgLG,
   Path,
-  Rect,
   Stop,
 } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -69,18 +70,32 @@ const GRADE_TEXT_IMAGES: Record<string, ReturnType<typeof require>> = {
 
 const FIGMA_STATUS = 59;
 const SIDE_PAD = 24;
-const COL_MIN_W = 65;
-const COL_GAP = 5;
 const GRADE_BADGE_H = 24;
 const GRADE_BADGE_W = Math.round((58 / 29) * GRADE_BADGE_H);
-/** 다음 등급(F1) 기준 1km 페이스(초) — 트렌드 그래프 점선 */
-const THRESHOLD_SEC = 5 * 60;
 const PACE_AXIS_PAD_MIN_SEC = 2;
 const PACE_AXIS_PAD_RATIO = 0.1;
 const PACE_AXIS_MIN_SPAN_SEC = 22;
 
 /** 퀄리파잉 기록 3개 이상일 때 트렌드 그래프 표시 */
 const QUALIFYING_TREND_MIN = 3;
+/** 트렌드 그래프 최대 표시 개수 (최신 순) */
+const QUALIFYING_TREND_MAX = 5;
+
+/** 각 등급을 달성하는 데 필요한 최대 페이스(초). f3은 상한 없음 */
+const GRADE_PACE_THRESHOLD: Partial<Record<QualifyingGrade, number>> = {
+  f1_champion: 240,
+  f1:          270,
+  f1_rookie:   330,
+  f2:          390,
+};
+
+/** 각 등급의 바로 위(더 빠른) 등급 */
+const GRADE_NEXT: Partial<Record<QualifyingGrade, QualifyingGrade>> = {
+  f3:        'f2',
+  f2:        'f1_rookie',
+  f1_rookie: 'f1',
+  f1:        'f1_champion',
+};
 
 /** 툴팁 우측 셰브론 */
 const TOOLTIP_CHEVRON_PATH =
@@ -120,24 +135,17 @@ const FALLBACK_HISTORY: HistoryRow[] = [
 
 let _histGradSeq = 0;
 
-function maxFitColumns(contentW: number, gap: number): number {
-  let k = 0;
-  while (k * COL_MIN_W + Math.max(0, k - 1) * gap <= contentW) k++;
-  return Math.max(1, k - 1);
-}
-
 function paceToY(paceSec: number, minP: number, maxP: number, plotTop: number, plotH: number): number {
   if (maxP <= minP) return plotTop + plotH / 2;
   const t = (paceSec - minP) / (maxP - minP);
   return plotTop + (1 - t) * plotH;
 }
 
-function computePaceAxisMinMax(paces: number[], thresholdSec: number): { minP: number; maxP: number } {
-  if (paces.length === 0) {
-    return { minP: thresholdSec - 30, maxP: thresholdSec + 30 };
-  }
-  const vMin = Math.min(thresholdSec, ...paces);
-  const vMax = Math.max(thresholdSec, ...paces);
+function computePaceAxisMinMax(paces: number[], thresholds: number[]): { minP: number; maxP: number } {
+  const all = [...paces, ...thresholds];
+  if (all.length === 0) return { minP: 270, maxP: 390 };
+  const vMin = Math.min(...all);
+  const vMax = Math.max(...all);
   const span = Math.max(vMax - vMin, 1e-6);
   const pad = Math.max(PACE_AXIS_PAD_MIN_SEC, span * PACE_AXIS_PAD_RATIO);
   let minP = vMin - pad;
@@ -302,52 +310,53 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   );
   const showTrend = sortedQ.length >= QUALIFYING_TREND_MIN;
 
-  const maxCols = useMemo(() => maxFitColumns(contentW, COL_GAP), [contentW]);
-  const visibleCount = Math.min(sortedQ.length, maxCols);
   const visible = useMemo(
-    () => sortedQ.slice(sortedQ.length - visibleCount),
-    [sortedQ, visibleCount],
+    () => sortedQ.slice(Math.max(0, sortedQ.length - QUALIFYING_TREND_MAX)),
+    [sortedQ],
   );
-
-  const colW =
-    visible.length > 0
-      ? (contentW - (visible.length - 1) * COL_GAP) / visible.length
-      : 0;
 
   const [selectedIdx, setSelectedIdx] = useState(() =>
-    visible.length ? Math.min(Math.floor((visible.length - 1) / 2), visible.length - 1) : 0,
+    visible.length ? visible.length - 1 : 0,
   );
 
-  const colAreaH = 166;
-  const barH = colAreaH - 28;
+  const barH = 138;
   const plotH = 78;
   const plotTopInBlock = 28;
 
-  const { linePath, areaPath, thresholdY } = useMemo(() => {
-    if (visible.length === 0) {
-      return { linePath: '', areaPath: '', thresholdY: plotTopInBlock + plotH / 2 };
-    }
+  const currentGrade = qualifyingResult?.grade ?? 'f2';
+  const currentThresholdSec = GRADE_PACE_THRESHOLD[currentGrade] ?? null;
+  const nextGrade = GRADE_NEXT[currentGrade] ?? null;
+  const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
+
+  const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
+    const mid = plotTopInBlock + plotH / 2;
+    const fallback = {
+      linePath: '', areaPath: '',
+      currentThresholdY: mid, nextThresholdY: mid,
+      dotXs: [] as number[], dotYs: [] as number[],
+    };
+    if (visible.length === 0) return fallback;
     const paces = visible.map((v) => v.paceSec);
-    const { minP, maxP } = computePaceAxisMinMax(paces, THRESHOLD_SEC);
+    const thresholds = [currentThresholdSec, nextThresholdSec].filter((t): t is number => t != null);
+    const { minP, maxP } = computePaceAxisMinMax(paces, thresholds);
     const n = visible.length;
-    const xs =
-      n <= 1
-        ? [contentW / 2]
-        : visible.map((_, i) => (i / (n - 1)) * contentW);
+    // 최신(index n-1)이 왼쪽(x=0), 오래된(index 0)이 오른쪽(x=contentW)
+    const xs = n <= 1 ? [contentW / 2] : visible.map((_, i) => ((n - 1 - i) / (n - 1)) * contentW);
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
     const lp = smoothLinePath(xs, ys);
-    const lastX = xs[xs.length - 1];
-    const firstX = xs[0];
     const baseY = barH - 2;
-    const ap = visible.length > 0 ? `${lp} L ${lastX} ${baseY} L ${firstX} ${baseY} Z` : '';
-    const ty = paceToY(THRESHOLD_SEC, minP, maxP, plotTopInBlock, plotH);
-    return { linePath: lp, areaPath: ap, thresholdY: ty };
-  }, [visible, contentW, plotH, plotTopInBlock, barH]);
+    const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
+    const cty = currentThresholdSec != null ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : mid;
+    const nty = nextThresholdSec   != null ? paceToY(nextThresholdSec,   minP, maxP, plotTopInBlock, plotH) : mid;
+    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
+  }, [visible, contentW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
   const selected = visible[selectedIdx];
-  const bubbleCenterX = SIDE_PAD + selectedIdx * (colW + COL_GAP) + colW / 2;
+  const selDotX = dotXs[selectedIdx] ?? contentW / 2;
+  const selDotY = dotYs[selectedIdx] ?? plotTopInBlock + plotH / 2;
+  const bubbleCenterX = SIDE_PAD + selDotX;
 
   const [tooltipWrapW, setTooltipWrapW] = useState(0);
   const tooltipWrapClamped = tooltipWrapW > 0 ? tooltipWrapW : 160;
@@ -449,7 +458,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     <Svg width={14} height={10} viewBox="0 0 14 10" style={s.tooltipTailSvg}>
                       <Path
                         d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                        fill="rgba(255,255,255,0.1)"
+                        fill="rgba(40,40,46,0.95)"
                       />
                     </Svg>
                   </View>
@@ -461,39 +470,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   marginLeft: SIDE_PAD,
                   width: contentW,
                   marginTop: 56,
-                  height: colAreaH,
+                  height: barH + 28,
                   position: 'relative',
                 }}
               >
-                <View style={{ flexDirection: 'row', height: barH, width: contentW }}>
-                  {visible.map((row, i) => (
-                    <Pressable
-                      key={row.iso}
-                      onPress={() => setSelectedIdx(i)}
-                      style={{ width: colW, marginRight: i < visible.length - 1 ? COL_GAP : 0 }}
-                    >
-                      <View style={{ height: barH, borderRadius: 8, overflow: 'hidden' }}>
-                        <Svg width={colW} height={barH} viewBox={`0 0 ${colW} ${barH}`}>
-                          <Defs>
-                            <SvgLG id={`${gradPrefix}_c${i}`} x1="0" y1="0" x2="0" y2="1">
-                              <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
-                              <Stop offset="100%" stopColor="#E03A3E" stopOpacity="1" />
-                            </SvgLG>
-                          </Defs>
-                          <Rect
-                            x="0" y="0"
-                            width={colW} height={barH}
-                            rx={8}
-                            fill={`url(#${gradPrefix}_c${i})`}
-                            opacity={selectedIdx === i ? 0.5 : 0.1}
-                          />
-                        </Svg>
-                      </View>
-                      <Text style={s.colDate}>{row.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-
+                {/* SVG: area + thresholds + curve + selected indicator */}
                 <View
                   style={{ position: 'absolute', left: 0, top: 0, width: contentW, height: barH }}
                   pointerEvents="none"
@@ -515,16 +496,25 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0" />
                       </SvgLG>
                     </Defs>
+                    {/* Area fill */}
                     {areaPath ? (
                       <Path d={areaPath} fill={`url(#${gradPrefix}_area)`} opacity={0.2} />
                     ) : null}
-                    <Path
-                      d={`M 0 ${thresholdY} L ${contentW} ${thresholdY}`}
-                      stroke="#E03A3E"
-                      strokeWidth={1}
-                      strokeDasharray="4, 4"
-                      fill="none"
-                    />
+                    {/* 현재 등급 threshold (opacity 0.5) */}
+                    {currentThresholdSec != null ? (
+                      <Path
+                        d={`M 0 ${currentThresholdY} L ${contentW} ${currentThresholdY}`}
+                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
+                      />
+                    ) : null}
+                    {/* 다음 등급 threshold (opacity 1.0) */}
+                    {nextThresholdSec != null ? (
+                      <Path
+                        d={`M 0 ${nextThresholdY} L ${contentW} ${nextThresholdY}`}
+                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
+                      />
+                    ) : null}
+                    {/* Curve line */}
                     {linePath ? (
                       <Path
                         d={linePath}
@@ -533,11 +523,60 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         fill="none"
                       />
                     ) : null}
+                    {/* Selected vertical indicator */}
+                    <Line
+                      x1={selDotX} y1={selDotY}
+                      x2={selDotX} y2={barH - 2}
+                      stroke="#E03A3E" strokeWidth={1}
+                    />
+                    {/* Selected dot — 22×22, inside stroke 4px #17171C */}
+                    <Circle
+                      cx={selDotX} cy={selDotY}
+                      r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
+                    />
                   </Svg>
-                  <Text style={[s.thresholdLabel, { top: Math.max(0, thresholdY - 20) }]}>
-                    {`F1 ${fmtPace(THRESHOLD_SEC)}`}
-                  </Text>
+                  {/* 현재 등급 라벨 (opacity 0.5) */}
+                  {currentThresholdSec != null && currentGrade != null ? (
+                    <Text style={[s.thresholdLabel, { top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
+                      {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec)}`}
+                    </Text>
+                  ) : null}
+                  {/* 다음 등급 라벨 (opacity 1.0) */}
+                  {nextThresholdSec != null && nextGrade != null ? (
+                    <Text style={[s.thresholdLabel, { top: Math.max(0, nextThresholdY - 18) }]}>
+                      {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec)}`}
+                    </Text>
+                  ) : null}
                 </View>
+
+                {/* Invisible pressable zones per data point */}
+                {visible.map((row, i) => {
+                  const cx = dotXs[i] ?? 0;
+                  const n = visible.length;
+                  const half = n <= 1 ? contentW / 2 : contentW / (2 * (n - 1));
+                  const left = Math.max(0, cx - half);
+                  const right = Math.min(contentW, cx + half);
+                  return (
+                    <Pressable
+                      key={row.iso}
+                      onPress={() => setSelectedIdx(i)}
+                      style={{ position: 'absolute', left, top: 0, width: right - left, height: barH }}
+                    />
+                  );
+                })}
+
+                {/* Date labels */}
+                {visible.map((row, i) => {
+                  const cx = dotXs[i] ?? 0;
+                  return (
+                    <Text
+                      key={row.iso + '_lbl'}
+                      style={[s.colDate, { position: 'absolute', left: cx - 32, width: 64, top: barH + 8 }]}
+                    >
+                      {row.label}
+                    </Text>
+                  );
+                })}
               </View>
             </View>
           </>
@@ -745,7 +784,7 @@ const s = StyleSheet.create({
     paddingRight: 12,
     paddingTop: 8,
     paddingBottom: 7,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(28,28,34,0.95)',
     borderRadius: 12,
   },
   tooltipTailSvg: {
@@ -761,7 +800,6 @@ const s = StyleSheet.create({
     opacity: 0.7,
   },
   colDate: {
-    marginTop: 8,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20,
