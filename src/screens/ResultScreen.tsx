@@ -58,11 +58,11 @@ const GRAPH_BOTTOM_CLEARANCE = 24;
 const PAGE_CONTENT_TOP = 46;
 
 const DIFFICULTY = [
-  { id: 'too-easy', emoji: '😴', label: 'Too Easy' },
-  { id: 'easy',     emoji: '😊', label: 'Easy'     },
-  { id: 'proper',   emoji: '💪', label: 'Proper'   },
-  { id: 'hard',     emoji: '😤', label: 'Hard'     },
-  { id: 'too-hard', emoji: '🔥', label: 'Too Hard' },
+  { id: 'too-easy', label: 'Too Easy' },
+  { id: 'easy',     label: 'Easy'     },
+  { id: 'proper',   label: 'Proper'   },
+  { id: 'hard',     label: 'Hard'     },
+  { id: 'too-hard', label: 'Too Hard' },
 ] as const;
 
 // ─── Circuit result images ────────────────────────────────────────────────────
@@ -537,10 +537,14 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [showSheet, setShowSheet]   = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diffNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ringScaleAnim   = useRef(new Animated.Value(0)).current;
+  const ringOpacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => () => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    if (resetTimerRef.current)   clearTimeout(resetTimerRef.current);
+    if (diffNavTimerRef.current) clearTimeout(diffNavTimerRef.current);
   }, []);
 
   const openSheet = () => {
@@ -593,6 +597,26 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
     paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
   ]);
+
+  const handleDiffSelect = useCallback((id: string) => {
+    setSelectedDiff(id);
+    ringScaleAnim.setValue(0.5);
+    ringOpacityAnim.setValue(0);
+    Animated.parallel([
+      Animated.spring(ringScaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        damping: 12,
+        stiffness: 320,
+      }),
+      Animated.timing(ringOpacityAnim, {
+        toValue: 1,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    diffNavTimerRef.current = setTimeout(() => handleConfirm(), 300);
+  }, [ringScaleAnim, ringOpacityAnim, handleConfirm]);
 
   const sheetTranslateY = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [340, 0] });
   const overlayOpacity  = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
@@ -963,15 +987,37 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             <View style={styles.emojiTrackWrap}>
               <View style={styles.emojiTrack} />
               <View style={styles.emojiRow}>
-                {DIFFICULTY.map((opt) => (
-                  <Pressable
-                    key={opt.id}
-                    style={[styles.emojiBtn, selectedDiff === opt.id && styles.emojiBtnActive]}
-                    onPress={() => { setSelectedDiff(opt.id); handleConfirm(); }}
-                  >
-                    <Text style={styles.emojiChar}>{opt.emoji}</Text>
-                  </Pressable>
-                ))}
+                {DIFFICULTY.map((opt) => {
+                  const isSelected = selectedDiff === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      style={styles.dotHitArea}
+                      onPress={() => handleDiffSelect(opt.id)}
+                    >
+                      {isSelected && (
+                        <Animated.View
+                          style={[
+                            styles.dotRing,
+                            {
+                              backgroundColor: `rgba(${themeRgb},0.5)`,
+                              opacity: ringOpacityAnim,
+                              transform: [{ scale: ringScaleAnim }],
+                            },
+                          ]}
+                        />
+                      )}
+                      <View
+                        style={[
+                          styles.dotOuter,
+                          isSelected && { backgroundColor: topTheme.line },
+                        ]}
+                      >
+                        {!isSelected && <View style={styles.dotInner} />}
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
@@ -1220,31 +1266,42 @@ const styles = StyleSheet.create({
   },
   emojiTrack: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    height: 6,
+    left: 22,
+    right: 22,
+    height: 4,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    top: 22,
+    backgroundColor: '#36363E',
+    top: 20,
   },
   emojiRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  emojiBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  dotHitArea: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#202028',
   },
-  emojiBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    transform: [{ scale: 1.2 }],
+  dotOuter: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#36363E',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  emojiChar: {
-    fontSize: 26,
+  dotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2E2D33',
+  },
+  dotRing: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   emojiLabels: {
     flexDirection: 'row',
@@ -1262,23 +1319,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: -0.13,
-  },
-  confirmBtn: {
-    ...radius.sm,
-    paddingVertical: 16,
-    alignItems: 'center',
-    backgroundColor: '#34343F',
-    opacity: 0.3,
-    marginBottom: 8,
-  },
-  confirmBtnActive: {
-    opacity: 1,
-    backgroundColor: '#34343F',
-  },
-  confirmBtnText: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 22,
-    color: '#FFFFFF',
-    letterSpacing: -0.22,
   },
 });
