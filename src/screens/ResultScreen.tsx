@@ -165,39 +165,6 @@ function makeLinePaths(
   return { linePath: d, areaPath: area, ys };
 }
 
-// ─── Circuit SVG (decorative background, page 1) ─────────────────────────────
-
-interface CircuitSvgLargeProps {
-  path: string;
-  viewBox: { width: number; height: number };
-  color: string;
-}
-
-function CircuitSvgLarge({ path, viewBox, color }: CircuitSvgLargeProps) {
-  const targetH = 275;
-  const scale   = targetH / viewBox.height;
-  const scaledW = viewBox.width * scale;
-  const strokeW = 7 / scale;
-  return (
-    <View
-      style={{ position: 'absolute', left: 83, top: 0, width: scaledW, height: targetH }}
-      pointerEvents="none"
-    >
-      <Svg width={scaledW} height={targetH} viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}>
-        <Path
-          d={path}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeW}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.6}
-        />
-      </Svg>
-    </View>
-  );
-}
-
 // ─── Digit column (slot-machine, per-digit) ──────────────────────────────────
 
 const ROLL_ROUNDS = 1; // full 0-9 rounds before landing
@@ -606,8 +573,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         }).catch(() => {});
         setCurrentRaceEventId(null);
       }
-      resetRun();
       navigation.navigate('Home');
+      setTimeout(() => resetRun(), 500);
     });
   }, [
     sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
