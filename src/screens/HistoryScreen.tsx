@@ -21,6 +21,7 @@ import Svg, {
   Line,
   LinearGradient as SvgLG,
   Path,
+  Rect,
   Stop,
 } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -500,6 +501,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         <Stop offset="85%" stopColor="#E03A3E" stopOpacity="1" />
                         <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0" />
                       </SvgLG>
+                      {/* 컬럼 인디케이터 그라디언트: 상단 opacity 0 → 하단 opacity 0.5 */}
+                      <SvgLG id={`${gradPrefix}_col`} x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
+                        <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0.5" />
+                      </SvgLG>
                     </Defs>
                     {/* Area fill */}
                     {areaPath ? (
@@ -519,6 +525,22 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
+                    {/* 미선택 컬럼: width 1 세로 stroke */}
+                    {dotXs.map((cx, i) => i === selectedIdx ? null : (
+                      <Rect
+                        key={`col_u_${i}`}
+                        x={cx - 0.5} y={0}
+                        width={1} height={barH}
+                        fill={`url(#${gradPrefix}_col)`}
+                      />
+                    ))}
+                    {/* 선택 컬럼: width 12 pill */}
+                    <Rect
+                      x={selDotX - 6} y={0}
+                      width={12} height={barH}
+                      rx={6}
+                      fill={`url(#${gradPrefix}_col)`}
+                    />
                     {/* Curve line */}
                     {linePath ? (
                       <Path
@@ -528,12 +550,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         fill="none"
                       />
                     ) : null}
-                    {/* Selected vertical indicator */}
-                    <Line
-                      x1={selDotX} y1={selDotY}
-                      x2={selDotX} y2={barH - 2}
-                      stroke="#E03A3E" strokeWidth={1}
-                    />
                     {/* Selected dot — 22×22, inside stroke 4px #17171C */}
                     <Circle
                       cx={selDotX} cy={selDotY}
