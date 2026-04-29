@@ -373,7 +373,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   const circuit            = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const topTheme           = getCircuitTheme(circuit.displayName.toUpperCase());
-  const themeRgb           = hexToRgb(topTheme.line);
+  const themeRgb           = useMemo(() => hexToRgb(topTheme.line), [topTheme.line]);
   const circuitResultImage = CIRCUIT_RESULT_IMAGES[circuit.id] ?? null;
   const checkerFlagColor   = CHECKER_FLAG_COLOR[circuit.id] ?? null;
   const checkerFlagImage   = checkerFlagColor ? CHECKER_FLAG_IMAGES[checkerFlagColor] : null;
@@ -537,6 +537,11 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [showSheet, setShowSheet]   = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+  }, []);
 
   const openSheet = () => {
     setShowSheet(true);
@@ -555,26 +560,31 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     addDistance(distKm);
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
-    endSession({
-      status: 'completed',
-      total_dist_km: distKm,
-      total_time_ms: elapsedMs,
-      avg_pace_sec_per_km: avgPace,
-      best_pace_sec_per_km: bestPace,
-    }).catch(() => {});
+    const saves: Promise<unknown>[] = [
+      endSession({
+        status: 'completed',
+        total_dist_km: distKm,
+        total_time_ms: elapsedMs,
+        avg_pace_sec_per_km: avgPace,
+        best_pace_sec_per_km: bestPace,
+      }),
+    ];
     if (user?.id && currentRaceEventId) {
-      logRaceCompleted({
-        raceStartedEventId: currentRaceEventId,
-        userId: user.id,
-        completedReps: 0,
-        actualHardPace: avgPace ?? 0,
-        actualEasyPace: null,
-        totalDurationSec: Math.round(elapsedMs / 1000),
-      }).catch(() => {});
+      saves.push(
+        logRaceCompleted({
+          raceStartedEventId: currentRaceEventId,
+          userId: user.id,
+          completedReps: 0,
+          actualHardPace: avgPace ?? 0,
+          actualEasyPace: null,
+          totalDurationSec: Math.round(elapsedMs / 1000),
+        }),
+      );
       setCurrentRaceEventId(null);
     }
+    Promise.all(saves).catch(() => {});
     navigation.navigate('Home');
-    setTimeout(() => resetRun(), 500);
+    resetTimerRef.current = setTimeout(() => resetRun(), 500);
     // 시트 닫힘은 fire-and-forget
     Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setShowSheet(false);
