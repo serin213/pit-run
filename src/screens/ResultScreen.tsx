@@ -1257,12 +1257,12 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#FFFFFF',
     letterSpacing: -0.3,
-    marginBottom: 32,
+    marginBottom: 24,
     lineHeight: 36,
   },
   emojiTrackWrap: {
     position: 'relative',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   emojiTrack: {
     position: 'absolute',
