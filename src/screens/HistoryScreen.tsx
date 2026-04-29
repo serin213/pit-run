@@ -138,7 +138,7 @@ let _histGradSeq = 0;
 function paceToY(paceSec: number, minP: number, maxP: number, plotTop: number, plotH: number): number {
   if (maxP <= minP) return plotTop + plotH / 2;
   const t = (paceSec - minP) / (maxP - minP);
-  return plotTop + (1 - t) * plotH;
+  return plotTop + t * plotH;
 }
 
 function computePaceAxisMinMax(paces: number[], thresholds: number[]): { minP: number; maxP: number } {
