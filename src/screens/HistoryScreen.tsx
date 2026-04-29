@@ -329,9 +329,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const nextGrade = GRADE_NEXT[currentGrade] ?? null;
   const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
-  // 도트 x 기준: 스크린 좌표 (최신=왼쪽=20, 오래된=오른쪽=windowW-20)
-  const CHART_X0 = 20;               // 최신(왼쪽) 스크린 x
-  const CHART_XN = windowW - 20;     // 오래된(오른쪽) 스크린 x
+  // 도트 x 기준: 스크린 좌표 — 라벨(width 64) 중심에 도트 위치
+  // 라벨 왼쪽 끝 20px → 중심 52px, 라벨 오른쪽 끝 windowW-20 → 중심 windowW-52
+  const CHART_X0 = 52;               // 최신(왼쪽) 스크린 x
+  const CHART_XN = windowW - 52;     // 오래된(오른쪽) 스크린 x
 
   const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
     const mid = plotTopInBlock + plotH / 2;
@@ -586,20 +587,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   );
                 })}
 
-                {/* Date labels: 최신(왼쪽) left-align, 오래된(오른쪽) right-align, 나머지 center */}
+                {/* Date labels: 모두 도트 중심 기준 center-align */}
                 {visible.map((row, i) => {
                   const cx = dotXs[i] ?? CHART_X0;
-                  const isNewest = i === visible.length - 1;
-                  const isOldest = i === 0;
-                  const labelStyle = isNewest
-                    ? { left: cx, width: 64, textAlign: 'left' as const }
-                    : isOldest
-                    ? { left: cx - 64, width: 64, textAlign: 'right' as const }
-                    : { left: cx - 32, width: 64, textAlign: 'center' as const };
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', top: barH + 8, ...labelStyle }]}
+                      style={[s.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64, textAlign: 'center' }]}
                     >
                       {row.label}
                     </Text>
