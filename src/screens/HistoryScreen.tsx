@@ -346,17 +346,21 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const thresholds = [currentThresholdSec, nextThresholdSec].filter((t): t is number => t != null);
     const { minP, maxP } = computePaceAxisMinMax(paces, thresholds);
     const n = visible.length;
-    // 스크린 x 기준: 최신(index n-1)=CHART_X0(왼쪽), 오래된(index 0)=CHART_XN(오른쪽)
-    const xs = n <= 1
+    const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
+    // 커브·그라데이션: 스크린 좌우 20px 마진 (windowW - 40)
+    const xsCurve = n <= 1
+      ? [windowW / 2]
+      : visible.map((_, i) => 20 + ((n - 1 - i) / (n - 1)) * (windowW - 40));
+    // 도트·실선·pill: 라벨 중심 기준 (CHART_X0 ~ CHART_XN)
+    const xsDot = n <= 1
       ? [(CHART_X0 + CHART_XN) / 2]
       : visible.map((_, i) => CHART_X0 + ((n - 1 - i) / (n - 1)) * (CHART_XN - CHART_X0));
-    const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
-    const lp = smoothLinePath(xs, ys);
+    const lp = smoothLinePath(xsCurve, ys);
     const baseY = barH - 2;
-    const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
+    const ap = `${lp} L ${xsCurve[xsCurve.length - 1]} ${baseY} L ${xsCurve[0]} ${baseY} Z`;
     const cty = currentThresholdSec != null ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : mid;
     const nty = nextThresholdSec   != null ? paceToY(nextThresholdSec,   minP, maxP, plotTopInBlock, plotH) : mid;
-    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
+    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xsDot, dotYs: ys };
   }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec, CHART_X0, CHART_XN]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
@@ -494,7 +498,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
-                        x1={CHART_X0} y1="0" x2={CHART_XN} y2="0"
+                        x1={20} y1="0" x2={windowW - 20} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
