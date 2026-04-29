@@ -58,11 +58,11 @@ const GRAPH_BOTTOM_CLEARANCE = 24;
 const PAGE_CONTENT_TOP = 46;
 
 const DIFFICULTY = [
-  { id: 'too-easy', label: 'Too Easy' },
-  { id: 'easy',     label: 'Easy'     },
-  { id: 'proper',   label: 'Proper'   },
-  { id: 'hard',     label: 'Hard'     },
-  { id: 'too-hard', label: 'Too Hard' },
+  { id: 'too-easy' },
+  { id: 'easy'     },
+  { id: 'proper'   },
+  { id: 'hard'     },
+  { id: 'too-hard' },
 ] as const;
 
 // ─── Circuit result images ────────────────────────────────────────────────────
@@ -384,9 +384,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   // DNF when runner covers less than 98% of circuit distance
   const statusLabel = distKm >= circuit.distanceKm * 0.98 ? 'FINISH' : 'DNF';
-
-  // TODO: 실제 등수 로직 추후 추가
-  const rankNumber: number | null = null;
 
   // ─── Commentary ───────────────────────────────────────────────────────────
   // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
@@ -1131,12 +1128,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: -0.26,
-  },
-  contentValue: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 30,
-    color: '#FFFFFF',
-    lineHeight: 36,
   },
 
   // ── Graph section ──
