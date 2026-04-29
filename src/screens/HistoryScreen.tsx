@@ -520,14 +520,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
                     {currentThresholdY != null ? (
                       <Path
-                        d={`M ${CHART_X0} ${currentThresholdY} L ${CHART_XN} ${currentThresholdY}`}
+                        d={`M 20 ${currentThresholdY} L ${windowW - 20} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
                     {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
                     {nextThresholdY != null ? (
                       <Path
-                        d={`M ${CHART_X0} ${nextThresholdY} L ${CHART_XN} ${nextThresholdY}`}
+                        d={`M 20 ${nextThresholdY} L ${windowW - 20} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
