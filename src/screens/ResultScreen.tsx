@@ -293,45 +293,17 @@ function RollingPNumber({ target, color }: RollingPNumberProps) {
 }
 
 // ─── RollingText ─────────────────────────────────────────────────────────────
-// Splits formatted string (e.g. "5'23"") into digit columns + fixed separators.
 
 interface RollingTextProps {
   target: string;
-  active: boolean;
   containerStyle?: any;
   textStyle: any;
-  digitH: number;
 }
 
-function RollingText({ target, active, containerStyle, textStyle, digitH }: RollingTextProps) {
-  type Part =
-    | { type: 'digit'; value: number; idx: number }
-    | { type: 'sep'; ch: string };
-
-  const parts = useMemo<Part[]>(() => {
-    let digitCount = 0;
-    return [...target].map((ch) =>
-      ch >= '0' && ch <= '9'
-        ? { type: 'digit', value: parseInt(ch, 10), idx: digitCount++ }
-        : { type: 'sep', ch },
-    );
-  }, [target]);
-
+function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
   return (
     <View style={[{ flexDirection: 'row', alignItems: 'center' }, containerStyle]}>
-      {parts.map((p, i) =>
-        p.type === 'sep'
-          ? <Text key={i} allowFontScaling={false} style={textStyle}>{p.ch}</Text>
-          : <DigitColumn
-              key={i}
-              digit={p.value}
-              digitH={digitH}
-              textStyle={textStyle}
-              delay={p.idx * 60}
-              active={active}
-              spacing={-2}
-            />,
-      )}
+      <Text allowFontScaling={false} style={textStyle}>{target}</Text>
     </View>
   );
 }
@@ -756,19 +728,15 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
                 <Text style={[styles.label, { marginTop: 32 }]}>TIME</Text>
                 <RollingText
                   target={fmtTime(elapsedMs)}
-                  active={activePage === 1}
                   containerStyle={{ marginTop: 8 }}
                   textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
-                  digitH={36}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <RollingText
                   target={fmtPace(totalPaceS)}
-                  active={activePage === 1}
                   containerStyle={{ marginTop: 8 }}
                   textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
-                  digitH={36}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
