@@ -328,6 +328,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const nextGrade = GRADE_NEXT[currentGrade] ?? null;
   const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
+  // 도트 x 기준: 스크린 좌표 (최신=왼쪽=92, 오래된=오른쪽=windowW-20)
+  const CHART_X0 = 92;               // 최신(왼쪽) 스크린 x
+  const CHART_XN = windowW - 20;     // 오래된(오른쪽) 스크린 x
+
   const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
     const mid = plotTopInBlock + plotH / 2;
     const fallback = {
@@ -340,8 +344,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const thresholds = [currentThresholdSec, nextThresholdSec].filter((t): t is number => t != null);
     const { minP, maxP } = computePaceAxisMinMax(paces, thresholds);
     const n = visible.length;
-    // 최신(index n-1)이 왼쪽(x=0), 오래된(index 0)이 오른쪽(x=contentW)
-    const xs = n <= 1 ? [contentW / 2] : visible.map((_, i) => ((n - 1 - i) / (n - 1)) * contentW);
+    // 스크린 x 기준: 최신(index n-1)=CHART_X0(왼쪽), 오래된(index 0)=CHART_XN(오른쪽)
+    const xs = n <= 1
+      ? [(CHART_X0 + CHART_XN) / 2]
+      : visible.map((_, i) => CHART_X0 + ((n - 1 - i) / (n - 1)) * (CHART_XN - CHART_X0));
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
     const lp = smoothLinePath(xs, ys);
     const baseY = barH - 2;
@@ -349,20 +355,20 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const cty = currentThresholdSec != null ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : mid;
     const nty = nextThresholdSec   != null ? paceToY(nextThresholdSec,   minP, maxP, plotTopInBlock, plotH) : mid;
     return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
-  }, [visible, contentW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec]);
+  }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec, CHART_X0, CHART_XN]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
   const selected = visible[selectedIdx];
-  const selDotX = dotXs[selectedIdx] ?? contentW / 2;
+  const selDotX = dotXs[selectedIdx] ?? (CHART_X0 + CHART_XN) / 2;
   const selDotY = dotYs[selectedIdx] ?? plotTopInBlock + plotH / 2;
-  const bubbleCenterX = SIDE_PAD + selDotX;
+  const bubbleCenterX = selDotX;
 
   const [tooltipWrapW, setTooltipWrapW] = useState(0);
   const tooltipWrapClamped = tooltipWrapW > 0 ? tooltipWrapW : 160;
   const tooltipWrapLeft = Math.max(
     SIDE_PAD,
-    Math.min(windowW - SIDE_PAD - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
+    Math.min(windowW - 20 - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
   );
 
   // ─── History cards ────────────────────────────────────────────────────────
@@ -467,19 +473,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
               <View
                 style={{
-                  marginLeft: SIDE_PAD,
-                  width: contentW,
+                  width: windowW,
                   marginTop: 56,
                   height: barH + 28,
                   position: 'relative',
                 }}
               >
-                {/* SVG: area + thresholds + curve + selected indicator */}
+                {/* SVG: area + thresholds + curve + selected indicator (windowW 전체 폭) */}
                 <View
-                  style={{ position: 'absolute', left: 0, top: 0, width: contentW, height: barH }}
+                  style={{ position: 'absolute', left: 0, top: 0, width: windowW, height: barH }}
                   pointerEvents="none"
                 >
-                  <Svg width={contentW} height={barH} viewBox={`0 0 ${contentW} ${barH}`}>
+                  <Svg width={windowW} height={barH} viewBox={`0 0 ${windowW} ${barH}`}>
                     <Defs>
                       <SvgLG id={`${gradPrefix}_area`} x1="0" y1="0" x2="0" y2="1">
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
@@ -487,12 +492,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
-                        x1="0" y1="0" x2={contentW} y2="0"
+                        x1={CHART_X0} y1="0" x2={CHART_XN} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
-                        <Stop offset="10%" stopColor="#E03A3E" stopOpacity="1" />
-                        <Stop offset="90%" stopColor="#E03A3E" stopOpacity="1" />
+                        <Stop offset="15%" stopColor="#E03A3E" stopOpacity="1" />
+                        <Stop offset="85%" stopColor="#E03A3E" stopOpacity="1" />
                         <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0" />
                       </SvgLG>
                     </Defs>
@@ -503,14 +508,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* 현재 등급 threshold (opacity 0.5) */}
                     {currentThresholdSec != null ? (
                       <Path
-                        d={`M 0 ${currentThresholdY} L ${contentW} ${currentThresholdY}`}
+                        d={`M 0 ${currentThresholdY} L ${windowW} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
                     {/* 다음 등급 threshold (opacity 1.0) */}
                     {nextThresholdSec != null ? (
                       <Path
-                        d={`M 0 ${nextThresholdY} L ${contentW} ${nextThresholdY}`}
+                        d={`M 0 ${nextThresholdY} L ${windowW} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
@@ -551,11 +556,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                 {/* Invisible pressable zones per data point */}
                 {visible.map((row, i) => {
-                  const cx = dotXs[i] ?? 0;
+                  const cx = dotXs[i] ?? CHART_X0;
                   const n = visible.length;
-                  const half = n <= 1 ? contentW / 2 : contentW / (2 * (n - 1));
+                  const half = n <= 1 ? windowW / 2 : (CHART_XN - CHART_X0) / (2 * (n - 1));
                   const left = Math.max(0, cx - half);
-                  const right = Math.min(contentW, cx + half);
+                  const right = Math.min(windowW, cx + half);
                   return (
                     <Pressable
                       key={row.iso}
@@ -565,13 +570,20 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   );
                 })}
 
-                {/* Date labels */}
+                {/* Date labels: 최신(왼쪽) left-align, 오래된(오른쪽) right-align, 나머지 center */}
                 {visible.map((row, i) => {
-                  const cx = dotXs[i] ?? 0;
+                  const cx = dotXs[i] ?? CHART_X0;
+                  const isNewest = i === visible.length - 1;
+                  const isOldest = i === 0;
+                  const labelStyle = isNewest
+                    ? { left: cx, width: 64, textAlign: 'left' as const }
+                    : isOldest
+                    ? { left: cx - 64, width: 64, textAlign: 'right' as const }
+                    : { left: cx - 32, width: 64, textAlign: 'center' as const };
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', left: cx - 32, width: 64, top: barH + 8 }]}
+                      style={[s.colDate, { position: 'absolute', top: barH + 8, ...labelStyle }]}
                     >
                       {row.label}
                     </Text>
