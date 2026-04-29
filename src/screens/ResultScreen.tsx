@@ -353,7 +353,7 @@ function BarItem({ barW, isSelected, themeColor, index, onPress }: BarItemProps)
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ResultScreen({ navigation }: ResultScreenProps) {
-  const { width: screenW } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
 
@@ -470,7 +470,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   // ─── Page height & active page ────────────────────────────────────────────
 
   const TOTAL_PAGES = 3;
-  const [pageHeight, setPageHeight] = useState(0);
+  // ScreenHeader height estimate: safeTop + row(paddingVertical 14×2 + text ~24) + divider(4)
+  const [pageHeight, setPageHeight] = useState(screenH - (safeTop + 56));
   const [activePage, setActivePage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -629,8 +630,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
         style={styles.contentArea}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
       >
-        {pageHeight > 0 && (
-          <ScrollView
+        <ScrollView
             ref={scrollRef}
             pagingEnabled
             showsVerticalScrollIndicator={false}
@@ -893,7 +893,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             </View>
 
           </ScrollView>
-        )}
       </View>
 
       {/* Fixed CTA — 마지막 페이지에서만 표시 */}
