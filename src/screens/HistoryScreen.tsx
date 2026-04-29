@@ -59,20 +59,20 @@ const HISTORY_QUAL_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>> =
   f3: require('../../assets/qualifying/history-f3.png'),
 };
 
-const GRADE_TEXT_IMAGES: Record<string, ReturnType<typeof require>> = {
-  'F1 Champion': require('../../assets/qualifying/text/f1-champion.png'),
-  'F1':          require('../../assets/qualifying/text/f1.png'),
-  'F1 Rookie':   require('../../assets/qualifying/text/f1-rookie.png'),
-  'F2':          require('../../assets/qualifying/text/f2.png'),
-  'F3':          require('../../assets/qualifying/text/f3.png'),
+const RACER_CARD_IMAGES: Record<string, ReturnType<typeof require>> = {
+  'F1 Champion': require('../../assets/racer-card-f1-champion.png'),
+  'F1':          require('../../assets/racer-card-f1.png'),
+  'F1 Rookie':   require('../../assets/racer-card-f1-rookie.png'),
+  'F2':          require('../../assets/racer-card-f2.png'),
+  'F3':          require('../../assets/racer-card-f3.png'),
 };
+const RACER_CARD_H = 26;
+const RACER_CARD_W = Math.round(RACER_CARD_H * (393 / 204)); // 50px
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const FIGMA_STATUS = 59;
 const SIDE_PAD = 24;
-const GRADE_BADGE_H = 24;
-const GRADE_BADGE_W = Math.round((58 / 29) * GRADE_BADGE_H);
 const PACE_AXIS_PAD_MIN_SEC = 2;
 const PACE_AXIS_PAD_RATIO = 0.1;
 const PACE_AXIS_MIN_SPAN_SEC = 22;
@@ -449,29 +449,19 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 >
                   <View style={s.tooltipColumn}>
                     <View style={s.tooltipBubble}>
-                      {selected.promotedGrade && GRADE_TEXT_IMAGES[selected.promotedGrade] ? (
+                      {selected.promotedGrade && RACER_CARD_IMAGES[selected.promotedGrade] ? (
                         <Image
-                          source={GRADE_TEXT_IMAGES[selected.promotedGrade]}
-                          style={{ width: GRADE_BADGE_W, height: GRADE_BADGE_H, marginRight: 6 }}
+                          source={RACER_CARD_IMAGES[selected.promotedGrade]}
+                          style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
                           resizeMode="contain"
                         />
                       ) : null}
                       <Text style={s.tooltipPace}>{fmtPace(selected.paceSec)}</Text>
-                      <Svg width={7} height={13} viewBox="0 0 10 16" style={{ marginLeft: 8 }}>
-                        <Path
-                          d={TOOLTIP_CHEVRON_PATH}
-                          stroke="rgba(255,255,255,0.5)"
-                          strokeWidth={3}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </Svg>
                     </View>
                     <Svg width={14} height={10} viewBox="0 0 14 10" style={s.tooltipTailSvg}>
                       <Path
                         d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                        fill="rgba(40,40,46,0.95)"
+                        fill="rgba(224,58,62,0.15)"
                       />
                     </Svg>
                   </View>
@@ -564,13 +554,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   </Svg>
                   {/* 현재 등급 라벨 — threshold가 범위 내일 때만 */}
                   {currentThresholdY != null && currentGrade != null ? (
-                    <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
+                    <Text style={[s.thresholdLabel, { left: 22, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
                       {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec!)}`}
                     </Text>
                   ) : null}
                   {/* 다음 등급 라벨 — threshold가 범위 내일 때만 */}
                   {nextThresholdY != null && nextGrade != null ? (
-                    <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.max(0, nextThresholdY - 18) }]}>
+                    <Text style={[s.thresholdLabel, { left: 22, top: Math.max(0, nextThresholdY - 18) }]}>
                       {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec!)}`}
                     </Text>
                   ) : null}
@@ -811,7 +801,7 @@ const s = StyleSheet.create({
     paddingRight: 12,
     paddingTop: 8,
     paddingBottom: 7,
-    backgroundColor: 'rgba(28,28,34,0.95)',
+    backgroundColor: 'rgba(224,58,62,0.15)',
     borderRadius: 12,
   },
   tooltipTailSvg: {
