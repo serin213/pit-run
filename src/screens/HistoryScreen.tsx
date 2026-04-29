@@ -328,8 +328,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const nextGrade = GRADE_NEXT[currentGrade] ?? null;
   const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
-  // 도트 x 기준: 스크린 좌표 (최신=왼쪽=92, 오래된=오른쪽=windowW-20)
-  const CHART_X0 = 92;               // 최신(왼쪽) 스크린 x
+  // 도트 x 기준: 스크린 좌표 (최신=왼쪽=20, 오래된=오른쪽=windowW-20)
+  const CHART_X0 = 20;               // 최신(왼쪽) 스크린 x
   const CHART_XN = windowW - 20;     // 오래된(오른쪽) 스크린 x
 
   const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
@@ -508,14 +508,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* 현재 등급 threshold (opacity 0.5) */}
                     {currentThresholdSec != null ? (
                       <Path
-                        d={`M 0 ${currentThresholdY} L ${windowW} ${currentThresholdY}`}
+                        d={`M ${CHART_X0} ${currentThresholdY} L ${CHART_XN} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
                     {/* 다음 등급 threshold (opacity 1.0) */}
                     {nextThresholdSec != null ? (
                       <Path
-                        d={`M 0 ${nextThresholdY} L ${windowW} ${nextThresholdY}`}
+                        d={`M ${CHART_X0} ${nextThresholdY} L ${CHART_XN} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
@@ -542,13 +542,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   </Svg>
                   {/* 현재 등급 라벨 (opacity 0.5) */}
                   {currentThresholdSec != null && currentGrade != null ? (
-                    <Text style={[s.thresholdLabel, { top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
+                    <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
                       {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec)}`}
                     </Text>
                   ) : null}
                   {/* 다음 등급 라벨 (opacity 1.0) */}
                   {nextThresholdSec != null && nextGrade != null ? (
-                    <Text style={[s.thresholdLabel, { top: Math.max(0, nextThresholdY - 18) }]}>
+                    <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.max(0, nextThresholdY - 18) }]}>
                       {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec)}`}
                     </Text>
                   ) : null}
