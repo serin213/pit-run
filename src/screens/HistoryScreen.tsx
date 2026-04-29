@@ -142,11 +142,10 @@ function paceToY(paceSec: number, minP: number, maxP: number, plotTop: number, p
   return plotTop + t * plotH;
 }
 
-function computePaceAxisMinMax(paces: number[], thresholds: number[]): { minP: number; maxP: number } {
-  const all = [...paces, ...thresholds];
-  if (all.length === 0) return { minP: 270, maxP: 390 };
-  const vMin = Math.min(...all);
-  const vMax = Math.max(...all);
+function computePaceAxisMinMax(paces: number[]): { minP: number; maxP: number } {
+  if (paces.length === 0) return { minP: 270, maxP: 390 };
+  const vMin = Math.min(...paces);
+  const vMax = Math.max(...paces);
   const span = Math.max(vMax - vMin, 1e-6);
   const pad = Math.max(PACE_AXIS_PAD_MIN_SEC, span * PACE_AXIS_PAD_RATIO);
   let minP = vMin - pad;
@@ -335,16 +334,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const CHART_XN = windowW - 52;     // 오래된(오른쪽) 스크린 x
 
   const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
-    const mid = plotTopInBlock + plotH / 2;
     const fallback = {
       linePath: '', areaPath: '',
-      currentThresholdY: mid, nextThresholdY: mid,
+      currentThresholdY: null as number | null,
+      nextThresholdY: null as number | null,
       dotXs: [] as number[], dotYs: [] as number[],
     };
     if (visible.length === 0) return fallback;
     const paces = visible.map((v) => v.paceSec);
-    const thresholds = [currentThresholdSec, nextThresholdSec].filter((t): t is number => t != null);
-    const { minP, maxP } = computePaceAxisMinMax(paces, thresholds);
+    const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
     // 커브·그라데이션: 스크린 좌우 20px 마진 (windowW - 40)
@@ -358,8 +356,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const lp = smoothLinePath(xsCurve, ys);
     const baseY = barH - 2;
     const ap = `${lp} L ${xsCurve[xsCurve.length - 1]} ${baseY} L ${xsCurve[0]} ${baseY} Z`;
-    const cty = currentThresholdSec != null ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : mid;
-    const nty = nextThresholdSec   != null ? paceToY(nextThresholdSec,   minP, maxP, plotTopInBlock, plotH) : mid;
+    const inRange = (sec: number) => sec >= minP && sec <= maxP;
+    const cty = currentThresholdSec != null && inRange(currentThresholdSec)
+      ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
+    const nty = nextThresholdSec != null && inRange(nextThresholdSec)
+      ? paceToY(nextThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
     return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xsDot, dotYs: ys };
   }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec, CHART_X0, CHART_XN]);
 
@@ -516,15 +517,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {areaPath ? (
                       <Path d={areaPath} fill={`url(#${gradPrefix}_area)`} opacity={0.2} />
                     ) : null}
-                    {/* 현재 등급 threshold (opacity 0.5) */}
-                    {currentThresholdSec != null ? (
+                    {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
+                    {currentThresholdY != null ? (
                       <Path
                         d={`M ${CHART_X0} ${currentThresholdY} L ${CHART_XN} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
-                    {/* 다음 등급 threshold (opacity 1.0) */}
-                    {nextThresholdSec != null ? (
+                    {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
+                    {nextThresholdY != null ? (
                       <Path
                         d={`M ${CHART_X0} ${nextThresholdY} L ${CHART_XN} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
@@ -561,16 +562,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
                     />
                   </Svg>
-                  {/* 현재 등급 라벨 (opacity 0.5) */}
-                  {currentThresholdSec != null && currentGrade != null ? (
+                  {/* 현재 등급 라벨 — threshold가 범위 내일 때만 */}
+                  {currentThresholdY != null && currentGrade != null ? (
                     <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
-                      {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec)}`}
+                      {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec!)}`}
                     </Text>
                   ) : null}
-                  {/* 다음 등급 라벨 (opacity 1.0) */}
-                  {nextThresholdSec != null && nextGrade != null ? (
+                  {/* 다음 등급 라벨 — threshold가 범위 내일 때만 */}
+                  {nextThresholdY != null && nextGrade != null ? (
                     <Text style={[s.thresholdLabel, { left: CHART_X0, top: Math.max(0, nextThresholdY - 18) }]}>
-                      {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec)}`}
+                      {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec!)}`}
                     </Text>
                   ) : null}
                 </View>
