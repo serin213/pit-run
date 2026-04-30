@@ -293,13 +293,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [svgKey, setSvgKey] = useState(0);
   const calHeightAnim = useRef(new Animated.Value(CAL_H_WEEK)).current;
   const cardTransY = useRef(new Animated.Value(0)).current;
-  const calContentFade = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const toggleCal = useCallback(() => {
     const toExpanded = !calExpanded;
+    setCalExpanded(toExpanded);
     if (toExpanded) setMonthOffset(0);
-
     Animated.parallel([
       Animated.timing(calHeightAnim, {
         toValue: toExpanded ? CAL_H_MONTH : CAL_H_WEEK,
@@ -312,15 +311,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         useNativeDriver: true,
       }),
     ]).start();
-
-    calContentFade.setValue(1);
-    Animated.sequence([
-      Animated.timing(calContentFade, { toValue: 0, duration: 120, useNativeDriver: true }),
-      Animated.timing(calContentFade, { toValue: 1, duration: 150, useNativeDriver: true }),
-    ]).start();
-
-    setTimeout(() => setCalExpanded(toExpanded), 120);
-  }, [calExpanded, calHeightAnim, cardTransY, calContentFade]);
+  }, [calExpanded, calHeightAnim, cardTransY]);
 
   const toggleDevTest = useCallback(() => {
     if (devTestActive) {
@@ -480,27 +471,23 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           top: py(170),
           width: cardW,
           height: calHeightAnim,
+          overflow: 'hidden',
           ...radius.md,
         }}
       >
-        <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
-          <Animated.View style={{ opacity: calContentFade, flex: 1 }}>
-            {calExpanded ? (
-              <MonthGrid
-                bare
-                today={todayISO}
-                activitySet={activitySet}
-                qualifyingSet={qualifyingSet}
-                colX={colX}
-                monthOffset={monthOffset}
-                onPrev={() => setMonthOffset((o) => o - 1)}
-                onNext={() => setMonthOffset((o) => o + 1)}
-              />
-            ) : (
-              <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-            )}
-          </Animated.View>
-        </GradientCardBorder>
+        {calExpanded ? (
+          <MonthGrid
+            today={todayISO}
+            activitySet={activitySet}
+            qualifyingSet={qualifyingSet}
+            colX={colX}
+            monthOffset={monthOffset}
+            onPrev={() => setMonthOffset((o) => o - 1)}
+            onNext={() => setMonthOffset((o) => o + 1)}
+          />
+        ) : (
+          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+        )}
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
