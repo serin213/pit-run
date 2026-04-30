@@ -466,12 +466,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 24, marginLeft: 20 }]}
+          style={[s.trophy, { marginTop: safeTop + 61, marginLeft: 20 }]}
           resizeMode="contain"
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[s.statsRow, { marginTop: 36, marginLeft: 20 }]}>
+        <View style={[s.statsRow, { marginTop: 32, marginLeft: 20 }]}>
           {/* TOTAL */}
           <View style={s.statGroup}>
             <Text style={s.statLabel}>TOTAL</Text>
@@ -682,7 +682,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         )}
 
         {/* ── 5. 이번 달 불 아이콘 그룹 ── */}
-        <View style={[s.flameGroup, { marginTop: 72, marginLeft: SIDE_PAD }]}>
+        <View style={[s.flameGroup, { marginTop: 52, marginLeft: SIDE_PAD }]}>
           <Image source={FLAME_ICON} style={s.flameIcon} resizeMode="contain" />
           <View style={s.flameTextCol}>
             <Text style={s.flameLabel}>THIS MONTH</Text>
@@ -710,7 +710,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
 
         {/* ── 8. History 섹션 타이틀 ── */}
-        <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: SIDE_PAD }]}>History</Text>
+        <Text style={[s.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
@@ -769,7 +769,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 const s = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
-    height: 55,
+    height: 42,
     aspectRatio: 630 / 220,
   },
 
