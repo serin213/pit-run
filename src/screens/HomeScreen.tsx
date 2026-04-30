@@ -328,12 +328,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       }),
     ]).start();
 
-    // 콘텐츠 crossfade: fade out → 교체 → fade in
-    Animated.timing(calContentFade, { toValue: 0, duration: 120, useNativeDriver: true })
-      .start(() => {
-        setCalExpanded(toExpanded);
-        Animated.timing(calContentFade, { toValue: 1, duration: 120, useNativeDriver: true }).start();
-      });
+    // 콘텐츠 fade out → 교체 → fade in (교체는 120ms 뒤 opacity 0 시점에)
+    calContentFade.setValue(1);
+    Animated.sequence([
+      Animated.timing(calContentFade, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(calContentFade, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+
+    setTimeout(() => setCalExpanded(toExpanded), 120);
   }, [calExpanded, calHeightAnim, cardTransY, calContentFade]);
 
   const toggleDevTest = useCallback(() => {
