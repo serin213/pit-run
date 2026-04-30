@@ -485,23 +485,26 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           top: py(170),
           width: cardW,
           height: calHeightAnim,
-          overflow: 'hidden',
           ...radius.md,
         }}
       >
-        {calExpanded ? (
-          <MonthGrid
-            today={todayISO}
-            activitySet={activitySet}
-            qualifyingSet={qualifyingSet}
-            colX={colX}
-            monthOffset={monthOffset}
-            onPrev={() => setMonthOffset((o) => o - 1)}
-            onNext={() => setMonthOffset((o) => o + 1)}
-          />
-        ) : (
-          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-        )}
+        {/* GradientCardBorder를 항상 mount — 내부 내용만 교체해 테두리 flash 방지 */}
+        <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+          {calExpanded ? (
+            <MonthGrid
+              bare
+              today={todayISO}
+              activitySet={activitySet}
+              qualifyingSet={qualifyingSet}
+              colX={colX}
+              monthOffset={monthOffset}
+              onPrev={() => setMonthOffset((o) => o - 1)}
+              onNext={() => setMonthOffset((o) => o + 1)}
+            />
+          ) : (
+            <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+          )}
+        </GradientCardBorder>
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
