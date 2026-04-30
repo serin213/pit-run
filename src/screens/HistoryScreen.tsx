@@ -562,9 +562,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       cx={selDotX} cy={selDotY}
                       r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
                     />
-                    {/* 좌우 fade 오버레이: curve/그라데이션 가장자리를 배경색으로 소멸 */}
-                    <Rect x={0} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
-                    <Rect x={windowW - 20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeR)`} />
+                    {/* 좌우 fade 오버레이: curve 시작/끝 20px을 배경색으로 소멸 */}
+                    <Rect x={20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
+                    <Rect x={windowW - 40} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeR)`} />
                   </Svg>
                   {/* threshold 라벨 */}
                   {thresholdLines.map((tl) => {
