@@ -5,6 +5,7 @@
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   Image,
   Pressable,
   ScrollView,
@@ -193,7 +194,7 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
-const FIGMA_STATUS = 59;
+const FIGMA_STATUS = 44;
 const FIGMA_TAB_H = 98;
 const FIGMA_SAFE_BOTTOM = 34;
 
@@ -212,6 +213,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   useLocationPermission({ requestOnMount: true });
 
   const { user } = useAuthStore();
+
+  const slideAnim = useRef(new Animated.Value(24)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  useFocusEffect(
+    useCallback(() => {
+      slideAnim.setValue(24);
+      fadeAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    }, [slideAnim, fadeAnim]),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -411,7 +425,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const scrollContentH = py(262) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
 
       {/* ── 스크롤 가능한 메인 콘텐츠 영역 ── */}
       <Animated.ScrollView
@@ -428,17 +442,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* ── 불꽃 아이콘 ── */}
       <Image
         source={FLAME_ICON}
-        style={{ position: 'absolute', left: 32, top: py(108), width: 36, height: 43 }}
+        style={{ position: 'absolute', left: 26, top: py(108), width: 36, height: 43 }}
         resizeMode="contain"
       />
 
       {/* ── THIS WEEK / THIS MONTH ── */}
-      <Text style={[s.onTrack, { left: 80, top: py(105) }]}>
+      <Text style={[s.onTrack, { left: 72, top: py(105) }]}>
         {calExpanded ? 'THIS MONTH' : 'THIS WEEK'}
       </Text>
 
       {/* ── n.nn km ── */}
-      <View style={[s.streakDaysWrap, { left: 80, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
+      <View style={[s.streakDaysWrap, { left: 72, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
         <Text style={s.streakNum}>{fmtDist(calExpanded ? monthDistKm : weekDistKm)}</Text>
         <Text style={s.streakDistUnit}> km</Text>
       </View>
@@ -475,11 +489,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           ...radius.md,
         }}
       >
-        {/* 두 컴포넌트를 항상 mount — unmount/remount 시 GradientCardBorder flash 방지 */}
-        <View style={{ flex: 1, display: calExpanded ? 'none' : 'flex' }}>
-          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-        </View>
-        <View style={{ flex: 1, display: calExpanded ? 'flex' : 'none' }}>
+        {calExpanded ? (
           <MonthGrid
             today={todayISO}
             activitySet={activitySet}
@@ -489,7 +499,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             onPrev={() => setMonthOffset((o) => o - 1)}
             onNext={() => setMonthOffset((o) => o + 1)}
           />
-        </View>
+        ) : (
+          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+        )}
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
@@ -759,7 +771,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           }}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
