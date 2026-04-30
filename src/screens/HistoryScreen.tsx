@@ -3,9 +3,10 @@
  * 등급 트로피 · 통산 스탯 · 퀄리파잉 트렌드(선택) · 월간 달력 · 그랑프리 히스토리
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import {
+  Animated,
   Image,
   Pressable,
   ScrollView,
@@ -14,6 +15,12 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Reanimated, {
+  useSharedValue,
+  withSpring,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
   Circle,
@@ -386,6 +393,48 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // RN alignItems:'center' + marginLeft은 margin box 기준 센터링 → 2*(offset) - P 로 보정
   const tooltipTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
 
+  // ─── Pill animation (Reanimated spring, bottom-to-top) ────────────────────
+  const pillRevealH = useSharedValue(barH);
+  useEffect(() => {
+    pillRevealH.value = 0;
+    pillRevealH.value = withSpring(barH, { damping: 22, stiffness: 200, mass: 1 });
+  }, [selectedIdx, barH, pillRevealH]);
+  const pillRevealStyle = useAnimatedStyle(() => ({ height: pillRevealH.value }));
+
+  // ─── Tooltip x-slide (RN Animated spring) ────────────────────────────────
+  const tooltipXAnim = useRef(new Animated.Value(tooltipWrapLeft)).current;
+  const tooltipXMountedRef = useRef(false);
+  useEffect(() => {
+    if (!tooltipXMountedRef.current) {
+      tooltipXAnim.setValue(tooltipWrapLeft);
+      tooltipXMountedRef.current = true;
+      return;
+    }
+    Animated.spring(tooltipXAnim, {
+      toValue: tooltipWrapLeft,
+      useNativeDriver: false,
+      tension: 180,
+      friction: 26,
+    }).start();
+  }, [tooltipWrapLeft, tooltipXAnim]);
+
+  // ─── Tooltip cross-fade (promotedGrade 유무 전환 시) ───────────────────────
+  const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
+  const [shownIdx, setShownIdx] = useState(selectedIdx);
+  const prevHasGradeRef = useRef(!!selected?.promotedGrade);
+  useEffect(() => {
+    const hasGrade = !!visible[selectedIdx]?.promotedGrade;
+    if (hasGrade !== prevHasGradeRef.current) {
+      prevHasGradeRef.current = hasGrade;
+      Animated.timing(tooltipFadeAnim, { toValue: 0, duration: 80, useNativeDriver: true }).start(() => {
+        setShownIdx(selectedIdx);
+        Animated.timing(tooltipFadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+      });
+    } else {
+      setShownIdx(selectedIdx);
+    }
+  }, [selectedIdx, visible, tooltipFadeAnim]);
+
   // ─── History cards ────────────────────────────────────────────────────────
   const historySorted = useMemo(
     () => [...historyData].sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
@@ -450,31 +499,35 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
             {/* 그래프 영역: 높이 238 */}
             <View style={{ width: windowW, marginTop: 12, height: 238 }}>
-              {selected && (
-                <View
-                  style={[s.tooltipWrap, { left: tooltipWrapLeft, top: 0 }]}
-                  onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
-                >
-                  <View style={s.tooltipColumn}>
-                    <View style={s.tooltipBubble}>
-                      {selected.promotedGrade && RACER_CARD_IMAGES[selected.promotedGrade] ? (
-                        <Image
-                          source={RACER_CARD_IMAGES[selected.promotedGrade]}
-                          style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
-                          resizeMode="contain"
+              {selected && (() => {
+                const shownSelected = visible[shownIdx] ?? selected;
+                const shownTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
+                return (
+                  <Animated.View
+                    style={[s.tooltipWrap, { left: tooltipXAnim, top: 0 }]}
+                    onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
+                  >
+                    <View style={s.tooltipColumn}>
+                      <Animated.View style={[s.tooltipBubble, { opacity: tooltipFadeAnim }]}>
+                        {shownSelected.promotedGrade && RACER_CARD_IMAGES[shownSelected.promotedGrade] ? (
+                          <Image
+                            source={RACER_CARD_IMAGES[shownSelected.promotedGrade]}
+                            style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                        <Text style={s.tooltipPace}>{fmtPace(shownSelected.paceSec)}</Text>
+                      </Animated.View>
+                      <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: shownTailShift }]}>
+                        <Path
+                          d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                          fill="rgba(224,58,62,0.15)"
                         />
-                      ) : null}
-                      <Text style={s.tooltipPace}>{fmtPace(selected.paceSec)}</Text>
+                      </Svg>
                     </View>
-                    <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: tooltipTailShift }]}>
-                      <Path
-                        d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                        fill="rgba(224,58,62,0.15)"
-                      />
-                    </Svg>
-                  </View>
-                </View>
-              )}
+                  </Animated.View>
+                );
+              })()}
 
               <View
                 style={{
@@ -542,13 +595,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         fill={`url(#${gradPrefix}_col)`}
                       />
                     ))}
-                    {/* 선택 컬럼: width 12 pill */}
-                    <Rect
-                      x={selDotX - 6} y={0}
-                      width={12} height={barH}
-                      rx={6}
-                      fill={`url(#${gradPrefix}_col)`}
-                    />
+                    {/* 선택 컬럼은 SVG 밖 native View로 이동 (Reanimated 애니메이션) */}
                     {/* Curve line */}
                     {linePath ? (
                       <Path
@@ -577,6 +624,27 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </Text>
                     );
                   })}
+                  {/* 선택 pill: Reanimated spring, bottom-to-top reveal */}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: selDotX - 6,
+                      top: 0,
+                      width: 12,
+                      height: barH,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      justifyContent: 'flex-end',
+                    }}
+                    pointerEvents="none"
+                  >
+                    <Reanimated.View style={[{ width: 12, overflow: 'hidden' }, pillRevealStyle]}>
+                      <LinearGradient
+                        colors={['rgba(224,58,62,0)', 'rgba(224,58,62,0.5)']}
+                        style={{ width: 12, height: barH }}
+                      />
+                    </Reanimated.View>
+                  </View>
                 </View>
 
                 {/* Invisible pressable zones per data point */}
