@@ -498,7 +498,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           ...radius.md,
         }}
       >
-        <Animated.View style={{ opacity: calContentFade }}>
+        <Animated.View style={{ opacity: calContentFade, flex: 1 }}>
           {calExpanded ? (
             <MonthGrid
               today={todayISO}
