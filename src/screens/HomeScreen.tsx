@@ -343,6 +343,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [svgKey, setSvgKey] = useState(0);
   const calHeightAnim = useRef(new Animated.Value(CAL_H_WEEK)).current;
   const cardTransY = useRef(new Animated.Value(0)).current;
+  const calContentOpacity = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const calMonthHeight = useCallback((offset: number) => {
@@ -359,31 +360,40 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     ]).start();
   }, [calHeightAnim, cardTransY]);
 
+  const fadeCalContent = useCallback((onSwap: () => void) => {
+    Animated.timing(calContentOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
+      onSwap();
+      Animated.timing(calContentOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    });
+  }, [calContentOpacity]);
+
   const toggleCal = useCallback(() => {
     const toExpanded = !calExpanded;
-    setCalExpanded(toExpanded);
-    if (toExpanded) setMonthOffset(0);
     const targetH = toExpanded ? calMonthHeight(0) : CAL_H_WEEK;
     animateCalHeight(targetH, toExpanded ? targetH - CAL_H_WEEK : 0);
-  }, [calExpanded, calMonthHeight, animateCalHeight]);
+    fadeCalContent(() => {
+      setCalExpanded(toExpanded);
+      if (toExpanded) setMonthOffset(0);
+    });
+  }, [calExpanded, calMonthHeight, animateCalHeight, fadeCalContent]);
 
   const handleCalPrev = useCallback(() => {
     const newOffset = monthOffset - 1;
-    setMonthOffset(newOffset);
     if (calExpanded) {
       const h = calMonthHeight(newOffset);
       animateCalHeight(h, h - CAL_H_WEEK);
     }
-  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight]);
+    fadeCalContent(() => setMonthOffset(newOffset));
+  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight, fadeCalContent]);
 
   const handleCalNext = useCallback(() => {
     const newOffset = monthOffset + 1;
-    setMonthOffset(newOffset);
     if (calExpanded) {
       const h = calMonthHeight(newOffset);
       animateCalHeight(h, h - CAL_H_WEEK);
     }
-  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight]);
+    fadeCalContent(() => setMonthOffset(newOffset));
+  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight, fadeCalContent]);
 
   const toggleDevTest = useCallback(() => {
     if (devTestActive) {
@@ -549,20 +559,22 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       >
         {/* GradientCardBorder를 항상 mount — 내부 내용만 교체해 테두리 flash 방지 */}
         <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
-          {calExpanded ? (
-            <MonthGrid
-              bare
-              today={todayISO}
-              activitySet={activitySet}
-              qualifyingSet={qualifyingSet}
-              colX={colX}
-              monthOffset={monthOffset}
-              onPrev={handleCalPrev}
-              onNext={handleCalNext}
-            />
-          ) : (
-            <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-          )}
+          <Animated.View style={{ flex: 1, opacity: calContentOpacity }}>
+            {calExpanded ? (
+              <MonthGrid
+                bare
+                today={todayISO}
+                activitySet={activitySet}
+                qualifyingSet={qualifyingSet}
+                colX={colX}
+                monthOffset={monthOffset}
+                onPrev={handleCalPrev}
+                onNext={handleCalNext}
+              />
+            ) : (
+              <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+            )}
+          </Animated.View>
         </GradientCardBorder>
       </Animated.View>
 
