@@ -172,7 +172,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const cardW = windowW - 40;
   const cardSvgW = cardW + 4; // +4 for 2px stroke bleed per side
   const CARD_SVG_H = 393;     // fixed viewBox height
-  const cardTop = py(108);
+  const cardTop = py(111);
   const cardPath = makeCardPath(cardW);
 
   // ─── Grade badge ──────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         style={{
           position: 'absolute',
           left: 18,
-          top: cardTop - 2,
+          top: cardTop,
           width: cardSvgW,
           height: CARD_SVG_H,
         }}

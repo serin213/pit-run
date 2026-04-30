@@ -466,7 +466,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: 20 }]}
+          style={[s.trophy, { marginTop: safeTop + 52, marginLeft: 20 }]}
           resizeMode="contain"
         />
 
