@@ -340,10 +340,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
-    // 커브·도트 모두 동일 x 범위 (스크린 좌우 20px 마진) — 커브가 각 dot 중심을 통과
+    // 텍스트 폭 64px 기준: 텍스트 left=20, right=windowW-20이 되도록 dot 중심을 52~windowW-52에 배치
+    const curveL = 52;
+    const curveR = windowW - 52;
     const xs = n <= 1
       ? [windowW / 2]
-      : visible.map((_, i) => 20 + ((n - 1 - i) / (n - 1)) * (windowW - 40));
+      : visible.map((_, i) => curveL + ((n - 1 - i) / (n - 1)) * (curveR - curveL));
     const lp = smoothLinePath(xs, ys);
     const baseY = barH - 2;
     const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
@@ -482,7 +484,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
-                        x1={20} y1="0" x2={windowW - 20} y2="0"
+                        x1={52} y1="0" x2={windowW - 52} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
@@ -503,14 +505,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
                     {currentThresholdY != null ? (
                       <Path
-                        d={`M 20 ${currentThresholdY} L ${windowW - 20} ${currentThresholdY}`}
+                        d={`M 52 ${currentThresholdY} L ${windowW - 52} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
                     {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
                     {nextThresholdY != null ? (
                       <Path
-                        d={`M 20 ${nextThresholdY} L ${windowW - 20} ${nextThresholdY}`}
+                        d={`M 52 ${nextThresholdY} L ${windowW - 52} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
@@ -563,7 +565,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 {visible.map((row, i) => {
                   const cx = dotXs[i] ?? windowW / 2;
                   const n = visible.length;
-                  const half = n <= 1 ? windowW / 2 : (windowW - 40) / (2 * (n - 1));
+                  const half = n <= 1 ? windowW / 2 : (windowW - 104) / (2 * (n - 1));
                   const left = Math.max(0, cx - half);
                   const right = Math.min(windowW, cx + half);
                   return (
@@ -575,20 +577,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   );
                 })}
 
-                {/* Date labels: 첫(왼쪽) left-align, 마지막(오른쪽) right-align, 나머지 center */}
+                {/* Date labels: 모든 텍스트 cx 기준 center-align, 세로 실선과 중앙 정렬 */}
                 {visible.map((row, i) => {
                   const cx = dotXs[i] ?? windowW / 2;
-                  const isNewest = i === visible.length - 1;
-                  const isOldest = i === 0;
-                  const labelStyle = isNewest
-                    ? { left: cx, width: 64, textAlign: 'left' as const }
-                    : isOldest
-                    ? { left: cx - 64, width: 64, textAlign: 'right' as const }
-                    : { left: cx - 32, width: 64, textAlign: 'center' as const };
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', top: barH + 8, ...labelStyle }]}
+                      style={[s.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64 }]}
                     >
                       {row.label}
                     </Text>
