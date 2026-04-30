@@ -417,11 +417,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   // ─── Tooltip x-slide (RN Animated spring) ────────────────────────────────
   const tooltipXAnim = useRef(new Animated.Value(tooltipWrapLeft)).current;
-  const tooltipXMountedRef = useRef(false);
+  // 탭 포커스 시 초기 렌더 + onLayout 2회 변경은 즉시 이동 (애니메이션 없음)
+  const tooltipSkipCount = useRef(2);
+  useFocusEffect(useCallback(() => { tooltipSkipCount.current = 2; }, []));
   useEffect(() => {
-    if (!tooltipXMountedRef.current) {
+    if (tooltipSkipCount.current > 0) {
       tooltipXAnim.setValue(tooltipWrapLeft);
-      tooltipXMountedRef.current = true;
+      tooltipSkipCount.current -= 1;
       return;
     }
     Animated.spring(tooltipXAnim, {
