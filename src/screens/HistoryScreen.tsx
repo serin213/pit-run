@@ -382,8 +382,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     SIDE_PAD,
     Math.min(windowW - 20 - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
   );
-  // 꼬리를 pill 중심(selDotX)에 정렬: 버블이 클램핑돼도 꼬리는 pill 쪽으로 오프셋
-  const tooltipTailShift = selDotX - (tooltipWrapLeft + tooltipWrapClamped / 2);
+  // RN alignItems:'center' + marginLeft은 margin box 기준 센터링 → 2*(offset) - P 로 보정
+  const tooltipTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
 
   // ─── History cards ────────────────────────────────────────────────────────
   const historySorted = useMemo(
