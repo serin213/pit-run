@@ -442,7 +442,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* ── 불꽃 아이콘 ── */}
       <Image
         source={FLAME_ICON}
-        style={{ position: 'absolute', left: 32, top: py(108), width: 36, height: 43 }}
+        style={{ position: 'absolute', left: 26, top: py(108), width: 36, height: 43 }}
         resizeMode="contain"
       />
 
