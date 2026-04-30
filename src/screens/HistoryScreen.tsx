@@ -224,12 +224,17 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
   const [thisMonthDistKm, setThisMonthDistKm] = useState(32.2);
 
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
   useFocusEffect(
     useCallback(() => {
-      slideAnim.setValue(80);
-      Animated.timing(slideAnim, { toValue: 0, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    }, [slideAnim]),
+      slideAnim.setValue(24);
+      fadeAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: 280, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94), useNativeDriver: true }),
+        Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    }, [slideAnim, fadeAnim]),
   );
 
   useFocusEffect(
@@ -458,7 +463,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
       <BlurView
         intensity={60}
         tint="dark"
