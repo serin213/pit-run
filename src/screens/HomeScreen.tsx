@@ -480,25 +480,27 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           top: py(170),
           width: cardW,
           height: calHeightAnim,
-          overflow: 'hidden',
           ...radius.md,
         }}
       >
-        <Animated.View style={{ opacity: calContentFade, flex: 1 }}>
-          {calExpanded ? (
-            <MonthGrid
-              today={todayISO}
-              activitySet={activitySet}
-              qualifyingSet={qualifyingSet}
-              colX={colX}
-              monthOffset={monthOffset}
-              onPrev={() => setMonthOffset((o) => o - 1)}
-              onNext={() => setMonthOffset((o) => o + 1)}
-            />
-          ) : (
-            <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-          )}
-        </Animated.View>
+        <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+          <Animated.View style={{ opacity: calContentFade, flex: 1 }}>
+            {calExpanded ? (
+              <MonthGrid
+                bare
+                today={todayISO}
+                activitySet={activitySet}
+                qualifyingSet={qualifyingSet}
+                colX={colX}
+                monthOffset={monthOffset}
+                onPrev={() => setMonthOffset((o) => o - 1)}
+                onNext={() => setMonthOffset((o) => o + 1)}
+              />
+            ) : (
+              <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+            )}
+          </Animated.View>
+        </GradientCardBorder>
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
