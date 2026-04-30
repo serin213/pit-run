@@ -340,15 +340,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
-    // 텍스트 폭 64px 기준: 텍스트 left=20, right=windowW-20이 되도록 dot 중심을 52~windowW-52에 배치
-    const curveL = 52;
-    const curveR = windowW - 52;
+    // dot/실선/텍스트: 텍스트 left=20, right=windowW-20이 되도록 중심을 52~windowW-52에 배치
+    const dotL = 52;
+    const dotR = windowW - 52;
     const xs = n <= 1
       ? [windowW / 2]
-      : visible.map((_, i) => curveL + ((n - 1 - i) / (n - 1)) * (curveR - curveL));
-    const lp = smoothLinePath(xs, ys);
+      : visible.map((_, i) => dotL + ((n - 1 - i) / (n - 1)) * (dotR - dotL));
+    // curve/area는 좌우 20px 마진까지 수평 연장 (xs[0]=오른쪽 oldest, xs[n-1]=왼쪽 newest)
+    const cxs = n <= 1 ? [20, xs[0], windowW - 20] : [windowW - 20, ...xs, 20];
+    const cys = n <= 1 ? [ys[0], ys[0], ys[0]] : [ys[0], ...ys, ys[ys.length - 1]];
+    const lp = smoothLinePath(cxs, cys);
     const baseY = barH - 2;
-    const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
+    const ap = `${lp} L 20 ${baseY} L ${windowW - 20} ${baseY} Z`;
     const inRange = (sec: number) => sec >= minP && sec <= maxP;
     const cty = currentThresholdSec != null && inRange(currentThresholdSec)
       ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
@@ -484,7 +487,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
-                        x1={52} y1="0" x2={windowW - 52} y2="0"
+                        x1={20} y1="0" x2={windowW - 20} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
@@ -505,14 +508,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
                     {currentThresholdY != null ? (
                       <Path
-                        d={`M 52 ${currentThresholdY} L ${windowW - 52} ${currentThresholdY}`}
+                        d={`M 20 ${currentThresholdY} L ${windowW - 20} ${currentThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
                     ) : null}
                     {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
                     {nextThresholdY != null ? (
                       <Path
-                        d={`M 52 ${nextThresholdY} L ${windowW - 52} ${nextThresholdY}`}
+                        d={`M 20 ${nextThresholdY} L ${windowW - 20} ${nextThresholdY}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
                       />
                     ) : null}
