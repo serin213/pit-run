@@ -348,13 +348,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const dotR = windowW - 52;
     const xs = n <= 1
       ? [windowW / 2]
-      : visible.map((_, i) => dotL + ((n - 1 - i) / (n - 1)) * (dotR - dotL));
-    // curve/area는 좌우 20px 마진까지 수평 연장 (xs[0]=오른쪽 oldest, xs[n-1]=왼쪽 newest)
-    const cxs = n <= 1 ? [20, xs[0], windowW - 20] : [windowW - 20, ...xs, 20];
+      : visible.map((_, i) => dotL + (i / (n - 1)) * (dotR - dotL));
+    // curve/area는 좌우 20px 마진까지 수평 연장 (xs[0]=왼쪽 oldest, xs[n-1]=오른쪽 newest)
+    const cxs = n <= 1 ? [20, xs[0], windowW - 20] : [20, ...xs, windowW - 20];
     const cys = n <= 1 ? [ys[0], ys[0], ys[0]] : [ys[0], ...ys, ys[ys.length - 1]];
     const lp = smoothLinePath(cxs, cys);
     const baseY = barH - 2;
-    const ap = `${lp} L 20 ${baseY} L ${windowW - 20} ${baseY} Z`;
+    const ap = `${lp} L ${windowW - 20} ${baseY} L 20 ${baseY} Z`;
     const inRange = (sec: number) => sec >= minP && sec <= maxP;
     // visible 내 승급 이벤트 등급 + 다음 목표 등급 threshold를 모두 수집
     const gradesToShow = new Set<QualifyingGrade>();
