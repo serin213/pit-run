@@ -327,15 +327,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const plotTopInBlock = 28;
 
   const currentGrade = qualifyingResult?.grade ?? 'f2';
-  const currentThresholdSec = GRADE_PACE_THRESHOLD[currentGrade] ?? null;
-  const nextGrade = GRADE_NEXT[currentGrade] ?? null;
-  const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
-  const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
+  const nextGrade = GRADE_NEXT[currentGrade] ?? null;
+
+  type ThresholdLine = { grade: QualifyingGrade; y: number; isNext: boolean };
+
+  const { linePath, areaPath, thresholdLines, dotXs, dotYs } = useMemo(() => {
     const fallback = {
       linePath: '', areaPath: '',
-      currentThresholdY: null as number | null,
-      nextThresholdY: null as number | null,
+      thresholdLines: [] as ThresholdLine[],
       dotXs: [] as number[], dotYs: [] as number[],
     };
     if (visible.length === 0) return fallback;
@@ -356,12 +356,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const baseY = barH - 2;
     const ap = `${lp} L 20 ${baseY} L ${windowW - 20} ${baseY} Z`;
     const inRange = (sec: number) => sec >= minP && sec <= maxP;
-    const cty = currentThresholdSec != null && inRange(currentThresholdSec)
-      ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
-    const nty = nextThresholdSec != null && inRange(nextThresholdSec)
-      ? paceToY(nextThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
-    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
-  }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec]);
+    // visible 내 승급 이벤트 등급 + 다음 목표 등급 threshold를 모두 수집
+    const gradesToShow = new Set<QualifyingGrade>();
+    visible.forEach((v) => { if (v.promotedGrade) gradesToShow.add(v.grade); });
+    if (nextGrade) gradesToShow.add(nextGrade);
+    const lines: ThresholdLine[] = [];
+    gradesToShow.forEach((grade) => {
+      const sec = GRADE_PACE_THRESHOLD[grade];
+      if (sec == null || !inRange(sec)) return;
+      lines.push({ grade, y: paceToY(sec, minP, maxP, plotTopInBlock, plotH), isNext: grade === nextGrade });
+    });
+    return { linePath: lp, areaPath: ap, thresholdLines: lines, dotXs: xs, dotYs: ys };
+  }, [visible, windowW, plotH, plotTopInBlock, barH, nextGrade]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
@@ -508,20 +514,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {areaPath ? (
                       <Path d={areaPath} fill={`url(#${gradPrefix}_area)`} opacity={0.2} />
                     ) : null}
-                    {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
-                    {currentThresholdY != null ? (
+                    {/* threshold 점선 — visible 내 승급 등급 + 다음 목표 등급 */}
+                    {thresholdLines.map((tl) => (
                       <Path
-                        d={`M 20 ${currentThresholdY} L ${windowW - 20} ${currentThresholdY}`}
-                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
-                      />
-                    ) : null}
-                    {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
-                    {nextThresholdY != null ? (
-                      <Path
-                        d={`M 20 ${nextThresholdY} L ${windowW - 20} ${nextThresholdY}`}
+                        key={tl.grade}
+                        d={`M 20 ${tl.y} L ${windowW - 20} ${tl.y}`}
                         stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
+                        opacity={tl.isNext ? 1 : 0.5}
                       />
-                    ) : null}
+                    ))}
                     {/* 미선택 컬럼: width 1 세로 stroke */}
                     {dotXs.map((cx, i) => i === selectedIdx ? null : (
                       <Rect
@@ -553,18 +554,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
                     />
                   </Svg>
-                  {/* 현재 등급 라벨 — threshold가 범위 내일 때만 */}
-                  {currentThresholdY != null && currentGrade != null ? (
-                    <Text style={[s.thresholdLabel, { left: 22, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
-                      {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec!)}`}
-                    </Text>
-                  ) : null}
-                  {/* 다음 등급 라벨 — threshold가 범위 내일 때만 */}
-                  {nextThresholdY != null && nextGrade != null ? (
-                    <Text style={[s.thresholdLabel, { left: 22, top: Math.max(0, nextThresholdY - 18) }]}>
-                      {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec!)}`}
-                    </Text>
-                  ) : null}
+                  {/* threshold 라벨 */}
+                  {thresholdLines.map((tl) => {
+                    const sec = GRADE_PACE_THRESHOLD[tl.grade]!;
+                    const top = tl.isNext ? Math.max(0, tl.y - 18) : Math.min(barH - 18, tl.y - 18);
+                    return (
+                      <Text key={tl.grade} style={[s.thresholdLabel, { left: 22, top, opacity: tl.isNext ? 1 : 0.5 }]}>
+                        {`${GRADE_DISPLAY_NAME[tl.grade]} ${fmtPace(sec)}`}
+                      </Text>
+                    );
+                  })}
                 </View>
 
                 {/* Invisible pressable zones per data point */}
