@@ -340,12 +340,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     };
     if (visible.length === 0) return fallback;
     const paces = visible.map((v) => v.paceSec);
-    // 승급 이벤트가 있으면 해당 등급 threshold를 axis에 포함해 점선이 항상 보이도록
-    const promotionThresholds = visible
-      .filter((v) => v.promotedGrade)
-      .map((v) => GRADE_PACE_THRESHOLD[v.grade])
-      .filter((t): t is number => t != null);
-    const { minP, maxP } = computePaceAxisMinMax([...paces, ...promotionThresholds]);
+    const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
     // dot/실선/텍스트: 텍스트 left=20, right=windowW-20이 되도록 중심을 52~windowW-52에 배치
