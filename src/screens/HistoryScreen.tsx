@@ -509,6 +509,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
                         <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0.5" />
                       </SvgLG>
+                      {/* 좌우 fade: 배경색으로 curve/그라데이션 가장자리를 자연스럽게 소멸 */}
+                      <SvgLG id={`${gradPrefix}_fadeL`} x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
+                        <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
+                      </SvgLG>
+                      <SvgLG id={`${gradPrefix}_fadeR`} x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0%" stopColor="#17171C" stopOpacity="0" />
+                        <Stop offset="100%" stopColor="#17171C" stopOpacity="1" />
+                      </SvgLG>
                     </Defs>
                     {/* Area fill */}
                     {areaPath ? (
@@ -553,6 +562,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       cx={selDotX} cy={selDotY}
                       r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
                     />
+                    {/* 좌우 fade 오버레이: curve/그라데이션 가장자리를 배경색으로 소멸 */}
+                    <Rect x={0} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
+                    <Rect x={windowW - 20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeR)`} />
                   </Svg>
                   {/* threshold 라벨 */}
                   {thresholdLines.map((tl) => {
