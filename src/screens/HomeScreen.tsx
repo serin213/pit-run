@@ -40,6 +40,8 @@ import {
   WeekStrip,
   calcColX,
   toISO,
+  getMonthRowCount,
+  getMonthGridHeight,
 } from '../components/MonthCalendar';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
@@ -199,8 +201,6 @@ const FIGMA_TAB_H = 98;
 const FIGMA_SAFE_BOTTOM = 34;
 
 const CAL_H_WEEK = 80;
-const CAL_H_MONTH = 292;
-const CAL_DELTA = CAL_H_MONTH - CAL_H_WEEK;
 
 // ─── HomeScreen ──────────────────────────────────────────────────────────────
 
@@ -309,23 +309,45 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const cardTransY = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  const calMonthHeight = useCallback((offset: number) => {
+    const base = new Date(todayISO);
+    const m = base.getMonth() + offset;
+    const y = base.getFullYear() + Math.floor(m / 12);
+    return getMonthGridHeight(getMonthRowCount(y, ((m % 12) + 12) % 12));
+  }, [todayISO]);
+
+  const animateCalHeight = useCallback((toH: number, toDelta: number) => {
+    Animated.parallel([
+      Animated.timing(calHeightAnim, { toValue: toH, duration: 300, useNativeDriver: false }),
+      Animated.timing(cardTransY, { toValue: toDelta, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [calHeightAnim, cardTransY]);
+
   const toggleCal = useCallback(() => {
     const toExpanded = !calExpanded;
     setCalExpanded(toExpanded);
     if (toExpanded) setMonthOffset(0);
-    Animated.parallel([
-      Animated.timing(calHeightAnim, {
-        toValue: toExpanded ? CAL_H_MONTH : CAL_H_WEEK,
-        duration: 300,
-        useNativeDriver: false,
-      }),
-      Animated.timing(cardTransY, {
-        toValue: toExpanded ? CAL_DELTA : 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [calExpanded, calHeightAnim, cardTransY]);
+    const targetH = toExpanded ? calMonthHeight(0) : CAL_H_WEEK;
+    animateCalHeight(targetH, toExpanded ? targetH - CAL_H_WEEK : 0);
+  }, [calExpanded, calMonthHeight, animateCalHeight]);
+
+  const handleCalPrev = useCallback(() => {
+    const newOffset = monthOffset - 1;
+    setMonthOffset(newOffset);
+    if (calExpanded) {
+      const h = calMonthHeight(newOffset);
+      animateCalHeight(h, h - CAL_H_WEEK);
+    }
+  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight]);
+
+  const handleCalNext = useCallback(() => {
+    const newOffset = monthOffset + 1;
+    setMonthOffset(newOffset);
+    if (calExpanded) {
+      const h = calMonthHeight(newOffset);
+      animateCalHeight(h, h - CAL_H_WEEK);
+    }
+  }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight]);
 
   const toggleDevTest = useCallback(() => {
     if (devTestActive) {
@@ -422,7 +444,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // 스크롤 콘텐츠 높이: 달력 접힘/펼침 상태에 따라 동적으로 계산, 카드 바깥 하단 여백 42px
   const activeCardH = showCircuitCard ? cardH : showRenewalCard ? renewalCardH : qCardH;
-  const scrollContentH = py(262) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
+  const calDelta = calExpanded ? calMonthHeight(monthOffset) - CAL_H_WEEK : 0;
+  const scrollContentH = py(262) + calDelta + activeCardH + tabH + 24;
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
@@ -498,8 +521,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               qualifyingSet={qualifyingSet}
               colX={colX}
               monthOffset={monthOffset}
-              onPrev={() => setMonthOffset((o) => o - 1)}
-              onNext={() => setMonthOffset((o) => o + 1)}
+              onPrev={handleCalPrev}
+              onNext={handleCalNext}
             />
           ) : (
             <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />

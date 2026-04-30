@@ -51,6 +51,19 @@ export function getWeekDates(ref: Date): Date[] {
   });
 }
 
+export const MONTH_GRID_HEIGHT_5 = 292;
+export const MONTH_GRID_HEIGHT_6 = 332;
+
+export function getMonthRowCount(year: number, month: number): number {
+  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return Math.ceil((firstDow + daysInMonth) / 7);
+}
+
+export function getMonthGridHeight(rowCount: number): number {
+  return rowCount <= 5 ? MONTH_GRID_HEIGHT_5 : MONTH_GRID_HEIGHT_6;
+}
+
 /** colX 동적 계산: M=left 20, R=right 20, 나머지 space-between */
 export function calcColX(cardW: number): number[] {
   const step = (cardW - 64) / 6;
@@ -227,12 +240,13 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
     ...Array(firstDow).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-  while (cells.length < 35) cells.push(null);
+  const rowCount = Math.ceil(cells.length / 7);
+  while (cells.length < rowCount * 7) cells.push(null);
 
   const rows: (number | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
 
-  const ROW_Y = [84, 124, 164, 204, 244];
+  const ROW_Y = [84, 124, 164, 204, 244, 284];
 
   function dayISO(d: number) {
     return `${refYear}-${String(refMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;

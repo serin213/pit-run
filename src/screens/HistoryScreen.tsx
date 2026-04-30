@@ -45,7 +45,7 @@ import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
-import { MonthGrid, calcColX, toISO } from '../components/MonthCalendar';
+import { MonthGrid, calcColX, toISO, getMonthRowCount, getMonthGridHeight, MONTH_GRID_HEIGHT_5 } from '../components/MonthCalendar';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -218,6 +218,19 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // 달력 colX 계산
   const [calCardW, setCalCardW] = useState(windowW - SIDE_PAD * 2);
   const calColX = useMemo(() => calcColX(calCardW), [calCardW]);
+
+  // 달력 높이 애니메이션
+  const calHeightAnim = useRef(new Animated.Value(MONTH_GRID_HEIGHT_5)).current;
+
+  const changeMonth = useCallback((delta: number) => {
+    const newOffset = monthOffset + delta;
+    setMonthOffset(newOffset);
+    const base = new Date(todayISO);
+    const m = base.getMonth() + newOffset;
+    const y = base.getFullYear() + Math.floor(m / 12);
+    const newH = getMonthGridHeight(getMonthRowCount(y, ((m % 12) + 12) % 12));
+    Animated.timing(calHeightAnim, { toValue: newH, duration: 300, useNativeDriver: false }).start();
+  }, [monthOffset, todayISO, calHeightAnim]);
 
   // ─── Supabase 데이터 fetch ────────────────────────────────────────────────
   const [qualifyingData, setQualifyingData] = useState<QHistRow[]>(FALLBACK_QUALIFYING);
@@ -709,8 +722,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
 
         {/* ── 6. 월간 달력 ── */}
-        <View
-          style={{ marginTop: 16, marginHorizontal: SIDE_PAD, height: 292 }}
+        <Animated.View
+          style={{ marginTop: 16, marginHorizontal: SIDE_PAD, height: calHeightAnim }}
           onLayout={(e) => setCalCardW(e.nativeEvent.layout.width)}
         >
           <MonthGrid
@@ -719,10 +732,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             qualifyingSet={qualifyingSet}
             colX={calColX}
             monthOffset={monthOffset}
-            onPrev={() => setMonthOffset((o) => o - 1)}
-            onNext={() => setMonthOffset((o) => o + 1)}
+            onPrev={() => changeMonth(-1)}
+            onNext={() => changeMonth(1)}
           />
-        </View>
+        </Animated.View>
 
         {/* ── 8. History 섹션 타이틀 ── */}
         <Text style={[s.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
