@@ -172,12 +172,12 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         </View>
 
         {/* ── 2. 팀 SVG ── */}
-        <View style={{ marginTop: -8 }}>
+        <View style={{ marginTop: -12 }}>
           <TeamSvg color={profile.nameTagAccentColor} width={windowW} />
         </View>
 
         {/* ── 3. 설정 리스트 ── */}
-        <View style={{ marginTop: 32 }}>
+        <View style={{ marginTop: 28 }}>
           {/* Notifications */}
           <View style={s.listRow}>
             <Text style={s.listLabel}>Notifications</Text>
