@@ -431,7 +431,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: 20 }]}>
+            <Text style={[s.sectionTitle, { marginTop: 52, marginLeft: 20 }]}>
               Qualifying Trend
             </Text>
 
@@ -595,7 +595,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         )}
 
         {/* ── 5. 이번 달 불 아이콘 그룹 ── */}
-        <View style={[s.flameGroup, { marginTop: 72, marginLeft: SIDE_PAD }]}>
+        <View style={[s.flameGroup, { marginTop: showTrend ? 48 : 52, marginLeft: SIDE_PAD }]}>
           <Image source={FLAME_ICON} style={s.flameIcon} resizeMode="contain" />
           <View style={s.flameTextCol}>
             <Text style={s.flameLabel}>THIS MONTH</Text>
@@ -623,7 +623,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
 
         {/* ── 8. History 섹션 타이틀 ── */}
-        <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: SIDE_PAD }]}>History</Text>
+        <Text style={[s.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
