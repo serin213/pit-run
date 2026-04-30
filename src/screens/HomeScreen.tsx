@@ -311,8 +311,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const toggleCal = useCallback(() => {
     const toExpanded = !calExpanded;
-    setCalExpanded(toExpanded);
-    if (toExpanded) setMonthOffset(0);
+    if (toExpanded) {
+      setCalExpanded(true);
+      setMonthOffset(0);
+    }
     Animated.parallel([
       Animated.timing(calHeightAnim, {
         toValue: toExpanded ? CAL_H_MONTH : CAL_H_WEEK,
@@ -324,7 +326,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => {
+      if (!toExpanded) setCalExpanded(false);
+    });
   }, [calExpanded, calHeightAnim, cardTransY]);
 
   const toggleDevTest = useCallback(() => {
