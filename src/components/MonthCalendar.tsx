@@ -121,9 +121,10 @@ export type WeekStripProps = {
   activitySet: Set<string>;
   qualifyingSet?: Set<string>;
   colX: number[];
+  bare?: boolean;
 };
 
-export function WeekStrip({ today, activitySet, qualifyingSet, colX }: WeekStripProps) {
+export function WeekStrip({ today, activitySet, qualifyingSet, colX, bare }: WeekStripProps) {
   const weekDates = getWeekDates(new Date(today));
   const isoList = weekDates.map(toISO);
 
@@ -142,8 +143,8 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX }: WeekStrip
     Array.from({ length: g.end - g.start + 1 }, (_, k) => g.start + k),
   ));
 
-  return (
-    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+  const inner = (
+    <>
       {WEEK_LABELS.map((label, col) => (
         <Text key={`wl-${col}`} style={[s.calLabel, { left: colX[col] }]}>
           {label}
@@ -188,6 +189,14 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX }: WeekStrip
           </Text>
         );
       })}
+    </>
+  );
+
+  if (bare) return <View style={{ flex: 1, overflow: 'hidden' }}>{inner}</View>;
+
+  return (
+    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+      {inner}
     </GradientCardBorder>
   );
 }
@@ -202,9 +211,10 @@ export type MonthGridProps = {
   monthOffset: number;
   onPrev: () => void;
   onNext: () => void;
+  bare?: boolean;
 };
 
-export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset, onPrev, onNext }: MonthGridProps) {
+export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset, onPrev, onNext, bare }: MonthGridProps) {
   const base = new Date(today);
   const year = base.getFullYear();
   const month = base.getMonth() + monthOffset;
@@ -228,8 +238,8 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
     return `${refYear}-${String(refMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
 
-  return (
-    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+  const inner = (
+    <>
       {/* ‹ Month › — flex row so › always follows the month text */}
       <View style={s.monthHeader}>
         <Pressable onPress={onPrev} hitSlop={14} style={s.monthArrow}>
@@ -322,6 +332,14 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
           </React.Fragment>
         );
       })}
+    </>
+  );
+
+  if (bare) return <View style={{ flex: 1, overflow: 'hidden' }}>{inner}</View>;
+
+  return (
+    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+      {inner}
     </GradientCardBorder>
   );
 }

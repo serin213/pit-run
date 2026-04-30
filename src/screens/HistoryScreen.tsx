@@ -3,10 +3,9 @@
  * 등급 트로피 · 통산 스탯 · 퀄리파잉 트렌드(선택) · 월간 달력 · 그랑프리 히스토리
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { BlurView } from 'expo-blur';
 import {
-  Animated,
   Image,
   Pressable,
   ScrollView,
@@ -15,13 +14,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Reanimated, {
-  useSharedValue,
-  withTiming,
-  Easing,
-  useAnimatedStyle,
-} from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
   Circle,
@@ -40,7 +32,7 @@ import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import { fetchQualifyingHistory } from '../api/qualifying';
 import { fetchSessions } from '../api/sessions';
-import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
+import { GRADE_DISPLAY_NAME } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 import GradientCardBorder from '../components/GradientCardBorder';
@@ -116,7 +108,6 @@ type QHistRow = {
   iso: string;
   label: string;
   paceSec: number;
-  grade: QualifyingGrade;
   promotedGrade?: string;
 };
 
@@ -128,11 +119,11 @@ type HistoryRow =
 // ─── Fallback demo data ───────────────────────────────────────────────────────
 
 const FALLBACK_QUALIFYING: QHistRow[] = [
-  { iso: '2024-03-25', label: '03.25', paceSec: 405, grade: 'f3' },
-  { iso: '2024-05-26', label: '05.26', paceSec: 392, grade: 'f3' },
-  { iso: '2024-06-30', label: '06.30', paceSec: 383, grade: 'f2', promotedGrade: 'F2' },
-  { iso: '2025-01-01', label: '01.01', paceSec: 355, grade: 'f2' },
-  { iso: '2025-02-02', label: '02.02', paceSec: 326, grade: 'f1_rookie', promotedGrade: 'F1 Rookie' },
+  { iso: '2024-03-25', label: '03.25', paceSec: 318 },
+  { iso: '2024-05-26', label: '05.26', paceSec: 312 },
+  { iso: '2024-06-30', label: '06.31', paceSec: 329, promotedGrade: 'F2' },
+  { iso: '2025-01-01', label: '01.01', paceSec: 315 },
+  { iso: '2025-02-02', label: '02.02', paceSec: 308 },
 ];
 
 const FALLBACK_HISTORY: HistoryRow[] = [
@@ -224,19 +215,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
   const [thisMonthDistKm, setThisMonthDistKm] = useState(32.2);
 
-  const slideAnim = useRef(new Animated.Value(24)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  useFocusEffect(
-    useCallback(() => {
-      slideAnim.setValue(24);
-      fadeAnim.setValue(0);
-      Animated.parallel([
-        Animated.timing(slideAnim, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
-      ]).start();
-    }, [slideAnim, fadeAnim]),
-  );
-
   useFocusEffect(
     useCallback(() => {
       if (!isAuthenticated) return;
@@ -246,25 +224,22 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
           const rows = await fetchQualifyingHistory();
           if (rows.length > 0) {
             const sorted = [...rows].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
-            let prevGrade: QualifyingGrade | null = null;
+            let prevGrade: string | null = null;
             const mapped: QHistRow[] = sorted.map((r) => {
               const d = new Date(r.recorded_at);
               const mm = String(d.getMonth() + 1).padStart(2, '0');
               const dd = String(d.getDate()).padStart(2, '0');
-              const isPromotion = prevGrade != null &&
-                GRADE_ORDER.indexOf(r.grade) < GRADE_ORDER.indexOf(prevGrade);
-              const promoted = isPromotion ? GRADE_DISPLAY_NAME[r.grade] : undefined;
+              const promoted =
+                prevGrade && r.grade !== prevGrade ? GRADE_DISPLAY_NAME[r.grade] : undefined;
               prevGrade = r.grade;
               return {
                 iso: r.recorded_at.slice(0, 10),
                 label: `${mm}.${dd}`,
                 paceSec: r.pace_sec_per_km,
-                grade: r.grade,
                 promotedGrade: promoted,
               };
             });
             setQualifyingData(mapped);
-            setSelectedIdx(mapped.length - 1);
           }
         } catch (e) {
           console.warn('[HistoryScreen] qualifying fetch error:', e);
@@ -349,15 +324,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const plotTopInBlock = 28;
 
   const currentGrade = qualifyingResult?.grade ?? 'f2';
-
+  const currentThresholdSec = GRADE_PACE_THRESHOLD[currentGrade] ?? null;
   const nextGrade = GRADE_NEXT[currentGrade] ?? null;
+  const nextThresholdSec = nextGrade != null ? (GRADE_PACE_THRESHOLD[nextGrade] ?? null) : null;
 
-  type ThresholdLine = { grade: QualifyingGrade; y: number; isNext: boolean };
-
-  const { linePath, areaPath, thresholdLines, dotXs, dotYs } = useMemo(() => {
+  const { linePath, areaPath, currentThresholdY, nextThresholdY, dotXs, dotYs } = useMemo(() => {
     const fallback = {
       linePath: '', areaPath: '',
-      thresholdLines: [] as ThresholdLine[],
+      currentThresholdY: null as number | null,
+      nextThresholdY: null as number | null,
       dotXs: [] as number[], dotYs: [] as number[],
     };
     if (visible.length === 0) return fallback;
@@ -365,31 +340,22 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { minP, maxP } = computePaceAxisMinMax(paces);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
-    // dot/실선/텍스트: 텍스트 left=20, right=windowW-20이 되도록 중심을 52~windowW-52에 배치
-    const dotL = 52;
-    const dotR = windowW - 52;
+    // 텍스트 폭 64px 기준: 텍스트 left=20, right=windowW-20이 되도록 dot 중심을 52~windowW-52에 배치
+    const curveL = 52;
+    const curveR = windowW - 52;
     const xs = n <= 1
       ? [windowW / 2]
-      : visible.map((_, i) => dotL + (i / (n - 1)) * (dotR - dotL));
-    // curve/area는 좌우 20px 마진까지 수평 연장 (xs[0]=왼쪽 oldest, xs[n-1]=오른쪽 newest)
-    const cxs = n <= 1 ? [20, xs[0], windowW - 20] : [20, ...xs, windowW - 20];
-    const cys = n <= 1 ? [ys[0], ys[0], ys[0]] : [ys[0], ...ys, ys[ys.length - 1]];
-    const lp = smoothLinePath(cxs, cys);
+      : visible.map((_, i) => curveL + ((n - 1 - i) / (n - 1)) * (curveR - curveL));
+    const lp = smoothLinePath(xs, ys);
     const baseY = barH - 2;
-    const ap = `${lp} L ${windowW - 20} ${baseY} L 20 ${baseY} Z`;
+    const ap = `${lp} L ${xs[xs.length - 1]} ${baseY} L ${xs[0]} ${baseY} Z`;
     const inRange = (sec: number) => sec >= minP && sec <= maxP;
-    // visible 내 승급 이벤트 등급 + 다음 목표 등급 threshold를 모두 수집
-    const gradesToShow = new Set<QualifyingGrade>();
-    visible.forEach((v) => { if (v.promotedGrade) gradesToShow.add(v.grade); });
-    if (nextGrade) gradesToShow.add(nextGrade);
-    const lines: ThresholdLine[] = [];
-    gradesToShow.forEach((grade) => {
-      const sec = GRADE_PACE_THRESHOLD[grade];
-      if (sec == null || !inRange(sec)) return;
-      lines.push({ grade, y: paceToY(sec, minP, maxP, plotTopInBlock, plotH), isNext: grade === nextGrade });
-    });
-    return { linePath: lp, areaPath: ap, thresholdLines: lines, dotXs: xs, dotYs: ys };
-  }, [visible, windowW, plotH, plotTopInBlock, barH, nextGrade]);
+    const cty = currentThresholdSec != null && inRange(currentThresholdSec)
+      ? paceToY(currentThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
+    const nty = nextThresholdSec != null && inRange(nextThresholdSec)
+      ? paceToY(nextThresholdSec, minP, maxP, plotTopInBlock, plotH) : null;
+    return { linePath: lp, areaPath: ap, currentThresholdY: cty, nextThresholdY: nty, dotXs: xs, dotYs: ys };
+  }, [visible, windowW, plotH, plotTopInBlock, barH, currentThresholdSec, nextThresholdSec]);
 
   const gradPrefix = useRef(`qhG_${++_histGradSeq}`).current;
 
@@ -404,50 +370,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     SIDE_PAD,
     Math.min(windowW - 20 - tooltipWrapClamped, bubbleCenterX - tooltipWrapClamped / 2),
   );
-  // RN alignItems:'center' + marginLeft은 margin box 기준 센터링 → 2*(offset) - P 로 보정
-  const tooltipTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
-
-  // ─── Pill animation (Reanimated spring, bottom-to-top) ────────────────────
-  const pillRevealH = useSharedValue(barH);
-  useEffect(() => {
-    pillRevealH.value = 0;
-    pillRevealH.value = withTiming(barH, { duration: 200, easing: Easing.out(Easing.quad) });
-  }, [selectedIdx, barH, pillRevealH]);
-  const pillRevealStyle = useAnimatedStyle(() => ({ height: pillRevealH.value }));
-
-  // ─── Tooltip x-slide (RN Animated spring) ────────────────────────────────
-  const tooltipXAnim = useRef(new Animated.Value(tooltipWrapLeft)).current;
-  const tooltipXMountedRef = useRef(false);
-  useEffect(() => {
-    if (!tooltipXMountedRef.current) {
-      tooltipXAnim.setValue(tooltipWrapLeft);
-      tooltipXMountedRef.current = true;
-      return;
-    }
-    Animated.spring(tooltipXAnim, {
-      toValue: tooltipWrapLeft,
-      useNativeDriver: false,
-      tension: 180,
-      friction: 26,
-    }).start();
-  }, [tooltipWrapLeft, tooltipXAnim]);
-
-  // ─── Tooltip cross-fade (promotedGrade 유무 전환 시) ───────────────────────
-  const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
-  const [shownIdx, setShownIdx] = useState(selectedIdx);
-  const prevHasGradeRef = useRef(!!selected?.promotedGrade);
-  useEffect(() => {
-    const hasGrade = !!visible[selectedIdx]?.promotedGrade;
-    if (hasGrade !== prevHasGradeRef.current) {
-      prevHasGradeRef.current = hasGrade;
-      Animated.timing(tooltipFadeAnim, { toValue: 0, duration: 80, useNativeDriver: true }).start(() => {
-        setShownIdx(selectedIdx);
-        Animated.timing(tooltipFadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-      });
-    } else {
-      setShownIdx(selectedIdx);
-    }
-  }, [selectedIdx, visible, tooltipFadeAnim]);
+  // 꼬리를 pill 중심(selDotX)에 정렬: 버블이 클램핑돼도 꼬리는 pill 쪽으로 오프셋
+  const tooltipTailShift = selDotX - (tooltipWrapLeft + tooltipWrapClamped / 2);
 
   // ─── History cards ────────────────────────────────────────────────────────
   const historySorted = useMemo(
@@ -463,7 +387,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
       <BlurView
         intensity={60}
         tint="dark"
@@ -479,12 +403,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 64, marginLeft: 22 }]}
+          style={[s.trophy, { marginTop: safeTop + 90, marginLeft: 20 }]}
           resizeMode="contain"
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[s.statsRow, { marginTop: 32, marginLeft: 20 }]}>
+        <View style={[s.statsRow, { marginTop: 36, marginLeft: 20 }]}>
           {/* TOTAL */}
           <View style={s.statGroup}>
             <Text style={s.statLabel}>TOTAL</Text>
@@ -507,41 +431,37 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[s.sectionTitle, { marginTop: 72, marginLeft: 20 }]}>
+            <Text style={[s.sectionTitle, { marginTop: 52, marginLeft: 20 }]}>
               Qualifying Trend
             </Text>
 
             {/* 그래프 영역: 높이 238 */}
             <View style={{ width: windowW, marginTop: 12, height: 238 }}>
-              {selected && (() => {
-                const shownSelected = visible[shownIdx] ?? selected;
-                const shownTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
-                return (
-                  <Animated.View
-                    style={[s.tooltipWrap, { left: tooltipXAnim, top: 0 }]}
-                    onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
-                  >
-                    <View style={s.tooltipColumn}>
-                      <Animated.View style={[s.tooltipBubble, { opacity: tooltipFadeAnim }]}>
-                        {shownSelected.promotedGrade && RACER_CARD_IMAGES[shownSelected.promotedGrade] ? (
-                          <Image
-                            source={RACER_CARD_IMAGES[shownSelected.promotedGrade]}
-                            style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
-                            resizeMode="contain"
-                          />
-                        ) : null}
-                        <Text style={s.tooltipPace}>{fmtPace(shownSelected.paceSec)}</Text>
-                      </Animated.View>
-                      <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: shownTailShift }]}>
-                        <Path
-                          d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                          fill="rgba(224,58,62,0.15)"
+              {selected && (
+                <View
+                  style={[s.tooltipWrap, { left: tooltipWrapLeft, top: 0 }]}
+                  onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
+                >
+                  <View style={s.tooltipColumn}>
+                    <View style={s.tooltipBubble}>
+                      {selected.promotedGrade && RACER_CARD_IMAGES[selected.promotedGrade] ? (
+                        <Image
+                          source={RACER_CARD_IMAGES[selected.promotedGrade]}
+                          style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
+                          resizeMode="contain"
                         />
-                      </Svg>
+                      ) : null}
+                      <Text style={s.tooltipPace}>{fmtPace(selected.paceSec)}</Text>
                     </View>
-                  </Animated.View>
-                );
-              })()}
+                    <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: tooltipTailShift }]}>
+                      <Path
+                        d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                        fill="rgba(224,58,62,0.15)"
+                      />
+                    </Svg>
+                  </View>
+                </View>
+              )}
 
               <View
                 style={{
@@ -564,7 +484,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
-                        x1={20} y1="0" x2={windowW - 20} y2="0"
+                        x1={52} y1="0" x2={windowW - 52} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
@@ -577,29 +497,25 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
                         <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0.5" />
                       </SvgLG>
-                      {/* 좌우 fade: 배경색으로 curve/그라데이션 가장자리를 자연스럽게 소멸 */}
-                      <SvgLG id={`${gradPrefix}_fadeL`} x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-                        <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-                      </SvgLG>
-                      <SvgLG id={`${gradPrefix}_fadeR`} x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0%" stopColor="#17171C" stopOpacity="0" />
-                        <Stop offset="100%" stopColor="#17171C" stopOpacity="1" />
-                      </SvgLG>
                     </Defs>
                     {/* Area fill */}
                     {areaPath ? (
                       <Path d={areaPath} fill={`url(#${gradPrefix}_area)`} opacity={0.2} />
                     ) : null}
-                    {/* threshold 점선 — visible 내 승급 등급 + 다음 목표 등급 */}
-                    {thresholdLines.map((tl) => (
+                    {/* 현재 등급 threshold — 범위 내에 있을 때만 (opacity 0.5) */}
+                    {currentThresholdY != null ? (
                       <Path
-                        key={tl.grade}
-                        d={`M 20 ${tl.y} L ${windowW - 20} ${tl.y}`}
-                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
-                        opacity={tl.isNext ? 1 : 0.5}
+                        d={`M 52 ${currentThresholdY} L ${windowW - 52} ${currentThresholdY}`}
+                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none" opacity={0.5}
                       />
-                    ))}
+                    ) : null}
+                    {/* 다음 등급 threshold — 범위 내에 있을 때만 */}
+                    {nextThresholdY != null ? (
+                      <Path
+                        d={`M 52 ${nextThresholdY} L ${windowW - 52} ${nextThresholdY}`}
+                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
+                      />
+                    ) : null}
                     {/* 미선택 컬럼: width 1 세로 stroke */}
                     {dotXs.map((cx, i) => i === selectedIdx ? null : (
                       <Rect
@@ -609,7 +525,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         fill={`url(#${gradPrefix}_col)`}
                       />
                     ))}
-                    {/* 선택 컬럼은 SVG 밖 native View로 이동 (Reanimated 애니메이션) */}
+                    {/* 선택 컬럼: width 12 pill */}
+                    <Rect
+                      x={selDotX - 6} y={0}
+                      width={12} height={barH}
+                      rx={6}
+                      fill={`url(#${gradPrefix}_col)`}
+                    />
                     {/* Curve line */}
                     {linePath ? (
                       <Path
@@ -624,41 +546,19 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       cx={selDotX} cy={selDotY}
                       r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
                     />
-                    {/* 좌우 fade 오버레이: curve 시작/끝 20px을 배경색으로 소멸 */}
-                    <Rect x={20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
-                    <Rect x={windowW - 40} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeR)`} />
                   </Svg>
-                  {/* threshold 라벨 */}
-                  {thresholdLines.map((tl) => {
-                    const sec = GRADE_PACE_THRESHOLD[tl.grade]!;
-                    const top = tl.isNext ? Math.max(0, tl.y - 18) : Math.min(barH - 18, tl.y - 18);
-                    return (
-                      <Text key={tl.grade} style={[s.thresholdLabel, { left: 22, top, opacity: tl.isNext ? 1 : 0.5 }]}>
-                        {`${GRADE_DISPLAY_NAME[tl.grade]} ${fmtPace(sec)}`}
-                      </Text>
-                    );
-                  })}
-                  {/* 선택 pill: Reanimated spring, bottom-to-top reveal */}
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: selDotX - 6,
-                      top: 0,
-                      width: 12,
-                      height: barH,
-                      borderRadius: 6,
-                      overflow: 'hidden',
-                      justifyContent: 'flex-end',
-                    }}
-                    pointerEvents="none"
-                  >
-                    <Reanimated.View style={[{ width: 12, overflow: 'hidden' }, pillRevealStyle]}>
-                      <LinearGradient
-                        colors={['rgba(224,58,62,0)', 'rgba(224,58,62,0.5)']}
-                        style={{ width: 12, height: barH }}
-                      />
-                    </Reanimated.View>
-                  </View>
+                  {/* 현재 등급 라벨 — threshold가 범위 내일 때만 */}
+                  {currentThresholdY != null && currentGrade != null ? (
+                    <Text style={[s.thresholdLabel, { left: 22, top: Math.min(barH - 18, currentThresholdY - 18), opacity: 0.5 }]}>
+                      {`${GRADE_DISPLAY_NAME[currentGrade]} ${fmtPace(currentThresholdSec!)}`}
+                    </Text>
+                  ) : null}
+                  {/* 다음 등급 라벨 — threshold가 범위 내일 때만 */}
+                  {nextThresholdY != null && nextGrade != null ? (
+                    <Text style={[s.thresholdLabel, { left: 22, top: Math.max(0, nextThresholdY - 18) }]}>
+                      {`${GRADE_DISPLAY_NAME[nextGrade]} ${fmtPace(nextThresholdSec!)}`}
+                    </Text>
+                  ) : null}
                 </View>
 
                 {/* Invisible pressable zones per data point */}
@@ -695,7 +595,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         )}
 
         {/* ── 5. 이번 달 불 아이콘 그룹 ── */}
-        <View style={[s.flameGroup, { marginTop: 52, marginLeft: 26 }]}>
+        <View style={[s.flameGroup, { marginTop: showTrend ? 48 : 52, marginLeft: SIDE_PAD }]}>
           <Image source={FLAME_ICON} style={s.flameIcon} resizeMode="contain" />
           <View style={s.flameTextCol}>
             <Text style={s.flameLabel}>THIS MONTH</Text>
@@ -773,7 +673,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
       </ScrollView>
 
-    </Animated.View>
+    </View>
   );
 }
 
@@ -782,7 +682,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 const s = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
-    height: 42,
+    height: 55,
     aspectRatio: 630 / 220,
   },
 
@@ -835,7 +735,7 @@ const s = StyleSheet.create({
     height: 43,
   },
   flameTextCol: {
-    marginLeft: 10,
+    marginLeft: 12,
     flexDirection: 'column',
   },
   flameLabel: {

@@ -307,14 +307,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [svgKey, setSvgKey] = useState(0);
   const calHeightAnim = useRef(new Animated.Value(CAL_H_WEEK)).current;
   const cardTransY = useRef(new Animated.Value(0)).current;
-  const calContentFade = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const toggleCal = useCallback(() => {
     const toExpanded = !calExpanded;
+    setCalExpanded(toExpanded);
     if (toExpanded) setMonthOffset(0);
-
-    // 높이 + 카드 위치 동시 애니메이션
     Animated.parallel([
       Animated.timing(calHeightAnim, {
         toValue: toExpanded ? CAL_H_MONTH : CAL_H_WEEK,
@@ -327,14 +325,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // 콘텐츠 crossfade: fade out → 교체 → fade in
-    Animated.timing(calContentFade, { toValue: 0, duration: 120, useNativeDriver: true })
-      .start(() => {
-        setCalExpanded(toExpanded);
-        Animated.timing(calContentFade, { toValue: 1, duration: 120, useNativeDriver: true }).start();
-      });
-  }, [calExpanded, calHeightAnim, cardTransY, calContentFade]);
+  }, [calExpanded, calHeightAnim, cardTransY]);
 
   const toggleDevTest = useCallback(() => {
     if (devTestActive) {
@@ -494,13 +485,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           top: py(170),
           width: cardW,
           height: calHeightAnim,
-          overflow: 'hidden',
           ...radius.md,
         }}
       >
-        <Animated.View style={{ opacity: calContentFade, flex: 1 }}>
+        {/* GradientCardBorder를 항상 mount — 내부 내용만 교체해 테두리 flash 방지 */}
+        <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
           {calExpanded ? (
             <MonthGrid
+              bare
               today={todayISO}
               activitySet={activitySet}
               qualifyingSet={qualifyingSet}
@@ -510,9 +502,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               onNext={() => setMonthOffset((o) => o + 1)}
             />
           ) : (
-            <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+            <WeekStrip bare today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
           )}
-        </Animated.View>
+        </GradientCardBorder>
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
