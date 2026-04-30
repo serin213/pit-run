@@ -5,6 +5,7 @@
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   Image,
   Pressable,
   ScrollView,
@@ -216,8 +217,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const slideAnim = useRef(new Animated.Value(30)).current;
   useFocusEffect(
     useCallback(() => {
-      slideAnim.setValue(30);
-      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+      slideAnim.setValue(80);
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     }, [slideAnim]),
   );
 

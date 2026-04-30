@@ -227,8 +227,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const slideAnim = useRef(new Animated.Value(30)).current;
   useFocusEffect(
     useCallback(() => {
-      slideAnim.setValue(30);
-      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+      slideAnim.setValue(80);
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     }, [slideAnim]),
   );
 
