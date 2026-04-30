@@ -120,11 +120,11 @@ type HistoryRow =
 // ─── Fallback demo data ───────────────────────────────────────────────────────
 
 const FALLBACK_QUALIFYING: QHistRow[] = [
-  { iso: '2024-03-25', label: '03.25', paceSec: 318, grade: 'f3' },
-  { iso: '2024-05-26', label: '05.26', paceSec: 312, grade: 'f3' },
-  { iso: '2024-06-30', label: '06.31', paceSec: 329, grade: 'f2', promotedGrade: 'F2' },
-  { iso: '2025-01-01', label: '01.01', paceSec: 315, grade: 'f2' },
-  { iso: '2025-02-02', label: '02.02', paceSec: 308, grade: 'f1_rookie', promotedGrade: 'F1 Rookie' },
+  { iso: '2024-03-25', label: '03.25', paceSec: 405, grade: 'f3' },
+  { iso: '2024-05-26', label: '05.26', paceSec: 392, grade: 'f3' },
+  { iso: '2024-06-30', label: '06.30', paceSec: 383, grade: 'f2', promotedGrade: 'F2' },
+  { iso: '2025-01-01', label: '01.01', paceSec: 355, grade: 'f2' },
+  { iso: '2025-02-02', label: '02.02', paceSec: 326, grade: 'f1_rookie', promotedGrade: 'F1 Rookie' },
 ];
 
 const FALLBACK_HISTORY: HistoryRow[] = [
