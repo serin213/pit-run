@@ -243,6 +243,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
               };
             });
             setQualifyingData(mapped);
+            setSelectedIdx(mapped.length - 1);
           }
         } catch (e) {
           console.warn('[HistoryScreen] qualifying fetch error:', e);
