@@ -193,7 +193,7 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
-const FIGMA_STATUS = 84;
+const FIGMA_STATUS = 44;
 const FIGMA_TAB_H = 98;
 const FIGMA_SAFE_BOTTOM = 34;
 
