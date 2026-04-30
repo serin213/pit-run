@@ -157,7 +157,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         </View>
 
         {/* ── 2. 팀 SVG ── */}
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: -4 }}>
           <TeamSvg color={profile.nameTagAccentColor} width={windowW} />
         </View>
 
