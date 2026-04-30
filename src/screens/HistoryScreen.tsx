@@ -18,7 +18,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Reanimated, {
   useSharedValue,
-  withSpring,
+  withTiming,
+  Easing,
   useAnimatedStyle,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
@@ -397,7 +398,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const pillRevealH = useSharedValue(barH);
   useEffect(() => {
     pillRevealH.value = 0;
-    pillRevealH.value = withSpring(barH, { damping: 22, stiffness: 200, mass: 1 });
+    pillRevealH.value = withTiming(barH, { duration: 200, easing: Easing.out(Easing.quad) });
   }, [selectedIdx, barH, pillRevealH]);
   const pillRevealStyle = useAnimatedStyle(() => ({ height: pillRevealH.value }));
 
