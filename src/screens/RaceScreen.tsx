@@ -70,8 +70,16 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     }, []),
   );
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useFocusEffect(
+    useCallback(() => {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }, [fadeAnim]),
+  );
+
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim }]}>
 
       {/* ── "Race" 타이틀 ── */}
       <Text style={[s.title, { left: 24, top: py(86) }]}>Race</Text>
@@ -186,7 +194,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       </Svg>
 
 
-    </View>
+    </Animated.View>
   );
 }
 

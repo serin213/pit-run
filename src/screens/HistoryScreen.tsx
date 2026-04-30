@@ -224,6 +224,14 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
   const [thisMonthDistKm, setThisMonthDistKm] = useState(32.2);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useFocusEffect(
+    useCallback(() => {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }, [fadeAnim]),
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (!isAuthenticated) return;
@@ -450,7 +458,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim }]}>
       <BlurView
         intensity={60}
         tint="dark"
@@ -760,7 +768,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </View>
       </ScrollView>
 
-    </View>
+    </Animated.View>
   );
 }
 

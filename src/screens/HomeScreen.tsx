@@ -213,6 +213,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const { user } = useAuthStore();
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useFocusEffect(
+    useCallback(() => {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }, [fadeAnim]),
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
@@ -411,7 +419,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const scrollContentH = py(262) + (calExpanded ? CAL_DELTA : 0) + activeCardH + tabH + 24;
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
 
       {/* ── 스크롤 가능한 메인 콘텐츠 영역 ── */}
       <Animated.ScrollView
@@ -757,7 +765,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           }}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

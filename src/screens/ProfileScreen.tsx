@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
   Image,
@@ -16,6 +16,7 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useAppStore } from '../store/appStore';
 import { useTabBarTotalHeight } from '../components/TabBar';
@@ -125,6 +126,14 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const safeTop = useSafeTop();
   const tabH = useTabBarTotalHeight();
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useFocusEffect(
+    useCallback(() => {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }, [fadeAnim]),
+  );
+
   const profile                 = useAppStore((s) => s.profile);
   const qualifyingResult        = useAppStore((s) => s.qualifyingResult);
   const notificationsEnabled    = useAppStore((s) => s.notificationsEnabled);
@@ -141,7 +150,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim }]}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
@@ -208,7 +217,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           <Rect key={i} x={0} y={i * 6} width={windowW} height={6} fill="#17171C" fillOpacity={i / 7} />
         ))}
       </Svg>
-    </View>
+    </Animated.View>
   );
 }
 
