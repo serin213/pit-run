@@ -194,6 +194,42 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
   );
 }
 
+// ─── StartButton ─────────────────────────────────────────────────────────────
+
+function StartButton({ posStyle, onPress }: { posStyle: object; onPress: () => void }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Pressable
+      style={posStyle}
+      onPress={onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, friction: 7, tension: 200 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 7, tension: 200 }).start()}
+    >
+      <Animated.View style={[s2.startBtn, { transform: [{ scale }] }]}>
+        <Text style={s2.startBtnTxt}>START</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+const s2 = StyleSheet.create({
+  startBtn: {
+    flex: 1,
+    backgroundColor: '#E03A3E',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startBtnTxt: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 17,
+    lineHeight: 20,
+    letterSpacing: -0.17,
+    color: '#FFFFFF',
+    includeFontPadding: false,
+  },
+});
+
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
 const FIGMA_STATUS = 44;
@@ -585,12 +621,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </View>
 
           {/* START 버튼: 서킷 bottom + 32px gap */}
-          <Pressable
-            style={[s.startBtn, { width: startBtnW, top: startBtnTopInCard }]}
+          <StartButton
+            posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
             onPress={() => navigation.navigate('Setup')}
-          >
-            <Text style={s.startBtnTxt}>START</Text>
-          </Pressable>
+          />
           </View>
         </Animated.View>
       )}
@@ -680,12 +714,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               </View>
 
               {/* START 버튼 */}
-              <Pressable
-                style={[s.startBtn, { width: startBtnW, top: rqStartTop }]}
+              <StartButton
+                posStyle={{ position: 'absolute', left: 20, top: rqStartTop, width: startBtnW, height: 44 }}
                 onPress={() => navigation.navigate('Qualifying')}
-              >
-                <Text style={s.startBtnTxt}>START</Text>
-              </Pressable>
+              />
             </View>
           </Animated.View>
         );
@@ -728,12 +760,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               resizeMode="contain"
             />
 
-            <Pressable
-              style={[s.startBtn, { width: startBtnW, top: qCtaTop }]}
+            <StartButton
+              posStyle={{ position: 'absolute', left: 20, top: qCtaTop, width: startBtnW, height: 44 }}
               onPress={() => navigation.navigate('Qualifying')}
-            >
-              <Text style={s.startBtnTxt}>START</Text>
-            </Pressable>
+            />
           </View>
         </Animated.View>
       )}
@@ -872,23 +902,6 @@ const s = StyleSheet.create({
     letterSpacing: -0.2,
     color: '#FFFFFF',
     opacity: 0.5,
-    includeFontPadding: false,
-  },
-  startBtn: {
-    position: 'absolute',
-    left: 20,
-    height: 44,
-    backgroundColor: '#E03A3E',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  startBtnTxt: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 17,
-    lineHeight: 20,
-    letterSpacing: -0.17,
-    color: '#FFFFFF',
     includeFontPadding: false,
   },
 });
