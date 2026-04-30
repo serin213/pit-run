@@ -32,7 +32,7 @@ import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import { fetchQualifyingHistory } from '../api/qualifying';
 import { fetchSessions } from '../api/sessions';
-import { GRADE_DISPLAY_NAME } from '../constants/grade';
+import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 import GradientCardBorder from '../components/GradientCardBorder';
@@ -108,6 +108,7 @@ type QHistRow = {
   iso: string;
   label: string;
   paceSec: number;
+  grade: QualifyingGrade;
   promotedGrade?: string;
 };
 
@@ -119,11 +120,11 @@ type HistoryRow =
 // ─── Fallback demo data ───────────────────────────────────────────────────────
 
 const FALLBACK_QUALIFYING: QHistRow[] = [
-  { iso: '2024-03-25', label: '03.25', paceSec: 318 },
-  { iso: '2024-05-26', label: '05.26', paceSec: 312 },
-  { iso: '2024-06-30', label: '06.31', paceSec: 329, promotedGrade: 'F2' },
-  { iso: '2025-01-01', label: '01.01', paceSec: 315 },
-  { iso: '2025-02-02', label: '02.02', paceSec: 308 },
+  { iso: '2024-03-25', label: '03.25', paceSec: 318, grade: 'f3' },
+  { iso: '2024-05-26', label: '05.26', paceSec: 312, grade: 'f3' },
+  { iso: '2024-06-30', label: '06.31', paceSec: 329, grade: 'f2', promotedGrade: 'F2' },
+  { iso: '2025-01-01', label: '01.01', paceSec: 315, grade: 'f2' },
+  { iso: '2025-02-02', label: '02.02', paceSec: 308, grade: 'f1_rookie', promotedGrade: 'F1 Rookie' },
 ];
 
 const FALLBACK_HISTORY: HistoryRow[] = [
@@ -224,18 +225,20 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
           const rows = await fetchQualifyingHistory();
           if (rows.length > 0) {
             const sorted = [...rows].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
-            let prevGrade: string | null = null;
+            let prevGrade: QualifyingGrade | null = null;
             const mapped: QHistRow[] = sorted.map((r) => {
               const d = new Date(r.recorded_at);
               const mm = String(d.getMonth() + 1).padStart(2, '0');
               const dd = String(d.getDate()).padStart(2, '0');
-              const promoted =
-                prevGrade && r.grade !== prevGrade ? GRADE_DISPLAY_NAME[r.grade] : undefined;
+              const isPromotion = prevGrade != null &&
+                GRADE_ORDER.indexOf(r.grade) < GRADE_ORDER.indexOf(prevGrade);
+              const promoted = isPromotion ? GRADE_DISPLAY_NAME[r.grade] : undefined;
               prevGrade = r.grade;
               return {
                 iso: r.recorded_at.slice(0, 10),
                 label: `${mm}.${dd}`,
                 paceSec: r.pace_sec_per_km,
+                grade: r.grade,
                 promotedGrade: promoted,
               };
             });
@@ -337,7 +340,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     };
     if (visible.length === 0) return fallback;
     const paces = visible.map((v) => v.paceSec);
-    const { minP, maxP } = computePaceAxisMinMax(paces);
+    // 승급 이벤트가 있으면 해당 등급 threshold를 axis에 포함해 점선이 항상 보이도록
+    const promotionThresholds = visible
+      .filter((v) => v.promotedGrade)
+      .map((v) => GRADE_PACE_THRESHOLD[v.grade])
+      .filter((t): t is number => t != null);
+    const { minP, maxP } = computePaceAxisMinMax([...paces, ...promotionThresholds]);
     const n = visible.length;
     const ys = visible.map((v) => paceToY(v.paceSec, minP, maxP, plotTopInBlock, plotH));
     // dot/실선/텍스트: 텍스트 left=20, right=windowW-20이 되도록 중심을 52~windowW-52에 배치
