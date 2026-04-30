@@ -70,16 +70,16 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     }, []),
   );
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   useFocusEffect(
     useCallback(() => {
-      fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    }, [fadeAnim]),
+      slideAnim.setValue(30);
+      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+    }, [slideAnim]),
   );
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', transform: [{ translateX: slideAnim }] }]}>
 
       {/* ── "Race" 타이틀 ── */}
       <Text style={[s.title, { left: 24, top: py(86) }]}>Race</Text>

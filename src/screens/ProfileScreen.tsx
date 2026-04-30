@@ -126,12 +126,12 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const safeTop = useSafeTop();
   const tabH = useTabBarTotalHeight();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   useFocusEffect(
     useCallback(() => {
-      fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    }, [fadeAnim]),
+      slideAnim.setValue(30);
+      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
+    }, [slideAnim]),
   );
 
   const profile                 = useAppStore((s) => s.profile);
@@ -150,7 +150,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', transform: [{ translateX: slideAnim }] }]}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
