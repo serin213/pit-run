@@ -575,20 +575,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   );
                 })}
 
-                {/* Date labels: 첫(왼쪽) left-align, 마지막(오른쪽) right-align, 나머지 center */}
+                {/* Date labels: 모든 텍스트 cx 기준 center-align, 세로 실선과 중앙 정렬 */}
                 {visible.map((row, i) => {
                   const cx = dotXs[i] ?? windowW / 2;
-                  const isNewest = i === visible.length - 1;
-                  const isOldest = i === 0;
-                  const labelStyle = isNewest
-                    ? { left: cx, width: 64, textAlign: 'left' as const }
-                    : isOldest
-                    ? { left: cx - 64, width: 64, textAlign: 'right' as const }
-                    : { left: cx - 32, width: 64, textAlign: 'center' as const };
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', top: barH + 8, ...labelStyle }]}
+                      style={[s.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64 }]}
                     >
                       {row.label}
                     </Text>
