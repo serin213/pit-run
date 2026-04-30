@@ -38,7 +38,7 @@ const FLAG_ICON = require('../../assets/race-flag.png');
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
-const FIGMA_STATUS = 59;
+const FIGMA_STATUS = 62;
 
 // ─── RaceScreen ──────────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     <View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C' }]}>
 
       {/* ── "Race" 타이틀 ── */}
-      <Text style={[s.title, { left: 24, top: py(83) }]}>Race</Text>
+      <Text style={[s.title, { left: 24, top: py(86) }]}>Race</Text>
 
       {/* ── Practice 카드 ── */}
       <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 16 }}>

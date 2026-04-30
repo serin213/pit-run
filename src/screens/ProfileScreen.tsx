@@ -61,7 +61,7 @@ const GRADE_BADGES: Record<string, ReturnType<typeof require>> = {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const FIGMA_STATUS = 59;
+const FIGMA_STATUS = 84;
 const APP_VERSION: string = (
   require('../../app.json') as { expo: { version: string } }
 ).expo.version;
@@ -172,7 +172,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const cardW = windowW - 40;
   const cardSvgW = cardW + 4; // +4 for 2px stroke bleed per side
   const CARD_SVG_H = 393;     // fixed viewBox height
-  const cardTop = py(83);
+  const cardTop = py(108);
   const cardPath = makeCardPath(cardW);
 
   // ─── Grade badge ──────────────────────────────────────────────────────────

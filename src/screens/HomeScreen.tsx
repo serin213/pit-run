@@ -193,7 +193,7 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
-const FIGMA_STATUS = 59;
+const FIGMA_STATUS = 84;
 const FIGMA_TAB_H = 98;
 const FIGMA_SAFE_BOTTOM = 34;
 
@@ -428,7 +428,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* ── 불꽃 아이콘 ── */}
       <Image
         source={FLAME_ICON}
-        style={{ position: 'absolute', left: 32, top: py(83), width: 36, height: 43 }}
+        style={{ position: 'absolute', left: 32, top: py(108), width: 36, height: 43 }}
         resizeMode="contain"
       />
 
