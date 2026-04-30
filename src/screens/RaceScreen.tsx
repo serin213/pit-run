@@ -78,7 +78,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
       slideAnim.setValue(24);
       fadeAnim.setValue(0);
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: 0, duration: 280, easing: Easing.bezier(0.25, 0.46, 0.45, 0.94), useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.timing(fadeAnim,  { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
     }, [slideAnim, fadeAnim]),
