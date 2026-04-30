@@ -475,7 +475,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           ...radius.md,
         }}
       >
-        {calExpanded ? (
+        {/* 두 컴포넌트를 항상 mount — unmount/remount 시 GradientCardBorder flash 방지 */}
+        <View style={{ flex: 1, display: calExpanded ? 'none' : 'flex' }}>
+          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
+        </View>
+        <View style={{ flex: 1, display: calExpanded ? 'flex' : 'none' }}>
           <MonthGrid
             today={todayISO}
             activitySet={activitySet}
@@ -485,9 +489,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             onPrev={() => setMonthOffset((o) => o - 1)}
             onNext={() => setMonthOffset((o) => o + 1)}
           />
-        ) : (
-          <WeekStrip today={todayISO} activitySet={activitySet} qualifyingSet={qualifyingSet} colX={colX} />
-        )}
+        </View>
       </Animated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
