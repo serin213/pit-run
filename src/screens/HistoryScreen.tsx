@@ -695,7 +695,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         )}
 
         {/* ── 5. 이번 달 불 아이콘 그룹 ── */}
-        <View style={[s.flameGroup, { marginTop: 52, marginLeft: SIDE_PAD }]}>
+        <View style={[s.flameGroup, { marginTop: 52, marginLeft: 26 }]}>
           <Image source={FLAME_ICON} style={s.flameIcon} resizeMode="contain" />
           <View style={s.flameTextCol}>
             <Text style={s.flameLabel}>THIS MONTH</Text>
@@ -835,7 +835,7 @@ const s = StyleSheet.create({
     height: 43,
   },
   flameTextCol: {
-    marginLeft: 12,
+    marginLeft: 10,
     flexDirection: 'column',
   },
   flameLabel: {
