@@ -148,7 +148,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         {/* ── 1. 트로피 + 레이서 정보 ── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginHorizontal: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
           <Image source={trophySource} style={{ width: 40, height: 42 }} resizeMode="contain" />
           <View style={{ marginLeft: 10 }}>
             <Text style={s.racerNumber}>#{profile.raceNumber}</Text>
