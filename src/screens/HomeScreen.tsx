@@ -447,12 +447,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       />
 
       {/* ── THIS WEEK / THIS MONTH ── */}
-      <Text style={[s.onTrack, { left: 80, top: py(105) }]}>
+      <Text style={[s.onTrack, { left: 70, top: py(105) }]}>
         {calExpanded ? 'THIS MONTH' : 'THIS WEEK'}
       </Text>
 
       {/* ── n.nn km ── */}
-      <View style={[s.streakDaysWrap, { left: 80, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
+      <View style={[s.streakDaysWrap, { left: 70, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
         <Text style={s.streakNum}>{fmtDist(calExpanded ? monthDistKm : weekDistKm)}</Text>
         <Text style={s.streakDistUnit}> km</Text>
       </View>
