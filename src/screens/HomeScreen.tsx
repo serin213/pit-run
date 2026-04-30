@@ -47,7 +47,7 @@ import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logSessionStarted } from '../lib/analytics/raceEvents';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
-import { GRADE_ORDER } from '../constants/grade';
+import { GRADE_COLORS, GRADE_LABELS, GRADE_ORDER } from '../constants/grade';
 import type { QualifyingGrade } from '../types';
 import { fetchSessions } from '../api/sessions';
 import { fmtDist } from '../utils/format';
@@ -76,21 +76,6 @@ const RENEWAL_TROPHY_IMAGES: Record<QualifyingGrade, ReturnType<typeof require>>
 
 // ─── Grade renewal helpers ────────────────────────────────────────────────────
 
-const GRADE_COLORS: Record<QualifyingGrade, string> = {
-  f3: '#FFFFFF',
-  f2: '#FCB827',
-  f1_rookie: '#59B345',
-  f1: '#8528C5',
-  f1_champion: '#E03A3E',
-};
-
-const GRADE_LABELS: Record<QualifyingGrade, string> = {
-  f3: 'F3',
-  f2: 'F2',
-  f1_rookie: 'F1 ROOKIE',
-  f1: 'F1',
-  f1_champion: 'F1 CHAMPION',
-};
 
 const RENEWAL_SUGGEST_DAYS = 30;
 
