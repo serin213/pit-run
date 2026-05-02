@@ -32,6 +32,7 @@ import { useAuthStore } from '../store/authStore';
 import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
 import { selectCommentary } from '../lib/commentary/selectCommentary';
+import { GRADE_COLORS } from '../constants/grade';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -924,7 +925,7 @@ const styles = StyleSheet.create({
   fastestIconBox: {
     width: 38,
     height: 38,
-    backgroundColor: '#8528C5',
+    backgroundColor: GRADE_COLORS.f1,
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
     borderTopRightRadius: 0,
@@ -939,7 +940,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
-    color: '#8528C5',
+    color: GRADE_COLORS.f1,
   },
   tooltipPace: {
     fontFamily: 'Formula1-Regular',
