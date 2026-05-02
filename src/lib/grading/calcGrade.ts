@@ -1,3 +1,5 @@
+import { calculateGrade } from '../../core/qualifying';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Grade = 'f3' | 'f2' | 'f1_rookie' | 'f1' | 'f1_champion';
@@ -31,30 +33,30 @@ export const GRADE_TIERS: readonly GradeTier[] = [
   {
     grade: 'f1_champion',
     minPaceSec: 0,
-    maxPaceSec: 220,
+    maxPaceSec: 240,
     targetPercentile: { min: 0, max: 5 },
   },
   {
     grade: 'f1',
-    minPaceSec: 220,
-    maxPaceSec: 250,
+    minPaceSec: 240,
+    maxPaceSec: 270,
     targetPercentile: { min: 5, max: 20 },
   },
   {
     grade: 'f1_rookie',
-    minPaceSec: 250,
-    maxPaceSec: 285,
+    minPaceSec: 270,
+    maxPaceSec: 330,
     targetPercentile: { min: 20, max: 38 },
   },
   {
     grade: 'f2',
-    minPaceSec: 285,
-    maxPaceSec: 345,
+    minPaceSec: 330,
+    maxPaceSec: 390,
     targetPercentile: { min: 38, max: 72 },
   },
   {
     grade: 'f3',
-    minPaceSec: 345,
+    minPaceSec: 390,
     maxPaceSec: null,
     targetPercentile: { min: 72, max: 100 },
   },
@@ -72,25 +74,12 @@ export const CHAMPION_PERCENTILE_CAP = 5;
 
 // ─── Functions ────────────────────────────────────────────────────────────────
 
-/**
- * 1km 퀄리파잉 페이스(sec/km)로 등급 산정.
- * GRADE_TIERS를 빠른 등급부터 순회하여 [minPaceSec, maxPaceSec) 구간에 맞는 등급 반환.
- */
+/** 1km 퀄리파잉 페이스(sec/km)로 등급 산정. 기준은 core/qualifying.ts 단일 진실 공급원. */
 export function calcGradeFromPace(qualifyingTime1km: number): Grade {
   if (qualifyingTime1km <= 0) {
     throw new Error('Invalid qualifying time');
   }
-
-  for (const tier of GRADE_TIERS) {
-    const aboveMin = qualifyingTime1km >= tier.minPaceSec;
-    const belowMax = tier.maxPaceSec === null || qualifyingTime1km < tier.maxPaceSec;
-    if (aboveMin && belowMax) {
-      return tier.grade;
-    }
-  }
-
-  // GRADE_TIERS가 올바르면 여기까지 오지 않음 (f3의 maxPaceSec이 null)
-  return 'f3';
+  return calculateGrade(qualifyingTime1km * 1000);
 }
 
 /**
