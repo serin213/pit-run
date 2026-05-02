@@ -2,7 +2,8 @@
 
 export type Tire = 'soft' | 'medium' | 'hard';
 
-export type Grade = 'f3' | 'f2' | 'f1_rookie' | 'f1' | 'f1_champion';
+import type { Grade } from '../../types/qualifying';
+export type { Grade };
 
 export type Circuit = {
   id: string;

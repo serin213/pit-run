@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BlurView } from 'expo-blur';
+import { BlurView } from '../platform/blur';
 import {
   Animated,
   Pressable,

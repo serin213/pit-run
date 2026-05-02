@@ -5,6 +5,8 @@ export type QualifyingGrade =
   | 'f2'
   | 'f3';
 
+export type Grade = QualifyingGrade;
+
 export type QualifyingResult = {
   warmupMinutes: number;
   oneKmMs: number;

@@ -14,7 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { BlurView } from '../platform/blur';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
   Defs,

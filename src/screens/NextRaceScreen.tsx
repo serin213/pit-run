@@ -1,5 +1,5 @@
 import React, { useId, useMemo } from 'react';
-import { BlurView } from 'expo-blur';
+import { BlurView } from '../platform/blur';
 import {
   ScrollView,
   StyleSheet,

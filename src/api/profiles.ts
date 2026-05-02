@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withRetry } from './client';
 
 export type ProfileRow = {
   user_id: string;
@@ -11,15 +11,17 @@ export type ProfileRow = {
 
 /** 현재 로그인 유저의 프로필 조회 */
 export async function fetchProfile(): Promise<ProfileRow | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .single();
-  if (error) {
-    if (error.code === 'PGRST116') return null; // not found
-    throw error;
-  }
-  return data;
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') return null; // not found
+      throw error;
+    }
+    return data;
+  });
 }
 
 /** 프로필 upsert (회원가입 직후 or 수정) */
@@ -31,11 +33,13 @@ export async function upsertProfile(fields: {
   const userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .upsert({ user_id: userId, ...fields })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert({ user_id: userId, ...fields })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  });
 }
