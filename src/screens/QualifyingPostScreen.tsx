@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import LottieView from 'lottie-react-native';
+import LottieView, { type AnimationObject } from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import GradientCtaButton from '../components/GradientCtaButton';
@@ -57,7 +57,7 @@ const GLOBE = require('../../assets/qualifying/globe.png');
 
 // ─── Grade-specific Lottie sources ───────────────────────────────────────────
 
-const LOTTIE_SOURCE: Record<QualifyingGrade, object> = {
+const LOTTIE_SOURCE: Record<QualifyingGrade, AnimationObject> = {
   f3:          require('../../assets/qualifying/lottie/f3.json'),
   f2:          require('../../assets/qualifying/lottie/f2.json'),
   f1_rookie:   require('../../assets/qualifying/lottie/f1-rookie.json'),
@@ -172,7 +172,7 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         style={[styles.globeWrap, { top: safeTop + 291 }]}
         pointerEvents="none"
       >
-        <Image source={GLOBE} style={styles.globe} resizeMode="contain" opacity={0.5} />
+        <Image source={GLOBE} style={[styles.globe, { opacity: 0.5 }]} resizeMode="contain" />
       </View>
 
       {/* 하단 그라데이션 — globe 하단 페이드 + CTA 배경 */}
