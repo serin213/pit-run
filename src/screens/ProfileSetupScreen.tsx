@@ -7,7 +7,7 @@ import { radius } from '../constants/radius';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
 import { upsertProfile } from '../api/profiles';
-import { supabase } from '../api/client';
+import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 
@@ -347,9 +347,9 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 race_number: normalizedNumber,
                 accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,
               }).catch(() => {});
-              supabase.auth.getUser().then(({ data }) => {
-                if (data.user?.id) {
-                  logOnboardingCompleted({ userId: data.user.id }).catch(() => {});
+              getCurrentUser().then((user) => {
+                if (user?.id) {
+                  logOnboardingCompleted({ userId: user.id }).catch(() => {});
                 }
               }).catch(() => {});
               navigation.replace('Home');

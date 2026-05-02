@@ -1,6 +1,6 @@
 import React, { useCallback, useId, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { BlurView } from '../platform/blur';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient as SvgLG, Path, Rect, Stop } from 'react-native-svg';
