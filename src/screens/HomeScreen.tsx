@@ -187,8 +187,8 @@ function StartButton({ posStyle, onPress }: { posStyle: object; onPress: () => v
     <Pressable
       style={posStyle}
       onPress={onPress}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, friction: 7, tension: 200 }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 7, tension: 200 }).start()}
+      onPressIn={() => Animated.timing(scale, { toValue: 0.95, duration: 80, useNativeDriver: true }).start()}
+      onPressOut={() => Animated.timing(scale, { toValue: 1, duration: 80, useNativeDriver: true }).start()}
     >
       <Animated.View style={[s2.startBtn, { transform: [{ scale }] }]}>
         <Text style={s2.startBtnTxt}>START</Text>
