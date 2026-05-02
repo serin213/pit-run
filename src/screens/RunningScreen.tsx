@@ -9,7 +9,7 @@ import { useGPS } from '../hooks/useGPS';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { getDriverCode, getDriverDisplayName } from '../utils/driverCode';
 import { COLORS } from '../constants/colors';
-import { CIRCUIT_KM } from '../constants/tires';
+import { DEFAULT_CIRCUIT_KM as CIRCUIT_KM } from '../config/circuits';
 import PauseButton from '../components/PauseButton';
 import StopButton from '../components/StopButton';
 import PlayButton from '../components/PlayButton';
