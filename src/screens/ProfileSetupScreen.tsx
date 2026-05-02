@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
@@ -10,26 +10,14 @@ import { upsertProfile } from '../api/profiles';
 import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
+import { useProfileValidation } from '../hooks/useProfileValidation';
 
 const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF'] as const;
-const NAME_MAX_LEN = 20;
-const RACER_NUMBER_MAX_LEN = 5;
 const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 
-function toDriverNameCase(value: string) {
-  return value
-    .split(/(\s+)/)
-    .map((part) => {
-      if (/^\s+$/.test(part)) return part;
-      if (!part) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join('');
-}
-
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
-  const { profile: initialProfile, setProfile } = useAppStore();
+  const { setProfile } = useAppStore();
   const { width: windowW } = useWindowDimensions();
   const contentWidth = Math.max(0, windowW - 40);
   const ctaContainerH = 164;
@@ -37,148 +25,18 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
   const nameRef = useRef<TextInput | null>(null);
   const numberRef = useRef<TextInput | null>(null);
 
-  const [displayName, setDisplayName] = useState('');
-  const [raceNumber, setRaceNumber] = useState('');
-  const [teamColor, setTeamColor] = useState<string | null>(null);
-  const [focusedField, setFocusedField] = useState<'name' | 'number' | null>('name');
-  const [nameBlurredOnce, setNameBlurredOnce] = useState(false);
-  const [nameFlashError, setNameFlashError] = useState('');
-  const [numberFlashError, setNumberFlashError] = useState('');
-  const nameErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const numberErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const nameShakeX = useRef(new Animated.Value(0)).current;
-  const numberShakeX = useRef(new Animated.Value(0)).current;
-  const nameFocusSpread = useRef(new Animated.Value(0)).current;
-  const numberFocusSpread = useRef(new Animated.Value(0)).current;
-
-  const trimmedName = useMemo(() => displayName.trim(), [displayName]);
-  const nameLetterCount = useMemo(() => trimmedName.replace(/\s+/g, '').length, [trimmedName]);
-  const normalizedNumber = useMemo(() => raceNumber.trim(), [raceNumber]);
-
-  const isNameValid = nameLetterCount >= 3 && trimmedName.length > 0;
-  const isNumberValid = normalizedNumber.length >= 1;
-  const isColorValid = !!teamColor;
-  const canSubmit = isNameValid && isNumberValid && isColorValid;
-
-  const nameError = useMemo(() => {
-    if (nameBlurredOnce && trimmedName.length > 0 && nameLetterCount < 3) return 'Use at least 3 English letters.';
-    if (nameFlashError) return nameFlashError;
-    return '';
-  }, [nameBlurredOnce, nameFlashError, nameLetterCount, trimmedName.length]);
-
-  const numberError = useMemo(() => {
-    if (numberFlashError) return numberFlashError;
-    return '';
-  }, [numberFlashError]);
+  const {
+    displayName, raceNumber, teamColor, setTeamColor,
+    trimmedName, normalizedNumber, canSubmit,
+    nameError, numberError,
+    nameShakeX, numberShakeX, nameFocusSpread, numberFocusSpread,
+    onChangeName, onChangeNumber,
+    onFocusName, onBlurName, onFocusNumber, onBlurNumber,
+  } = useProfileValidation({ requireColor: true });
 
   const previewCode = useMemo(() => getDriverCode(displayName), [displayName]);
   const previewNumber = normalizedNumber || '00';
   const previewColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
-
-  const showNameFlashError = (message: string) => {
-    if (nameErrorTimerRef.current) clearTimeout(nameErrorTimerRef.current);
-    setNameFlashError(message);
-    Animated.sequence([
-      Animated.timing(nameShakeX, { toValue: -6, duration: 45, useNativeDriver: true }),
-      Animated.timing(nameShakeX, { toValue: 6, duration: 45, useNativeDriver: true }),
-      Animated.timing(nameShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
-      Animated.timing(nameShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
-      Animated.timing(nameShakeX, { toValue: 0, duration: 35, useNativeDriver: true }),
-    ]).start();
-    nameErrorTimerRef.current = setTimeout(() => {
-      setNameFlashError('');
-      nameErrorTimerRef.current = null;
-    }, 1200);
-  };
-
-  const showNumberFlashError = (message: string) => {
-    if (numberErrorTimerRef.current) clearTimeout(numberErrorTimerRef.current);
-    setNumberFlashError(message);
-    Animated.sequence([
-      Animated.timing(numberShakeX, { toValue: -6, duration: 45, useNativeDriver: true }),
-      Animated.timing(numberShakeX, { toValue: 6, duration: 45, useNativeDriver: true }),
-      Animated.timing(numberShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
-      Animated.timing(numberShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
-      Animated.timing(numberShakeX, { toValue: 0, duration: 35, useNativeDriver: true }),
-    ]).start();
-    numberErrorTimerRef.current = setTimeout(() => {
-      setNumberFlashError('');
-      numberErrorTimerRef.current = null;
-    }, 1200);
-  };
-
-  const onChangeName = (raw: string) => {
-    const removedLeading = raw.replace(/^\s+/, '');
-    const hasInvalid = /[^A-Za-z\s]/.test(removedLeading);
-    const englishOnly = removedLeading.replace(/[^A-Za-z\s]/g, '');
-    const overLimit = englishOnly.length > NAME_MAX_LEN || removedLeading.length > NAME_MAX_LEN;
-    const truncated = englishOnly.slice(0, NAME_MAX_LEN);
-    const formatted = toDriverNameCase(truncated);
-
-    setDisplayName(formatted);
-    if (hasInvalid) showNameFlashError('Use English letters and spaces only.');
-    if (overLimit) showNameFlashError('Use up to 20 characters.');
-  };
-
-  const animateUnderlineSpread = (target: Animated.Value, focused: boolean) => {
-    Animated.timing(target, {
-      toValue: focused ? 1 : 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const onFocusName = () => {
-    setFocusedField('name');
-    animateUnderlineSpread(nameFocusSpread, true);
-  };
-
-  const onBlurName = () => {
-    setFocusedField(null);
-    animateUnderlineSpread(nameFocusSpread, false);
-    setNameBlurredOnce(true);
-    setDisplayName((prev) => prev.replace(/\s+$/, ''));
-    if (trimmedName.length > 0 && nameLetterCount < 3) {
-      Animated.sequence([
-        Animated.timing(nameShakeX, { toValue: -6, duration: 45, useNativeDriver: true }),
-        Animated.timing(nameShakeX, { toValue: 6, duration: 45, useNativeDriver: true }),
-        Animated.timing(nameShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
-        Animated.timing(nameShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
-        Animated.timing(nameShakeX, { toValue: 0, duration: 35, useNativeDriver: true }),
-      ]).start();
-    }
-  };
-
-  const onChangeNumber = (raw: string) => {
-    const noWhitespace = raw.replace(/\s+/g, '');
-    const hasInvalid = /[^0-9]/.test(noWhitespace);
-    const digitsOnly = noWhitespace.replace(/[^0-9]/g, '');
-    const overLimit = digitsOnly.length > RACER_NUMBER_MAX_LEN || noWhitespace.length > RACER_NUMBER_MAX_LEN;
-    const truncated = digitsOnly.slice(0, RACER_NUMBER_MAX_LEN);
-
-    setRaceNumber(truncated);
-    if (hasInvalid) showNumberFlashError('Use digits only.');
-    if (overLimit) showNumberFlashError('Use up to 5 digits.');
-  };
-
-  const onFocusNumber = () => {
-    setFocusedField('number');
-    animateUnderlineSpread(numberFocusSpread, true);
-  };
-
-  const onBlurNumber = () => {
-    setFocusedField(null);
-    animateUnderlineSpread(numberFocusSpread, false);
-    setRaceNumber((prev) => prev.replace(/\s+$/, ''));
-  };
-
-  useEffect(
-    () => () => {
-      if (nameErrorTimerRef.current) clearTimeout(nameErrorTimerRef.current);
-      if (numberErrorTimerRef.current) clearTimeout(numberErrorTimerRef.current);
-    },
-    [],
-  );
 
   return (
     <View style={[styles.container, { paddingBottom: ctaContainerH }]}>
@@ -195,7 +53,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
               onFocus={onFocusName}
               onBlur={onBlurName}
               onSubmitEditing={() => {
-                setNameBlurredOnce(true);
+                onBlurName();
                 numberRef.current?.focus();
               }}
               autoCapitalize="words"
@@ -261,11 +119,11 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
               return (
                 <Pressable
                   key={color}
-                  onPress={() => setTeamColor((prev) => (prev === color ? null : color))}
+                  onPress={() => setTeamColor(selected ? null : color)}
                   style={[
                     styles.colorSwatch,
                     { backgroundColor: color },
-                  teamColor && !selected ? styles.colorSwatchDimmed : null,
+                    teamColor && !selected ? styles.colorSwatchDimmed : null,
                     selected && styles.colorSwatchSelected,
                   ]}
                 />
@@ -335,7 +193,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             label="MAKE DEBUT"
             enabled={canSubmit}
             onPress={() => {
-              const finalName = toDriverNameCase(trimmedName);
+              const finalName = trimmedName;
               setProfile({
                 displayName: finalName,
                 raceNumber: normalizedNumber,

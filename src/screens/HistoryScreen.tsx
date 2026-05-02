@@ -21,6 +21,7 @@ import Reanimated, {
   withTiming,
   Easing,
   useAnimatedStyle,
+  interpolate,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, {
@@ -447,22 +448,20 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     }).start();
   }, [tooltipWrapLeft, tooltipXAnim]);
 
-  // ─── Tooltip cross-fade (promotedGrade 유무 전환 시) ───────────────────────
-  const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
-  const [shownIdx, setShownIdx] = useState(selectedIdx);
-  const prevHasGradeRef = useRef(!!selected?.promotedGrade);
+  // ─── Tooltip grade-slot reveal (등급 카드 영역만 확장/축소) ─────────────────
+  const gradeReveal = useSharedValue(selected?.promotedGrade ? 1 : 0);
   useEffect(() => {
-    const hasGrade = !!visible[selectedIdx]?.promotedGrade;
-    if (hasGrade !== prevHasGradeRef.current) {
-      prevHasGradeRef.current = hasGrade;
-      Animated.timing(tooltipFadeAnim, { toValue: 0, duration: 80, useNativeDriver: true }).start(() => {
-        setShownIdx(selectedIdx);
-        Animated.timing(tooltipFadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-      });
-    } else {
-      setShownIdx(selectedIdx);
-    }
-  }, [selectedIdx, visible, tooltipFadeAnim]);
+    gradeReveal.value = withTiming(selected?.promotedGrade ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [selected?.promotedGrade]);
+
+  const gradeSlotStyle = useAnimatedStyle(() => ({
+    width: interpolate(gradeReveal.value, [0, 1], [0, RACER_CARD_W + 6]),
+    opacity: gradeReveal.value,
+    transform: [{ translateX: interpolate(gradeReveal.value, [0, 1], [-6, 0]) }],
+  }));
 
   // ─── History cards ────────────────────────────────────────────────────────
   const historySorted = useMemo(
@@ -529,7 +528,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             {/* 그래프 영역: 높이 238 */}
             <View style={{ width: windowW, marginTop: 12, height: 238 }}>
               {selected && (() => {
-                const shownSelected = visible[shownIdx] ?? selected;
                 const shownTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
                 return (
                   <Animated.View
@@ -537,16 +535,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
                   >
                     <View style={s.tooltipColumn}>
-                      <Animated.View style={[s.tooltipBubble, { opacity: tooltipFadeAnim }]}>
-                        {shownSelected.promotedGrade && RACER_CARD_IMAGES[shownSelected.promotedGrade] ? (
-                          <Image
-                            source={RACER_CARD_IMAGES[shownSelected.promotedGrade]}
-                            style={{ width: RACER_CARD_W, height: RACER_CARD_H, marginRight: 6 }}
-                            resizeMode="contain"
-                          />
-                        ) : null}
-                        <Text style={s.tooltipPace}>{fmtPace(shownSelected.paceSec)}</Text>
-                      </Animated.View>
+                      <View style={s.tooltipBubble}>
+                        <Reanimated.View style={[s.tooltipGradeSlot, gradeSlotStyle]}>
+                          {selected.promotedGrade && RACER_CARD_IMAGES[selected.promotedGrade] ? (
+                            <Image
+                              source={RACER_CARD_IMAGES[selected.promotedGrade]}
+                              style={{ width: RACER_CARD_W, height: RACER_CARD_H }}
+                              resizeMode="contain"
+                            />
+                          ) : null}
+                        </Reanimated.View>
+                        <Text style={s.tooltipPace}>{fmtPace(selected.paceSec)}</Text>
+                      </View>
                       <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: shownTailShift }]}>
                         <Path
                           d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
@@ -913,6 +913,11 @@ const s = StyleSheet.create({
     paddingBottom: 7,
     backgroundColor: 'rgba(224,58,62,0.15)',
     borderRadius: 12,
+  },
+  tooltipGradeSlot: {
+    overflow: 'hidden',
+    marginRight: 0,
+    justifyContent: 'center',
   },
   tooltipTailSvg: {
     marginTop: 0,
