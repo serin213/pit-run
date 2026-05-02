@@ -1,11 +1,7 @@
 import { supabase } from './client';
+import type { IntervalSegment } from '../core/intervals';
 
-export type IntervalSegment = {
-  type: 'run' | 'recovery' | 'warmup' | 'cooldown';
-  distanceM?: number;
-  durationSec?: number;
-  targetPaceSecPerKm?: number;
-};
+export type { IntervalSegment };
 
 export type PlanRow = {
   id: string;
