@@ -28,10 +28,11 @@ export function useGPS(enabled: boolean) {
     }
 
     let sub: LocationSubscription | null = null;
+    let cancelled = false;
 
     (async () => {
       const granted = await requestForegroundPermission();
-      if (!granted) return;
+      if (!granted || cancelled) return;
 
       setGpsEnabled(true);
 
@@ -48,9 +49,13 @@ export function useGPS(enabled: boolean) {
         }
         prevCoordsRef.current = coords;
       });
+
+      // watchPosition 완료 전에 cleanup이 실행된 경우
+      if (cancelled) sub?.remove();
     })();
 
     return () => {
+      cancelled = true;
       sub?.remove();
     };
   }, [enabled, isRunning, isPaused, setGpsEnabled]);

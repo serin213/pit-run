@@ -14,7 +14,11 @@ export function useSyncOnLogin() {
   const syncedRef = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || syncedRef.current) return;
+    if (!isAuthenticated) {
+      syncedRef.current = false;
+      return;
+    }
+    if (syncedRef.current) return;
     syncedRef.current = true;
 
     (async () => {
