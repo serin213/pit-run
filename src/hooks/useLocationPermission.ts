@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform } from 'react-native';
-import * as Location from 'expo-location';
-
-type PermissionStatus = 'undetermined' | 'granted' | 'denied';
+import {
+  getForegroundPermissionStatus,
+  requestForegroundPermission,
+  type LocationPermissionStatus as PermissionStatus,
+} from '../platform/location';
 
 let _cachedStatus: PermissionStatus = 'undetermined';
 
@@ -18,9 +20,7 @@ export function useLocationPermission(opts?: { requestOnMount?: boolean }) {
   const didRequestRef = useRef(false);
 
   const checkStatus = useCallback(async () => {
-    const { status: s } = await Location.getForegroundPermissionsAsync();
-    const mapped: PermissionStatus =
-      s === 'granted' ? 'granted' : s === 'denied' ? 'denied' : 'undetermined';
+    const mapped = await getForegroundPermissionStatus();
     _cachedStatus = mapped;
     setStatus(mapped);
     return mapped;
@@ -32,8 +32,8 @@ export function useLocationPermission(opts?: { requestOnMount?: boolean }) {
       const current = await checkStatus();
       if (opts?.requestOnMount && current === 'undetermined' && !didRequestRef.current) {
         didRequestRef.current = true;
-        const { status: s } = await Location.requestForegroundPermissionsAsync();
-        const mapped: PermissionStatus = s === 'granted' ? 'granted' : 'denied';
+        const granted = await requestForegroundPermission();
+        const mapped: PermissionStatus = granted ? 'granted' : 'denied';
         _cachedStatus = mapped;
         setStatus(mapped);
       }
@@ -51,11 +51,11 @@ export function useLocationPermission(opts?: { requestOnMount?: boolean }) {
 
     // undetermined: 아직 한번도 안 물어봤으면 요청
     if (current === 'undetermined') {
-      const { status: s } = await Location.requestForegroundPermissionsAsync();
-      const mapped: PermissionStatus = s === 'granted' ? 'granted' : 'denied';
+      const granted = await requestForegroundPermission();
+      const mapped: PermissionStatus = granted ? 'granted' : 'denied';
       _cachedStatus = mapped;
       setStatus(mapped);
-      return mapped === 'granted';
+      return granted;
     }
 
     // denied: 설정 앱으로 안내

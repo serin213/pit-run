@@ -23,6 +23,16 @@ export type LocationSubscription = {
   remove: () => void;
 };
 
+export type LocationPermissionStatus = 'granted' | 'denied' | 'undetermined';
+
+/** 현재 foreground 위치 권한 상태 조회 (팝업 없음) */
+export async function getForegroundPermissionStatus(): Promise<LocationPermissionStatus> {
+  const { status } = await Location.getForegroundPermissionsAsync();
+  if (status === 'granted') return 'granted';
+  if (status === 'denied') return 'denied';
+  return 'undetermined';
+}
+
 /** 위치 권한 요청 (foreground) */
 export async function requestForegroundPermission(): Promise<boolean> {
   const { status } = await Location.requestForegroundPermissionsAsync();
