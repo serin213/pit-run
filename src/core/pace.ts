@@ -5,8 +5,9 @@
 
 /** sec/km 페이스를 "M'SS\"" 형식 문자열로 변환 */
 export function formatPace(paceSecPerKm: number): string {
-  const min = Math.floor(paceSecPerKm / 60);
-  const sec = Math.round(paceSecPerKm % 60);
+  let min = Math.floor(paceSecPerKm / 60);
+  let sec = Math.round(paceSecPerKm % 60);
+  if (sec === 60) { min += 1; sec = 0; }
   return `${min}'${sec < 10 ? '0' : ''}${sec}"`;
 }
 
