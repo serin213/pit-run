@@ -259,7 +259,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase]);
 
   return (
-    <View style={st.container}>
+    <View style={styles.container}>
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: backgroundOpacity }]}>
       <ScreenHeader
         safeTop={safeTop}
@@ -272,7 +272,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         statusOpacity={statusTextOpacity}
       />
 
-      <View style={[st.distCenterWrap, { top: distTop, left: DIST_LEFT, right: DIST_LEFT }]}>
+      <View style={[styles.distCenterWrap, { top: distTop, left: DIST_LEFT, right: DIST_LEFT }]}>
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -283,7 +283,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             if (w > 0 && Math.abs(w - distRenderWidth) > 0.5) setDistRenderWidth(w);
             if (w > 0 && Math.abs(w - distanceWidth) > 0.5) setDistanceWidth(w);
           }}
-          style={[st.dist, { color: displayTheme.start, fontSize: 120, lineHeight: distLineHeight, alignSelf: 'center' }]}
+          style={[styles.dist, { color: displayTheme.start, fontSize: 120, lineHeight: distLineHeight, alignSelf: 'center' }]}
         >
           {fmtDist(distKm)}
         </Text>
@@ -293,7 +293,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         numberOfLines={1}
         allowFontScaling={false}
         style={[
-          st.hiddenMeasure,
+          styles.hiddenMeasure,
           {
             fontFamily: 'Formula1-Black',
             fontSize: 130.2486572265625,
@@ -308,19 +308,19 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 
       {distanceWidth > 0 && (
         <View style={{ position: 'absolute', top: statsLabelTop, width: distanceWidth, alignSelf: 'center' }}>
-          <Text style={[st.lbl, { left: 0, top: 0, fontSize: 13, lineHeight: 13 }]}>TIME</Text>
-          <Text style={[st.val, { left: 0, top: statsValueTop - statsLabelTop, fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}>{fmtTime(elapsedMs)}</Text>
+          <Text style={[styles.lbl, { left: 0, top: 0, fontSize: 13, lineHeight: 13 }]}>TIME</Text>
+          <Text style={[styles.val, { left: 0, top: statsValueTop - statsLabelTop, fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}>{fmtTime(elapsedMs)}</Text>
           <View style={{ position: 'absolute', right: 0, top: 0, alignItems: 'flex-start' }}>
-            <Text style={[st.lbl, { position: 'relative', fontSize: 13, lineHeight: 13, marginLeft: 1 }]}>PACE</Text>
+            <Text style={[styles.lbl, { position: 'relative', fontSize: 13, lineHeight: 13, marginLeft: 1 }]}>PACE</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: baseValueGap }}>
-              <Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
+              <Text allowFontScaling={false} style={[styles.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
                 {paceValue.split("'")[0]}
               </Text>
-              <View><Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{"'"}</Text></View>
-              <Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
+              <View><Text allowFontScaling={false} style={[styles.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{"'"}</Text></View>
+              <Text allowFontScaling={false} style={[styles.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: ['tabular-nums'] }]}>
                 {(paceValue.split("'")[1] ?? '').replace('"', '')}
               </Text>
-              <View><Text allowFontScaling={false} style={[st.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{'"'}</Text></View>
+              <View><Text allowFontScaling={false} style={[styles.val, { position: 'relative', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT, fontVariant: undefined }]}>{'"'}</Text></View>
             </View>
           </View>
         </View>
@@ -333,7 +333,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           const w = e.nativeEvent.layout.width;
           if (w > 0 && Math.abs(w - paceMaxWidth) > 0.5) setPaceMaxWidth(w);
         }}
-        style={[st.hiddenMeasure, { fontFamily: 'Formula1-Bold', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}
+        style={[styles.hiddenMeasure, { fontFamily: 'Formula1-Bold', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}
       >
         {PACE_FIT_SAMPLE}
       </Text>
@@ -345,7 +345,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           const w = e.nativeEvent.layout.width;
           if (w > 0 && Math.abs(w - paceCurrentWidth) > 0.5) setPaceCurrentWidth(w);
         }}
-        style={[st.hiddenMeasure, { fontFamily: 'Formula1-Bold', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}
+        style={[styles.hiddenMeasure, { fontFamily: 'Formula1-Bold', fontSize: 30, lineHeight: STAT_VALUE_LINE_HEIGHT }]}
       >
         {paceValue}
       </Text>
@@ -388,40 +388,40 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       </View>
 
       {SHOW_DEBUG_SECTOR_SWITCH && (
-        <View style={st.debugToolsWrap}>
-          <Pressable onPress={triggerBoxBox} style={st.debugBoxBoxBtn}>
-            <Text style={st.debugBoxBoxTxt}>BOX</Text>
+        <View style={styles.debugToolsWrap}>
+          <Pressable onPress={triggerBoxBox} style={styles.debugBoxBoxBtn}>
+            <Text style={styles.debugBoxBoxTxt}>BOX</Text>
           </Pressable>
-          <Pressable onPress={() => setSector('yellow')} style={[st.debugSectorBtn, { backgroundColor: BTN_BG.yellow }]}>
-            <Text style={st.debugSectorTxt}>Y</Text>
+          <Pressable onPress={() => setSector('yellow')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.yellow }]}>
+            <Text style={styles.debugSectorTxt}>Y</Text>
           </Pressable>
-          <Pressable onPress={() => setSector('purple')} style={[st.debugSectorBtn, { backgroundColor: BTN_BG.purple }]}>
-            <Text style={st.debugSectorTxt}>P</Text>
+          <Pressable onPress={() => setSector('purple')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.purple }]}>
+            <Text style={styles.debugSectorTxt}>P</Text>
           </Pressable>
-          <Pressable onPress={() => setSector('green')} style={[st.debugSectorBtn, { backgroundColor: BTN_BG.green }]}>
-            <Text style={st.debugSectorTxt}>G</Text>
+          <Pressable onPress={() => setSector('green')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.green }]}>
+            <Text style={styles.debugSectorTxt}>G</Text>
           </Pressable>
         </View>
       )}
 
       {SHOW_DEBUG_CIRCUIT_SWITCH && (
-        <View style={st.debugCircuitWrap}>
+        <View style={styles.debugCircuitWrap}>
           <Pressable
             onPress={() => setDebugCircuitIdx((i) => (i - 1 + CIRCUITS.length) % CIRCUITS.length)}
-            style={st.debugCircuitArrow}
+            style={styles.debugCircuitArrow}
             hitSlop={8}
           >
-            <Text style={st.debugCircuitArrowTxt}>◀</Text>
+            <Text style={styles.debugCircuitArrowTxt}>◀</Text>
           </Pressable>
-          <Text style={st.debugCircuitName} numberOfLines={1}>
+          <Text style={styles.debugCircuitName} numberOfLines={1}>
             {activeCircuit?.displayName ?? '—'}
           </Text>
           <Pressable
             onPress={() => setDebugCircuitIdx((i) => (i + 1) % CIRCUITS.length)}
-            style={st.debugCircuitArrow}
+            style={styles.debugCircuitArrow}
             hitSlop={8}
           >
-            <Text style={st.debugCircuitArrowTxt}>▶</Text>
+            <Text style={styles.debugCircuitArrowTxt}>▶</Text>
           </Pressable>
         </View>
       )}
@@ -456,14 +456,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
               }}
             >
               {isInPitTheme ? (
-                <Image source={IN_PIT_STOP_BUTTON} style={st.inPitControlButton} resizeMode="contain" />
+                <Image source={IN_PIT_STOP_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
                 <StopButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
               )}
             </Pressable>
             <Pressable onPress={resumeRun}>
               {isInPitTheme ? (
-                <Image source={IN_PIT_PLAY_BUTTON} style={st.inPitControlButton} resizeMode="contain" />
+                <Image source={IN_PIT_PLAY_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
                 <PlayButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
               )}
@@ -472,7 +472,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         ) : (
           <Pressable onPress={pauseRun}>
             {isInPitTheme ? (
-              <Image source={IN_PIT_PAUSE_BUTTON} style={st.inPitControlButton} resizeMode="contain" />
+              <Image source={IN_PIT_PAUSE_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
             ) : (
               <PauseButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
             )}
@@ -493,7 +493,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

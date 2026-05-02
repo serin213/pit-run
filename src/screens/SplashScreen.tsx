@@ -52,7 +52,7 @@ export default function SplashScreen({ grade }: Props) {
   const topGap = (windowH - imageH - 40) / 2;
 
   return (
-    <View style={s.container}>
+    <View style={styles.container}>
       <View style={{ marginTop: topGap, alignItems: 'center' }}>
         {grade ? (
           // ── 등급 있는 유저: trophy + confetti ──
@@ -95,7 +95,7 @@ export default function SplashScreen({ grade }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

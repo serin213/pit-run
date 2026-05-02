@@ -65,22 +65,22 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
 
 
   return (
-    <View style={[s.root, { paddingBottom: ctaContainerH }]}>
+    <View style={[styles.root, { paddingBottom: ctaContainerH }]}>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[s.scrollContent, { paddingTop: safeTop + 63 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: safeTop + 63 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Title */}
-        <Text style={s.title}>Edit Profile</Text>
+        <Text style={styles.title}>Edit Profile</Text>
 
-        <View style={s.formWrap}>
+        <View style={styles.formWrap}>
           {/* Name */}
-          <View style={s.fieldBlock}>
-            <Text style={s.fieldLabel}>Name</Text>
-            <View style={s.inputLineWrap}>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Name</Text>
+            <View style={styles.inputLineWrap}>
               <TextInput
                 ref={nameRef}
                 value={displayName}
@@ -97,18 +97,18 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 returnKeyType="next"
                 selectionColor="#FFFFFF"
                 placeholder=""
-                style={[s.inputText, s.inputNoOutline]}
+                style={[styles.inputText, styles.inputNoOutline]}
               />
               <Animated.View
                 style={[
-                  s.inputUnderlineTrack,
+                  styles.inputUnderlineTrack,
                   { transform: [{ translateX: nameShakeX }] },
-                  nameError ? s.inputUnderlineError : null,
+                  nameError ? styles.inputUnderlineError : null,
                 ]}
               >
                 <Animated.View
                   style={[
-                    s.inputUnderlineSpread,
+                    styles.inputUnderlineSpread,
                     {
                       transform: [{ scaleX: nameFocusSpread }],
                       opacity: nameError ? 0 : nameFocusSpread,
@@ -117,13 +117,13 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 />
               </Animated.View>
             </View>
-            {!!nameError && <Text style={s.errorText}>{nameError}</Text>}
+            {!!nameError && <Text style={styles.errorText}>{nameError}</Text>}
           </View>
 
           {/* Racer Number */}
-          <View style={s.fieldBlock}>
-            <Text style={s.fieldLabel}>Racer Number</Text>
-            <View style={s.inputLineWrap}>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Racer Number</Text>
+            <View style={styles.inputLineWrap}>
               <TextInput
                 ref={numberRef}
                 value={raceNumber}
@@ -135,18 +135,18 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 returnKeyType="done"
                 selectionColor="#FFFFFF"
                 placeholder=""
-                style={[s.inputText, s.inputNoOutline]}
+                style={[styles.inputText, styles.inputNoOutline]}
               />
               <Animated.View
                 style={[
-                  s.inputUnderlineTrack,
+                  styles.inputUnderlineTrack,
                   { transform: [{ translateX: numberShakeX }] },
-                  numberError ? s.inputUnderlineError : null,
+                  numberError ? styles.inputUnderlineError : null,
                 ]}
               >
                 <Animated.View
                   style={[
-                    s.inputUnderlineSpread,
+                    styles.inputUnderlineSpread,
                     {
                       transform: [{ scaleX: numberFocusSpread }],
                       opacity: numberError ? 0 : numberFocusSpread,
@@ -155,13 +155,13 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 />
               </Animated.View>
             </View>
-            {!!numberError && <Text style={s.errorText}>{numberError}</Text>}
+            {!!numberError && <Text style={styles.errorText}>{numberError}</Text>}
           </View>
 
           {/* Team Color */}
-          <View style={s.teamSection}>
-            <Text style={s.fieldLabel}>Team Color</Text>
-            <View style={s.colorRow}>
+          <View style={styles.teamSection}>
+            <Text style={styles.fieldLabel}>Team Color</Text>
+            <View style={styles.colorRow}>
               {TEAM_COLORS.map((color) => {
                 const selected = color === teamColor;
                 return (
@@ -169,10 +169,10 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                     key={color}
                     onPress={() => setTeamColor(teamColor === color ? null : color)}
                     style={[
-                      s.colorSwatch,
+                      styles.colorSwatch,
                       { backgroundColor: color },
-                      teamColor && !selected ? s.colorSwatchDimmed : null,
-                      selected ? s.colorSwatchSelected : null,
+                      teamColor && !selected ? styles.colorSwatchDimmed : null,
+                      selected ? styles.colorSwatchSelected : null,
                     ]}
                   />
                 );
@@ -181,14 +181,14 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           </View>
 
           {/* Preview nametag */}
-          <View style={s.previewSection}>
-            <Text style={s.previewLabel}>Preview</Text>
-            <GradientCardBorder style={[s.previewBoxOuter, { width: contentWidth }]} innerStyle={s.previewBoxInner}>
-              <View style={s.previewRow}>
-                <View style={[s.previewAccent, { backgroundColor: previewColor }]} />
-                <Text style={s.previewName}>{previewCode}</Text>
+          <View style={styles.previewSection}>
+            <Text style={styles.previewLabel}>Preview</Text>
+            <GradientCardBorder style={[styles.previewBoxOuter, { width: contentWidth }]} innerStyle={styles.previewBoxInner}>
+              <View style={styles.previewRow}>
+                <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
+                <Text style={styles.previewName}>{previewCode}</Text>
               </View>
-              <Text style={s.previewNumber}>#{previewNumber}</Text>
+              <Text style={styles.previewNumber}>#{previewNumber}</Text>
             </GradientCardBorder>
           </View>
         </View>
@@ -196,7 +196,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
 
       {/* Bottom CTA */}
       <View
-        style={[s.ctaContainer, { height: ctaContainerH, paddingBottom: safeBottom + 16 }]}
+        style={[styles.ctaContainer, { height: ctaContainerH, paddingBottom: safeBottom + 16 }]}
         pointerEvents="box-none"
       >
         <Svg
@@ -244,7 +244,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#17171C',

@@ -300,21 +300,21 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const distLabelTop = barTrackTop + barH + 8;
 
   return (
-    <View style={st.container}>
+    <View style={styles.container}>
       {/* Badge + timer grouped — 8pt gap between them */}
-      <View style={[st.timerGroup, { top: badgeGroupTop }]}>
-        <View style={st.labelBadge}>
+      <View style={[styles.timerGroup, { top: badgeGroupTop }]}>
+        <View style={styles.labelBadge}>
           <Image
             source={isWarmup ? WARMUP_ICON : RUN_ICON}
             style={{ width: iconW, height: iconH }}
             resizeMode="contain"
           />
-          <Text style={st.labelBadgeText}>
+          <Text style={styles.labelBadgeText}>
             {isWarmup ? 'Warm-up' : 'Qualifying'}
           </Text>
         </View>
         <Text
-          style={[st.timerText, { fontSize: timerFontSize, marginTop: 8 }]}
+          style={[styles.timerText, { fontSize: timerFontSize, marginTop: 8 }]}
           allowFontScaling={false}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -329,7 +329,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
         <>
           <View
             style={[
-              st.barTrack,
+              styles.barTrack,
               {
                 top: barTrackTop,
                 left: barLeft,
@@ -342,7 +342,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
           {barFillW > 0 && (
             <View
               style={[
-                st.barFillWrap,
+                styles.barFillWrap,
                 { top: barTrackTop, left: barLeft, width: barFillW, height: barH, borderRadius: barH / 2 },
               ]}
             >
@@ -359,15 +359,15 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
           )}
 
           {/* Distance labels — 0km left-aligned, 1km right-aligned to bar */}
-          <View style={[st.distLabelsRow, { top: distLabelTop, left: barLeft, width: barTrackW }]}>
-            <Text style={st.distLabel} allowFontScaling={false}>0km</Text>
-            <Text style={st.distLabel} allowFontScaling={false}>1km</Text>
+          <View style={[styles.distLabelsRow, { top: distLabelTop, left: barLeft, width: barTrackW }]}>
+            <Text style={styles.distLabel} allowFontScaling={false}>0km</Text>
+            <Text style={styles.distLabel} allowFontScaling={false}>1km</Text>
           </View>
         </>
       )}
 
       {/* Bottom button — centered */}
-      <View style={[st.bottomBtnWrap, { bottom: btnBottom }]}>
+      <View style={[styles.bottomBtnWrap, { bottom: btnBottom }]}>
         {isWarmup ? (
           <TextChevronButton label="Skip" onPress={skipToQualifying} />
         ) : (
@@ -377,8 +377,8 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
 
       {/* Dev-only: finish button */}
       {__DEV__ && isQualifying && (
-        <Pressable style={st.devFinishBtn} onPress={finishOneKm}>
-          <Text style={st.devFinishTxt}>FINISH 1KM</Text>
+        <Pressable style={styles.devFinishBtn} onPress={finishOneKm}>
+          <Text style={styles.devFinishTxt}>FINISH 1KM</Text>
         </Pressable>
       )}
 
@@ -414,22 +414,22 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
   const ctaHeight = 58;
 
   return (
-    <View style={[st.container, { paddingHorizontal: hPad }]}>
+    <View style={[styles.container, { paddingHorizontal: hPad }]}>
       {/* Title — BackButton bottom (safeTop+39) + 24 gap = safeTop+63 */}
       <Text
-        style={[st.introTitle, { marginTop: insetsTop + 63 }]}
+        style={[styles.introTitle, { marginTop: insetsTop + 63 }]}
         allowFontScaling={false}
       >
         Qualifying
       </Text>
 
       {/* Subtitle — gap 12 below title */}
-      <Text style={st.introSubtitle} allowFontScaling={false}>
+      <Text style={styles.introSubtitle} allowFontScaling={false}>
         {'Earn your license.\nGet a plan made only for you.'}
       </Text>
 
       {/* Step cards — gap 36 below subtitle */}
-      <View style={[st.cardsWrap, { marginTop: 36, gap: 12 }]}>
+      <View style={[styles.cardsWrap, { marginTop: 36, gap: 12 }]}>
         <StepCard
           icon={WARMUP_ICON}
           iconW={20}
@@ -470,7 +470,7 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
 
       {/* Bottom CTA area — absolute, fade gradient + GradientCtaButton (has its own glow) */}
       <View
-        style={[st.ctaContainer, { height: ctaContainerH }]}
+        style={[styles.ctaContainer, { height: ctaContainerH }]}
         pointerEvents="box-none"
       >
         {/* Fade gradient: solid #17171C at bottom, transparent at top */}
@@ -491,7 +491,7 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
         </Svg>
 
         {/* GradientCtaButton — already includes glow internally */}
-        <View style={[st.ctaBtnWrap, { bottom: 40 }]}>
+        <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
             width={ctaWidth}
             height={ctaHeight}
@@ -552,10 +552,10 @@ function StepCard({
       }}>
         <Image source={icon} style={{ width: iconW, height: iconH }} resizeMode="contain" />
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={st.stepCardLabel} allowFontScaling={false}>
+          <Text style={styles.stepCardLabel} allowFontScaling={false}>
             {label}
           </Text>
-          <Text style={st.stepCardMeta} allowFontScaling={false}>
+          <Text style={styles.stepCardMeta} allowFontScaling={false}>
             {meta}
           </Text>
         </View>
@@ -613,33 +613,33 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, st.retireOverlay, { opacity: overlayOpacity }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, styles.retireOverlay, { opacity: overlayOpacity }]}>
       <Animated.View
         style={[
-          st.retireCard,
+          styles.retireCard,
           { borderRadius: modalRadius, transform: [{ translateY: slideAnim }], backgroundColor: 'transparent', overflow: 'hidden' },
         ]}
       >
         <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
         {/* Title — paddingTop:32 은 retireCard에 */}
-        <Text style={[st.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
+        <Text style={[styles.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
           Are you sure?
         </Text>
 
         {/* Description — title↔body: 24 */}
-        <Text style={[st.retireDescText, { paddingHorizontal: innerPad, marginTop: 24 }]} allowFontScaling={false}>
+        <Text style={[styles.retireDescText, { paddingHorizontal: innerPad, marginTop: 24 }]} allowFontScaling={false}>
           Your session will not be saved and you'll need to restart qualifying
         </Text>
 
         {/* Buttons row — body↔buttons: 32 */}
-        <View style={[st.retireBtnsRow, { marginTop: 32 }]}>
+        <View style={[styles.retireBtnsRow, { marginTop: 32 }]}>
           {/* Continue (left) */}
           <Pressable
             onPress={() => dismiss(onContinue)}
-            style={[st.retireBtn, st.retireContinueBtn, radius.sm]}
+            style={[styles.retireBtn, styles.retireContinueBtn, radius.sm]}
           >
-            <Text style={[st.retireBtnLabel, { color: '#FFFFFF' }]} allowFontScaling={false}>
+            <Text style={[styles.retireBtnLabel, { color: '#FFFFFF' }]} allowFontScaling={false}>
               Continue
             </Text>
           </Pressable>
@@ -647,9 +647,9 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
           {/* Retire (right) */}
           <Pressable
             onPress={() => dismiss(onRetire)}
-            style={[st.retireBtn, st.retireRetireBtn, radius.sm]}
+            style={[styles.retireBtn, styles.retireRetireBtn, radius.sm]}
           >
-            <Text style={[st.retireBtnLabel, { color: ACCENT }]} allowFontScaling={false}>
+            <Text style={[styles.retireBtnLabel, { color: ACCENT }]} allowFontScaling={false}>
               Retire
             </Text>
           </Pressable>
@@ -675,7 +675,7 @@ function fmtQualTime(ms: number): string {
 // Styles
 // ─────────────────────────────────────────────
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

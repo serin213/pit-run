@@ -88,7 +88,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
     <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
 
       {/* ── "Race" 타이틀 ── */}
-      <Text style={[s.title, { left: 24, top: py(86) }]}>Race</Text>
+      <Text style={[styles.title, { left: 24, top: py(86) }]}>Race</Text>
 
       {/* ── Practice 카드 ── */}
       <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 16 }}>
@@ -104,7 +104,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg1_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
-          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
           onPress={async () => {
             const granted = await ensurePermission();
             if (!granted) return;
@@ -117,8 +117,8 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
             style={{ position: 'absolute', left: 20, top: 20, width: 29, height: 33 }}
             resizeMode="contain"
           />
-          <Text style={[s.cardTitle, { top: 63 }]}>Practice</Text>
-          <Text style={[s.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
+          <Text style={[styles.cardTitle, { top: 63 }]}>Practice</Text>
+          <Text style={[styles.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
         </Pressable>
       </View>
 
@@ -136,7 +136,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg2_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
-          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
           onPress={() => {
             if (user?.id) logModeSelected({ userId: user.id, mode: 'qualifying' }).catch(() => {});
             navigation.navigate('Qualifying');
@@ -147,8 +147,8 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
             style={{ position: 'absolute', left: 20, top: 20, width: 31, height: 32 }}
             resizeMode="contain"
           />
-          <Text style={[s.cardTitle, { top: 62 }]}>Qualifying</Text>
-          <Text style={[s.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
+          <Text style={[styles.cardTitle, { top: 62 }]}>Qualifying</Text>
+          <Text style={[styles.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
         </Pressable>
       </View>
 
@@ -166,7 +166,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg3_${idBase}_${svgKey})`} strokeWidth={0.5} />
         </Svg>
         <Pressable
-          style={[s.cardInner, { flex: 1, margin: 0.5 }]}
+          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
           onPress={() => {
             if (user?.id) logModeSelected({ userId: user.id, mode: 'grand_prix' }).catch(() => {});
             navigation.navigate('Setup');
@@ -177,8 +177,8 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
             style={{ position: 'absolute', left: 20, top: 20, width: 36, height: 36 }}
             resizeMode="contain"
           />
-          <Text style={[s.cardTitle, { top: 66 }]}>Grand Prix</Text>
-          <Text style={[s.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
+          <Text style={[styles.cardTitle, { top: 66 }]}>Grand Prix</Text>
+          <Text style={[styles.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
         </Pressable>
       </View>
 
@@ -206,7 +206,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   title: {
     position: 'absolute',
     fontFamily: 'Formula1-Black',

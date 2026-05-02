@@ -288,7 +288,7 @@ export default function CircuitMap({
   }, [drawn, endColor, hasAnchors, startColor, startLen, totalSpan]);
 
   return (
-    <View style={s.wrap}>
+    <View style={styles.wrap}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${vbW} ${vbH}`} preserveAspectRatio="xMidYMid meet">
         <Path d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={5} strokeMiterlimit={10} />
         {overlays?.map((o, i) => (
@@ -317,6 +317,6 @@ export default function CircuitMap({
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrap: { flex: 1 },
 });

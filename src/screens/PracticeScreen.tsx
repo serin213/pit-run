@@ -36,15 +36,15 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
   const controlsBottomPadding = Math.max(insets.bottom, 0) + CONTROLS_BOTTOM_SPACING;
 
   return (
-    <View style={st.container}>
+    <View style={styles.container}>
       {/* Badge + 거리 — Qualifying warmup 화면과 동일 레이아웃 */}
-      <View style={[st.timerGroup, { top: badgeGroupTop }]}>
-        <View style={st.labelBadge}>
+      <View style={[styles.timerGroup, { top: badgeGroupTop }]}>
+        <View style={styles.labelBadge}>
           <Image source={RUN_ICON} style={{ width: 18, height: 20 }} resizeMode="contain" />
-          <Text style={st.labelBadgeText}>Practice</Text>
+          <Text style={styles.labelBadgeText}>Practice</Text>
         </View>
         <Text
-          style={[st.timerText, { fontSize: timerFontSize, marginTop: 8 }]}
+          style={[styles.timerText, { fontSize: timerFontSize, marginTop: 8 }]}
           allowFontScaling={false}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -78,15 +78,15 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
               }).catch(() => {});
               navigation.replace('PracticeResult', { distanceKm: distKm });
             }}>
-              <Image source={STOP_BUTTON} style={st.controlButton} resizeMode="contain" />
+              <Image source={STOP_BUTTON} style={styles.controlButton} resizeMode="contain" />
             </Pressable>
             <Pressable onPress={() => setIsPaused(false)}>
-              <Image source={PLAY_BUTTON} style={st.controlButton} resizeMode="contain" />
+              <Image source={PLAY_BUTTON} style={styles.controlButton} resizeMode="contain" />
             </Pressable>
           </>
         ) : (
           <Pressable onPress={() => setIsPaused(true)}>
-            <Image source={PAUSE_BUTTON} style={st.controlButton} resizeMode="contain" />
+            <Image source={PAUSE_BUTTON} style={styles.controlButton} resizeMode="contain" />
           </Pressable>
         )}
       </View>
@@ -94,7 +94,7 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

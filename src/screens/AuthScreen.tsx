@@ -96,7 +96,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
   const gCy = 67.5;
 
   return (
-    <View style={s.container}>
+    <View style={styles.container}>
 
       {/* Background radial gradient — 10% opacity */}
       <Svg
@@ -122,44 +122,44 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
       </Svg>
 
       {/* Bottom content — stacks upward from safe bottom */}
-      <View style={[s.bottomBlock, { paddingBottom: 40 }]}>
+      <View style={[styles.bottomBlock, { paddingBottom: 40 }]}>
 
         {/* Flag + Text logo + Subtitle */}
-        <Image source={FLAG_PNG} style={s.flag} resizeMode="contain" />
-        <View style={s.gap12} />
+        <Image source={FLAG_PNG} style={styles.flag} resizeMode="contain" />
+        <View style={styles.gap12} />
         <TextLogoSvg width={176} />
-        <View style={s.gap24} />
-        <Text style={s.subtitle} allowFontScaling={false}>
+        <View style={styles.gap24} />
+        <Text style={styles.subtitle} allowFontScaling={false}>
           {'Sign in to start\nyour racing journey'}
         </Text>
 
-        <View style={s.gap72} />
+        <View style={styles.gap72} />
 
         {/* Buttons */}
         {Platform.OS === 'ios' ? (
           <>
             {/* iOS: Apple primary (white) */}
             <Pressable
-              style={[s.btn, s.primaryBtn]}
+              style={[styles.btn, styles.primaryBtn]}
               onPress={() => handleSignIn('apple')}
               disabled={loading}
             >
               <AppleLogoSvg height={27} color="#17171C" />
-              <View style={s.iconGap} />
-              <Text style={[s.btnText, s.darkText]} allowFontScaling={false}>
+              <View style={styles.iconGap} />
+              <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
                 Start with Apple
               </Text>
             </Pressable>
-            <View style={s.gap12} />
+            <View style={styles.gap12} />
             {/* iOS: Google secondary (dark) */}
             <Pressable
-              style={[s.btn, s.secondaryBtn]}
+              style={[styles.btn, styles.secondaryBtn]}
               onPress={() => handleSignIn('google')}
               disabled={loading}
             >
               <GoogleLogoSvg height={24} />
-              <View style={s.iconGap} />
-              <Text style={[s.btnText, s.lightText]} allowFontScaling={false}>
+              <View style={styles.iconGap} />
+              <Text style={[styles.btnText, styles.lightText]} allowFontScaling={false}>
                 Start with Google
               </Text>
             </Pressable>
@@ -167,37 +167,37 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
         ) : (
           /* Android: Google primary (white) only */
           <Pressable
-            style={[s.btn, s.primaryBtn]}
+            style={[styles.btn, styles.primaryBtn]}
             onPress={() => handleSignIn('google')}
             disabled={loading}
           >
             <GoogleLogoSvg height={24} />
-            <View style={s.iconGap} />
-            <Text style={[s.btnText, s.darkText]} allowFontScaling={false}>
+            <View style={styles.iconGap} />
+            <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
               Start with Google
             </Text>
           </Pressable>
         )}
 
         {error ? (
-          <Text style={s.error} allowFontScaling={false}>{error}</Text>
+          <Text style={styles.error} allowFontScaling={false}>{error}</Text>
         ) : null}
       </View>
 
       {/* Dev-only: skip auth */}
       {__DEV__ && (
         <Pressable
-          style={s.devSkip}
+          style={styles.devSkip}
           onPress={() => navigation.replace('ProfileSetup')}
         >
-          <Text style={s.devSkipText}>DEV: Skip Auth</Text>
+          <Text style={styles.devSkipText}>DEV: Skip Auth</Text>
         </Pressable>
       )}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

@@ -494,27 +494,27 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[s.trophy, { marginTop: safeTop + 64, marginLeft: 22 }]}
+          style={[styles.trophy, { marginTop: safeTop + 64, marginLeft: 22 }]}
           resizeMode="contain"
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[s.statsRow, { marginTop: 32, marginLeft: 20 }]}>
+        <View style={[styles.statsRow, { marginTop: 32, marginLeft: 20 }]}>
           {/* TOTAL */}
-          <View style={s.statGroup}>
-            <Text style={s.statLabel}>TOTAL</Text>
-            <View style={[s.statValueRow, { marginTop: 8 }]}>
-              <Text style={s.statNum}>{fmtDist(distKmDisplay)}</Text>
-              <Text style={s.statUnit}>km</Text>
+          <View style={styles.statGroup}>
+            <Text style={styles.statLabel}>TOTAL</Text>
+            <View style={[styles.statValueRow, { marginTop: 8 }]}>
+              <Text style={styles.statNum}>{fmtDist(distKmDisplay)}</Text>
+              <Text style={styles.statUnit}>km</Text>
             </View>
           </View>
 
           {/* ON TRACK */}
-          <View style={[s.statGroup, { marginLeft: 52 }]}>
-            <Text style={s.statLabel}>ON TRACK</Text>
-            <View style={[s.statValueRow, { marginTop: 8 }]}>
-              <Text style={s.statNum}>{onTrackDays}</Text>
-              <Text style={s.statUnit}>days</Text>
+          <View style={[styles.statGroup, { marginLeft: 52 }]}>
+            <Text style={styles.statLabel}>ON TRACK</Text>
+            <View style={[styles.statValueRow, { marginTop: 8 }]}>
+              <Text style={styles.statNum}>{onTrackDays}</Text>
+              <Text style={styles.statUnit}>days</Text>
             </View>
           </View>
         </View>
@@ -522,7 +522,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[s.sectionTitle, { marginTop: 52, marginLeft: 20 }]}>
+            <Text style={[styles.sectionTitle, { marginTop: 52, marginLeft: 20 }]}>
               Qualifying Trend
             </Text>
 
@@ -533,11 +533,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 const shownTailShift = 2 * (selDotX - tooltipWrapLeft) - tooltipWrapClamped;
                 return (
                   <Animated.View
-                    style={[s.tooltipWrap, { left: tooltipXAnim, top: 0 }]}
+                    style={[styles.tooltipWrap, { left: tooltipXAnim, top: 0 }]}
                     onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
                   >
-                    <View style={s.tooltipColumn}>
-                      <Animated.View style={[s.tooltipBubble, { opacity: tooltipFadeAnim }]}>
+                    <View style={styles.tooltipColumn}>
+                      <Animated.View style={[styles.tooltipBubble, { opacity: tooltipFadeAnim }]}>
                         {shownSelected.promotedGrade && RACER_CARD_IMAGES[shownSelected.promotedGrade] ? (
                           <Image
                             source={RACER_CARD_IMAGES[shownSelected.promotedGrade]}
@@ -545,9 +545,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                             resizeMode="contain"
                           />
                         ) : null}
-                        <Text style={s.tooltipPace}>{fmtPace(shownSelected.paceSec)}</Text>
+                        <Text style={styles.tooltipPace}>{fmtPace(shownSelected.paceSec)}</Text>
                       </Animated.View>
-                      <Svg width={14} height={10} viewBox="0 0 14 10" style={[s.tooltipTailSvg, { marginLeft: shownTailShift }]}>
+                      <Svg width={14} height={10} viewBox="0 0 14 10" style={[styles.tooltipTailSvg, { marginLeft: shownTailShift }]}>
                         <Path
                           d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
                           fill="rgba(224,58,62,0.15)"
@@ -648,7 +648,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     const sec = GRADE_PACE_THRESHOLD[tl.grade]!;
                     const top = tl.isNext ? Math.max(0, tl.y - 18) : Math.min(barH - 18, tl.y - 18);
                     return (
-                      <Text key={tl.grade} style={[s.thresholdLabel, { left: 22, top, opacity: tl.isNext ? 1 : 0.5 }]}>
+                      <Text key={tl.grade} style={[styles.thresholdLabel, { left: 22, top, opacity: tl.isNext ? 1 : 0.5 }]}>
                         {`${GRADE_DISPLAY_NAME[tl.grade]} ${fmtPace(sec)}`}
                       </Text>
                     );
@@ -698,7 +698,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   return (
                     <Text
                       key={row.iso + '_lbl'}
-                      style={[s.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64 }]}
+                      style={[styles.colDate, { position: 'absolute', top: barH + 8, left: cx - 32, width: 64 }]}
                     >
                       {row.label}
                     </Text>
@@ -710,13 +710,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         )}
 
         {/* ── 5. 이번 달 불 아이콘 그룹 ── */}
-        <View style={[s.flameGroup, { marginTop: showTrend ? 48 : 52, marginLeft: 26 }]}>
-          <Image source={FLAME_ICON} style={s.flameIcon} resizeMode="contain" />
-          <View style={s.flameTextCol}>
-            <Text style={s.flameLabel}>THIS MONTH</Text>
-            <View style={s.flameValueRow}>
-              <Text style={s.flameNum}>{fmtDist(thisMonthDistKm)}</Text>
-              <Text style={s.flameUnit}>km</Text>
+        <View style={[styles.flameGroup, { marginTop: showTrend ? 48 : 52, marginLeft: 26 }]}>
+          <Image source={FLAME_ICON} style={styles.flameIcon} resizeMode="contain" />
+          <View style={styles.flameTextCol}>
+            <Text style={styles.flameLabel}>THIS MONTH</Text>
+            <View style={styles.flameValueRow}>
+              <Text style={styles.flameNum}>{fmtDist(thisMonthDistKm)}</Text>
+              <Text style={styles.flameUnit}>km</Text>
             </View>
           </View>
         </View>
@@ -738,7 +738,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </Animated.View>
 
         {/* ── 8. History 섹션 타이틀 ── */}
-        <Text style={[s.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
@@ -747,19 +747,19 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
               return (
                 <GradientCardBorder
                   key={row.sortKey}
-                  style={s.gpCardOuter}
-                  innerStyle={s.gpCardInner}
+                  style={styles.gpCardOuter}
+                  innerStyle={styles.gpCardInner}
                   borderRadius={16}
                 >
-                  <View style={s.gpTextCol}>
-                    <Text style={s.gpDate}>{row.dateDisplay}</Text>
-                    <Text style={s.gpVenue}>
+                  <View style={styles.gpTextCol}>
+                    <Text style={styles.gpDate}>{row.dateDisplay}</Text>
+                    <Text style={styles.gpVenue}>
                       {row.type === 'grand_prix' ? row.venue : 'Practice'}
                     </Text>
                   </View>
-                  <View style={s.gpDistRow}>
-                    <Text style={s.gpDist}>{fmtDist(row.distKm)}</Text>
-                    <Text style={s.gpDistUnit}>km</Text>
+                  <View style={styles.gpDistRow}>
+                    <Text style={styles.gpDist}>{fmtDist(row.distKm)}</Text>
+                    <Text style={styles.gpDistUnit}>km</Text>
                   </View>
                 </GradientCardBorder>
               );
@@ -769,17 +769,17 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             return (
               <GradientCardBorder
                 key={row.sortKey}
-                style={s.gpCardOuter}
-                innerStyle={s.gpCardInner}
+                style={styles.gpCardOuter}
+                innerStyle={styles.gpCardInner}
                 borderRadius={16}
               >
-                <View style={s.gpTextCol}>
-                  <Text style={s.gpDate}>{row.dateDisplay}</Text>
-                  <Text style={s.gpVenue}>Qualifying</Text>
+                <View style={styles.gpTextCol}>
+                  <Text style={styles.gpDate}>{row.dateDisplay}</Text>
+                  <Text style={styles.gpVenue}>Qualifying</Text>
                 </View>
                 <Image
                   source={HISTORY_QUAL_IMAGES[row.grade]}
-                  style={s.gpQualImg}
+                  style={styles.gpQualImg}
                   resizeMode="contain"
                 />
               </GradientCardBorder>
@@ -794,7 +794,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   // ── 트로피 ──
   trophy: {
     height: 42,

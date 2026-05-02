@@ -30,28 +30,28 @@ export default function ScreenHeader({
     : `${circuitLabel.toUpperCase()} (${circuitKm.toFixed(2)}km)`;
 
   return (
-    <View style={[st.header, { paddingTop: safeTop }]}>
-      <View style={st.row}>
-        <View style={st.left}>
+    <View style={[styles.header, { paddingTop: safeTop }]}>
+      <View style={styles.row}>
+        <View style={styles.left}>
           {flagAsset ? (
-            <View style={st.flagWrap}>
-              <Image source={flagAsset} style={st.flagImage} resizeMode="cover" />
+            <View style={styles.flagWrap}>
+              <Image source={flagAsset} style={styles.flagImage} resizeMode="cover" />
             </View>
           ) : null}
-          <Text style={[st.circuitName, { color: theme.text }]} numberOfLines={1}>
+          <Text style={[styles.circuitName, { color: theme.text }]} numberOfLines={1}>
             {circuitText}
           </Text>
         </View>
-        <Text style={[st.statusLabel, { color: labelColor, opacity: statusOpacity }]}>
+        <Text style={[styles.statusLabel, { color: labelColor, opacity: statusOpacity }]}>
           {statusLabel}
         </Text>
       </View>
-      <View style={[st.divider, { backgroundColor: theme.line }]} />
+      <View style={[styles.divider, { backgroundColor: theme.line }]} />
     </View>
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   header: {
     backgroundColor: '#17171C',
     zIndex: 100,

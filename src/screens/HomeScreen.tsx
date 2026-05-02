@@ -190,14 +190,14 @@ function StartButton({ posStyle, onPress }: { posStyle: object; onPress: () => v
       onPressIn={() => Animated.timing(scale, { toValue: 0.95, duration: 80, useNativeDriver: true }).start()}
       onPressOut={() => Animated.timing(scale, { toValue: 1, duration: 80, useNativeDriver: true }).start()}
     >
-      <Animated.View style={[s2.startBtn, { transform: [{ scale }] }]}>
-        <Text style={s2.startBtnTxt}>START</Text>
+      <Animated.View style={[startButtonStyles.startBtn, { transform: [{ scale }] }]}>
+        <Text style={startButtonStyles.startBtnTxt}>START</Text>
       </Animated.View>
     </Pressable>
   );
 }
 
-const s2 = StyleSheet.create({
+const startButtonStyles = StyleSheet.create({
   startBtn: {
     flex: 1,
     backgroundColor: '#E03A3E',
@@ -501,14 +501,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       />
 
       {/* ── THIS WEEK / THIS MONTH ── */}
-      <Text style={[s.onTrack, { left: 72, top: py(105) }]}>
+      <Text style={[styles.onTrack, { left: 72, top: py(105) }]}>
         {calExpanded ? 'THIS MONTH' : 'THIS WEEK'}
       </Text>
 
       {/* ── n.nn km ── */}
-      <View style={[s.streakDaysWrap, { left: 72, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
-        <Text style={s.streakNum}>{fmtDist(calExpanded ? monthDistKm : weekDistKm)}</Text>
-        <Text style={s.streakDistUnit}> km</Text>
+      <View style={[styles.streakDaysWrap, { left: 72, top: py(125), flexDirection: 'row', alignItems: 'baseline' }]}>
+        <Text style={styles.streakNum}>{fmtDist(calExpanded ? monthDistKm : weekDistKm)}</Text>
+        <Text style={styles.streakDistUnit}> km</Text>
       </View>
 
       {/* ── 펼치기/접기 화살표 (Vector 1.svg: 16×10, 화면 오른쪽에서 35px) ── */}
@@ -588,19 +588,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
           </Svg>
           <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: radius.lg.borderRadius - 0.5, borderCurve: radius.lg.borderCurve, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
-          <Text style={s.circuitName} numberOfLines={1}>
+          <Text style={styles.circuitName} numberOfLines={1}>
             {circuit.displayName.toUpperCase()}
           </Text>
 
-          <Text style={[s.statLabel, { left: 24, top: 88 }]}>DISTANCE</Text>
-          <Text style={[s.statValue, { left: 24, top: 110 }]}>
+          <Text style={[styles.statLabel, { left: 24, top: 88 }]}>DISTANCE</Text>
+          <Text style={[styles.statValue, { left: 24, top: 110 }]}>
             {circuit.distanceKm.toFixed(1)}km
           </Text>
 
-          <Text style={[s.statLabel, { left: 24, top: 154 }]}>RACE TIME</Text>
-          <Text style={[s.statValue, { left: 24, top: 176 }]}>{raceTimeStr}</Text>
+          <Text style={[styles.statLabel, { left: 24, top: 154 }]}>RACE TIME</Text>
+          <Text style={[styles.statValue, { left: 24, top: 176 }]}>{raceTimeStr}</Text>
 
-          <Text style={[s.statLabel, { left: 24, top: 220, fontSize: 15 }]}>TYRE</Text>
+          <Text style={[styles.statLabel, { left: 24, top: 220, fontSize: 15 }]}>TYRE</Text>
 
           {/* TireIcon 44×41: TYRE 레이블 bottom(236) + gap(10) = top 246 */}
           <View style={{ position: 'absolute', left: 26, top: 246 }}>
@@ -660,10 +660,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
 
               {/* 제목 */}
-              <Text style={s.circuitName}>Qualifying</Text>
+              <Text style={styles.circuitName}>Qualifying</Text>
 
               {/* 본문 */}
-              <Text style={[s.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
+              <Text style={[styles.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
                 {`Time for a new lap.\nGet closer to ${GRADE_LABELS[renewalNextGrade]}.`}
               </Text>
 
@@ -745,9 +745,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={qCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgq_${idBase}_${svgKey})`} strokeWidth={0.5} />
           </Svg>
           <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
-            <Text style={s.circuitName} numberOfLines={1}>Qualifying</Text>
+            <Text style={styles.circuitName} numberOfLines={1}>Qualifying</Text>
 
-            <Text style={[s.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
+            <Text style={[styles.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
               {'Run 1km first.\nYour interval plan follows.'}
             </Text>
 
@@ -830,7 +830,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   // 스트릭
   onTrack: {
     position: 'absolute',

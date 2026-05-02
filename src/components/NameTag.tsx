@@ -39,7 +39,7 @@ export default function NameTag({
   };
 
   return (
-    <View style={s.wrap} onLayout={onLayout}>
+    <View style={styles.wrap} onLayout={onLayout}>
       <Svg
         width={svgW}
         height={H}
@@ -57,12 +57,12 @@ export default function NameTag({
         <Rect x="2" y="2" width={svgW - 4} height="22" rx="4.5" fill="none" stroke={`url(#${gradId})`} strokeWidth="4" />
         <Rect x="8" y="8" width="2" height="10" fill={accentColor} />
       </Svg>
-      <Text style={s.label}>{label}</Text>
+      <Text style={styles.label}>{label}</Text>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrap: {
     height: H,
     minWidth: MIN_WIDTH,
