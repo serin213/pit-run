@@ -142,27 +142,4 @@ export function getDaysUntilExpiry(
   return diffMs / (24 * 60 * 60 * 1000);
 }
 
-// ─── 2단계 구현용 stubs ────────────────────────────────────────────────────────
-
-/**
- * TODO: 월챔 등급 인원이 전체 유저의 5% 초과 시, 가장 느린 월챔 유저를
- * F1으로 강등시키는 판정 로직. 베타 데이터 모인 후 구현.
- * CHAMPION_PERCENTILE_CAP 상수 사용.
- */
-export function shouldDemoteFromChampion(
-  _allUsersChampionPaces: number[],
-  _userPace: number,
-): boolean {
-  throw new Error('Not implemented yet');
-}
-
-/**
- * TODO: 실제 유저 분포 기반으로 GRADE_TIERS의 경계값을 재계산.
- * 현재는 이론값 사용. 베타 1000명 이상 누적 후 구현.
- * targetPercentile 기준으로 동적 산출.
- */
-export function recalculateTiersFromDistribution(
-  _allUserPaces: number[],
-): GradeTier[] {
-  throw new Error('Not implemented yet');
-}
+// shouldDemoteFromChampion, recalculateTiersFromDistribution — 베타 1000명 후 구현 예정
