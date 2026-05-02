@@ -99,27 +99,27 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Countdown"
           component={CountdownScreen}
-          options={{ animation: 'fade', gestureEnabled: false }}
+          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
         <Stack.Screen
           name="Running"
           component={RunningScreen}
-          options={{ animation: 'fade', gestureEnabled: false }}
+          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
         <Stack.Screen
           name="Result"
           component={ResultScreen}
-          options={{ animation: 'fade', gestureEnabled: false }}
+          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
         <Stack.Screen
           name="Practice"
           component={PracticeScreen}
-          options={{ animation: 'fade', gestureEnabled: false }}
+          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
         <Stack.Screen
           name="PracticeResult"
           component={PracticeResultScreen}
-          options={{ animation: 'fade', gestureEnabled: false }}
+          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
       </Stack.Navigator>
       {showTabBar && <TabBar activeTab={activeTab} />}
