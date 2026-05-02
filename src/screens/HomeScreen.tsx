@@ -112,9 +112,10 @@ type GapRowProps = {
   nextGrade: QualifyingGrade;
   gapSec: number;
   gapRowId: string;
+  isAlreadyAhead?: boolean;
 };
 
-function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowProps) {
+function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId, isAlreadyAhead }: GapRowProps) {
   const [leftDashW, setLeftDashW] = useState(0);
   const [rightDashW, setRightDashW] = useState(0);
   const nextColor = GRADE_COLORS[nextGrade];
@@ -122,6 +123,23 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId }: GapRowPr
 
   const ROW_H = 16;
   const LINE_H = 10;
+
+  if (isAlreadyAhead) {
+    return (
+      <View style={{ width: barWidth, height: ROW_H, alignItems: 'flex-end', justifyContent: 'center' }}>
+        <Text style={{
+          color: nextColor,
+          fontFamily: 'Formula1-Regular',
+          fontSize: 13,
+          lineHeight: ROW_H,
+          letterSpacing: -0.26,
+          includeFontPadding: false,
+        }}>
+          Already ahead
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ width: barWidth, height: ROW_H, flexDirection: 'row', alignItems: 'center' }}>
@@ -629,9 +647,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* ── 퀄리파잉 갱신 제안 카드 (30일 경과 시) ── */}
       {showRenewalCard && qualifyingResult && renewalNextGrade && (() => {
         const filledRatio = getFilledRatio(qualifyingResult.grade, qualifyingResult.paceSecPerKm);
-        const filledWidth = Math.round(rqBarWidth * filledRatio);
         const nextTier = GRADE_TIERS.find((t) => t.grade === renewalNextGrade);
-        const gapSec = nextTier ? Math.max(0, qualifyingResult.paceSecPerKm - nextTier.maxPaceSec!) : 0;
+        const rawGapSec = nextTier ? qualifyingResult.paceSecPerKm - nextTier.maxPaceSec! : 0;
+        const gapSec = Math.max(0, rawGapSec);
+        const isAlreadyAhead = rawGapSec < 0.01;
+        const MAX_FILL_RATIO = 0.82;
+        const filledWidth = isAlreadyAhead
+          ? rqBarWidth
+          : Math.round(rqBarWidth * Math.min(filledRatio, MAX_FILL_RATIO));
         const currentColor = GRADE_COLORS[qualifyingResult.grade];
         const nextColor = GRADE_COLORS[renewalNextGrade];
         return (
@@ -707,6 +730,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   nextGrade={renewalNextGrade}
                   gapSec={gapSec}
                   gapRowId={idBase}
+                  isAlreadyAhead={isAlreadyAhead}
                 />
               </View>
 
