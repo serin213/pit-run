@@ -31,10 +31,11 @@ export function usePracticeDistance(paused: boolean): number {
     }
 
     let sub: LocationSubscription | null = null;
+    let cancelled = false;
 
     (async () => {
       const granted = await requestForegroundPermission();
-      if (!granted) return;
+      if (!granted || cancelled) return;
 
       setGpsActive(true);
 
@@ -49,9 +50,11 @@ export function usePracticeDistance(paused: boolean): number {
         }
         prevCoordsRef.current = coords;
       });
+      if (cancelled) sub?.remove();
     })();
 
     return () => {
+      cancelled = true;
       sub?.remove();
     };
   }, [paused]);

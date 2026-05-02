@@ -159,14 +159,14 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX, bare }: Wee
   const inner = (
     <>
       {WEEK_LABELS.map((label, col) => (
-        <Text key={`wl-${col}`} style={[s.calLabel, { left: colX[col] }]}>
+        <Text key={`wl-${col}`} style={[styles.calLabel, { left: colX[col] }]}>
           {label}
         </Text>
       ))}
 
       {weekDates.map((_, col) => {
         if (runCols.has(col)) return null;
-        return <View key={`wc-${col}`} style={[s.dayCircle, { left: colX[col] - 2, top: 36 }]} />;
+        return <View key={`wc-${col}`} style={[styles.dayCircle, { left: colX[col] - 2, top: 36 }]} />;
       })}
 
       {runGroups.map((g, k) => {
@@ -183,7 +183,7 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX, bare }: Wee
             <Image
               key={`wn-${col}`}
               source={QUAL_ICON}
-              style={[s.qualIcon, { left: colX[col] + 4, top: 42 }]}
+              style={[styles.qualIcon, { left: colX[col] + 4, top: 42 }]}
               resizeMode="contain"
             />
           );
@@ -192,10 +192,10 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX, bare }: Wee
           <Text
             key={`wn-${col}`}
             style={[
-              s.calNum,
+              styles.calNum,
               { left: colX[col] - 2, top: 42 },
-              isPast ? s.calNumPast : s.calNumFuture,
-              runCols.has(col) ? s.calNumRun : null,
+              isPast ? styles.calNumPast : styles.calNumFuture,
+              runCols.has(col) ? styles.calNumRun : null,
             ]}
           >
             {d.getDate()}
@@ -208,7 +208,7 @@ export function WeekStrip({ today, activitySet, qualifyingSet, colX, bare }: Wee
   if (bare) return <View style={{ flex: 1, overflow: 'hidden' }}>{inner}</View>;
 
   return (
-    <GradientCardBorder style={s.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+    <GradientCardBorder style={styles.calCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
       {inner}
     </GradientCardBorder>
   );
@@ -255,8 +255,8 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
   const inner = (
     <>
       {/* ‹ Month › — flex row so › always follows the month text */}
-      <View style={s.monthHeader}>
-        <Pressable onPress={onPrev} hitSlop={14} style={s.monthArrow}>
+      <View style={styles.monthHeader}>
+        <Pressable onPress={onPrev} hitSlop={14} style={styles.monthArrow}>
           <Svg width={6} height={10} viewBox="0 0 6 10">
             <Path
               d={ARROW_LEFT_PATH}
@@ -268,8 +268,8 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
             />
           </Svg>
         </Pressable>
-        <Text style={s.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
-        <Pressable onPress={onNext} hitSlop={14} style={[s.monthArrow, { marginLeft: 8 }]}>
+        <Text style={styles.monthTitle}>{MONTH_NAMES[refMonth]}</Text>
+        <Pressable onPress={onNext} hitSlop={14} style={[styles.monthArrow, { marginLeft: 8 }]}>
           <Svg width={6} height={10} viewBox="0 0 6 10">
             <Path
               d={ARROW_RIGHT_PATH}
@@ -284,7 +284,7 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
       </View>
 
       {WEEK_LABELS.map((label, col) => (
-        <Text key={`ml-${col}`} style={[s.calLabel, { left: colX[col], top: 64 }]}>
+        <Text key={`ml-${col}`} style={[styles.calLabel, { left: colX[col], top: 64 }]}>
           {label}
         </Text>
       ))}
@@ -306,7 +306,7 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
           <React.Fragment key={`r-${ri}`}>
             {row.map((d, col) => {
               if (!d || runCols.has(col)) return null;
-              return <View key={`mc-${ri}-${col}`} style={[s.dayCircle, { left: colX[col] - 2, top: ry }]} />;
+              return <View key={`mc-${ri}-${col}`} style={[styles.dayCircle, { left: colX[col] - 2, top: ry }]} />;
             })}
 
             {runGroups.map((g, si) => {
@@ -324,7 +324,7 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
                   <Image
                     key={`mn-${ri}-${col}`}
                     source={QUAL_ICON}
-                    style={[s.qualIcon, { left: colX[col] + 4, top: ry + 6 }]}
+                    style={[styles.qualIcon, { left: colX[col] + 4, top: ry + 6 }]}
                     resizeMode="contain"
                   />
                 );
@@ -333,10 +333,10 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
                 <Text
                   key={`mn-${ri}-${col}`}
                   style={[
-                    s.calNum,
+                    styles.calNum,
                     { left: colX[col] - 2, top: ry + 6 },
-                    isPast ? s.calNumPast : s.calNumFuture,
-                    runCols.has(col) ? s.calNumRun : null,
+                    isPast ? styles.calNumPast : styles.calNumFuture,
+                    runCols.has(col) ? styles.calNumRun : null,
                   ]}
                 >
                   {d}
@@ -352,7 +352,7 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
   if (bare) return <View style={{ flex: 1, overflow: 'hidden' }}>{inner}</View>;
 
   return (
-    <GradientCardBorder style={s.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
+    <GradientCardBorder style={styles.monthCard} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
       {inner}
     </GradientCardBorder>
   );
@@ -360,7 +360,7 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   calCard: {
     flex: 1,
     ...radius.md,

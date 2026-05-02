@@ -81,7 +81,7 @@ function CopyBtn({ cardRef }: { cardRef: RefObject<View | null> }) {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return (
-    <Pressable onPress={handlePress} style={st.copyBtn} hitSlop={10}>
+    <Pressable onPress={handlePress} style={styles.copyBtn} hitSlop={10}>
       <Image
         source={confirming
           ? require('../../assets/double-check.png')
@@ -138,24 +138,24 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
         <CopyBtn cardRef={ref} />
 
         {/* Circuit badge */}
-        <View style={[st.smallBadge, { backgroundColor: themeColor }]}>
-          <Text style={st.smallBadgeText} numberOfLines={1}>
+        <View style={[styles.smallBadge, { backgroundColor: themeColor }]}>
+          <Text style={styles.smallBadgeText} numberOfLines={1}>
             {circuitName.toUpperCase()} GP
           </Text>
         </View>
 
         {/* Distance */}
-        <Text style={st.smallDist} numberOfLines={1}>
+        <Text style={styles.smallDist} numberOfLines={1}>
           {fmtDist(distKm)}km
         </Text>
 
         {/* TIME */}
-        <Text style={[st.smallLabel, { marginTop: 16 }]}>TIME</Text>
-        <Text style={[st.smallVal, { marginTop: 6 }]}>{fmtTime(elapsedMs)}</Text>
+        <Text style={[styles.smallLabel, { marginTop: 16 }]}>TIME</Text>
+        <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtTime(elapsedMs)}</Text>
 
         {/* PACE AVG */}
-        <Text style={[st.smallLabel, { marginTop: 20 }]}>PACE AVG</Text>
-        <Text style={[st.smallVal, { marginTop: 6 }]}>{fmtPace(totalPaceS)}</Text>
+        <Text style={[styles.smallLabel, { marginTop: 20 }]}>PACE AVG</Text>
+        <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtPace(totalPaceS)}</Text>
 
         {/* Circuit SVG */}
         {trackPath && viewBox && (
@@ -184,14 +184,14 @@ function FastestLapStickerCard({ fastestPaceS, variant = 'default' }: {
     <View ref={ref} collapsable={false}>
       <GradientCardBorder innerStyle={{ flex: 0, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }}>
         <CopyBtn cardRef={ref} />
-        <View style={[st.fastestPill, { backgroundColor: pillBg }]}>
+        <View style={[styles.fastestPill, { backgroundColor: pillBg }]}>
           <Image source={iconSource} style={{ width: undefined, height: 20, aspectRatio: 1 }} resizeMode="contain" />
           <View style={{ width: 6 }} />
-          <Text style={[st.fastestLabelText, { color: textColor }]} numberOfLines={1}>
+          <Text style={[styles.fastestLabelText, { color: textColor }]} numberOfLines={1}>
             FASTEST LAP
           </Text>
           <View style={{ width: 6 }} />
-          <Text style={[st.fastestValueText, { color: textColor }]} numberOfLines={1}>
+          <Text style={[styles.fastestValueText, { color: textColor }]} numberOfLines={1}>
             {fmtPace(fastestPaceS)}
           </Text>
         </View>
@@ -214,8 +214,8 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
     <View ref={ref} collapsable={false}>
       <GradientCardBorder innerStyle={{ flex: 0, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }}>
         <CopyBtn cardRef={ref} />
-        <View style={[st.circuitPill, { backgroundColor: pillBg }]}>
-          <Text style={[st.circuitPillText, { color: textColor }]} numberOfLines={1}>
+        <View style={[styles.circuitPill, { backgroundColor: pillBg }]}>
+          <Text style={[styles.circuitPillText, { color: textColor }]} numberOfLines={1}>
             {`${circuitName.toUpperCase()} GP ${fmtDist(distKm)}km`}
           </Text>
           <View style={{ width: 4 }} />
@@ -234,19 +234,19 @@ function WideMediumCard({ distKm, elapsedMs, totalPaceS, fastestPaceS }: SharePa
     <View ref={ref} collapsable={false}>
       <GradientCardBorder innerStyle={{ flex: 0, padding: 20 }}>
         <CopyBtn cardRef={ref} />
-        <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
-        <View style={[st.medStatRow, { marginTop: 24 }]}>
-          <View style={st.medStatCol}>
-            <Text style={st.wideStatLabel}>TIME</Text>
-            <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
+        <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
+        <View style={[styles.medStatRow, { marginTop: 24 }]}>
+          <View style={styles.medStatCol}>
+            <Text style={styles.wideStatLabel}>TIME</Text>
+            <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
           </View>
-          <View style={st.medStatCol}>
-            <Text style={st.wideStatLabel}>PACE AVG</Text>
-            <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
+          <View style={styles.medStatCol}>
+            <Text style={styles.wideStatLabel}>PACE AVG</Text>
+            <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
           </View>
-          <View style={st.medStatCol}>
-            <Text style={st.wideStatLabel}>FASTEST</Text>
-            <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+          <View style={styles.medStatCol}>
+            <Text style={styles.wideStatLabel}>FASTEST</Text>
+            <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
           </View>
         </View>
       </GradientCardBorder>
@@ -264,31 +264,31 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
     <View ref={ref} collapsable={false}>
       <GradientCardBorder innerStyle={{ flex: 0, paddingTop: 20, paddingBottom: 20, paddingLeft: 20 }}>
         <CopyBtn cardRef={ref} />
-        <Text style={st.bigDist}>{fmtDist(distKm)}</Text>
+        <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
 
         {/* TIME — full width */}
         <View style={{ marginTop: 24 }}>
-          <Text style={st.wideStatLabel}>TIME</Text>
-          <Text style={st.wideStatValue}>{fmtTime(elapsedMs)}</Text>
+          <Text style={styles.wideStatLabel}>TIME</Text>
+          <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
         </View>
 
         {/* PACE AVG + FASTEST (left) / circuit PNG (right, top = PACE AVG value) */}
         <View style={{ flexDirection: 'row', marginTop: 20, alignItems: 'flex-start' }}>
           <View>
             <View>
-              <Text style={st.wideStatLabel}>PACE AVG</Text>
-              <Text style={st.wideStatValue}>{fmtPace(totalPaceS)}</Text>
+              <Text style={styles.wideStatLabel}>PACE AVG</Text>
+              <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
             </View>
             <View style={{ marginTop: 20 }}>
-              <Text style={st.wideStatLabel}>FASTEST</Text>
-              <Text style={st.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+              <Text style={styles.wideStatLabel}>FASTEST</Text>
+              <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
             </View>
           </View>
 
           {circuitPng && (
             <Image
               source={circuitPng}
-              style={st.largePngWrap}
+              style={styles.largePngWrap}
               resizeMode="cover"
             />
           )}
@@ -306,13 +306,13 @@ export default function ResultSharePage(props: SharePageProps) {
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={st.container}
+      contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={st.pageTitle}>Share to Instagram</Text>
+      <Text style={styles.pageTitle}>Share to Instagram</Text>
 
       {/* Cards 1 & 2: Small portrait */}
-      <View style={st.row}>
+      <View style={styles.row}>
         <SmallPortraitCard {...props} />
         <SmallPortraitCard {...props} leftAlign />
       </View>
@@ -341,7 +341,7 @@ export default function ResultSharePage(props: SharePageProps) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     paddingHorizontal: H_PAD,
     paddingTop: 24,

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { TireType, SectorColor } from '../constants/colors';
-import { BASE_PACE_S, CIRCUIT_KM, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
+import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
+import { DEFAULT_CIRCUIT_KM as CIRCUIT_KM } from '../config/circuits';
 
 export interface TyreSegment {
   tire: TireType;

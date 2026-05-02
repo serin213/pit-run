@@ -1,4 +1,3 @@
-export { supabase } from './client';
 export * from './profiles';
 export * from './qualifying';
 export * from './sessions';

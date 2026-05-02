@@ -1,5 +1,8 @@
 import type { ImageSourcePropType } from 'react-native';
 
+/** 서킷 미선택 시 기본값 (상하이 인터내셔널) */
+export const DEFAULT_CIRCUIT_KM = 5.14;
+
 export type CircuitDirection = 'clockwise' | 'counterclockwise';
 
 /**

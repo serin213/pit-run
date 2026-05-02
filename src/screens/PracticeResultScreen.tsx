@@ -19,18 +19,18 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
   const flagBottom = ctaBottom + CTA_H + 36;
 
   return (
-    <View style={st.container}>
+    <View style={styles.container}>
       {/* 거리 + km */}
-      <View style={[st.topContent, { paddingTop: safeTop + 130 }]}>
-        <View style={st.distanceRow}>
-          <Text style={st.distanceNum} allowFontScaling={false}>
+      <View style={[styles.topContent, { paddingTop: safeTop + 130 }]}>
+        <View style={styles.distanceRow}>
+          <Text style={styles.distanceNum} allowFontScaling={false}>
             {distanceKm.toFixed(2)}
           </Text>
-          <Text style={st.distanceUnit}>km</Text>
+          <Text style={styles.distanceUnit}>km</Text>
         </View>
 
         {/* 메시지 */}
-        <Text style={st.message}>
+        <Text style={styles.message}>
           {'Good run.\nSee you on track.'}
         </Text>
       </View>
@@ -38,12 +38,12 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
       {/* 깃발 이미지 */}
       <Image
         source={RACE_FLAG}
-        style={[st.flag, { bottom: flagBottom, right: 24 }]}
+        style={[styles.flag, { bottom: flagBottom, right: 24 }]}
         resizeMode="contain"
       />
 
       {/* CTA */}
-      <View style={[st.ctaWrap, { bottom: ctaBottom }]}>
+      <View style={[styles.ctaWrap, { bottom: ctaBottom }]}>
         <GradientCtaButton
           label="To the GRID"
           enabled
@@ -54,7 +54,7 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#17171C',

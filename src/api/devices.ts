@@ -29,5 +29,7 @@ export async function upsertDevice(fields: {
 
 /** 디바이스 삭제 (로그아웃 시) */
 export async function removeDevice(pushToken: string): Promise<void> {
-  await supabase.from('devices').delete().eq('push_token', pushToken);
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) return;
+  await supabase.from('devices').delete().eq('push_token', pushToken).eq('user_id', userId);
 }

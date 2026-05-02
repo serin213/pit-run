@@ -119,18 +119,18 @@ export default function BoxBoxSheet({
   if (!visible) return null;
 
   return (
-    <View style={s.root} pointerEvents="box-none">
-      <Animated.View style={[s.overlay, { opacity: overlayOpacity }]} pointerEvents="box-none">
+    <View style={styles.root} pointerEvents="box-none">
+      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} pointerEvents="box-none">
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
-      <BlurView intensity={10} tint="dark" style={[s.sheet, { height: sheetHeight }]}>
+      <BlurView intensity={10} tint="dark" style={[styles.sheet, { height: sheetHeight }]}>
         <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.35)' }}>
-          <Text style={[s.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
+          <Text style={[styles.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
             {driverName}
           </Text>
 
-          <View style={[s.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
+          <View style={[styles.waveWrap, { top: isFullPush ? 76 : WAVE_GROUP_TOP }]}>
             <Svg width="100%" height="100%" viewBox={`0 0 ${waveWidth} ${WAVE_GROUP_HEIGHT}`} preserveAspectRatio="none" fill="none">
               <Defs>
                 <LinearGradient id="waveColumn" x1="0" y1="0" x2="0" y2="1">
@@ -162,13 +162,13 @@ export default function BoxBoxSheet({
             </Svg>
           </View>
 
-          <Text style={[s.title, { top: isFullPush ? 150 : TITLE_TOP }]}>
+          <Text style={[styles.title, { top: isFullPush ? 150 : TITLE_TOP }]}>
             {isFullPush ? '"FULL PUSH"' : '"BOX BOX"'}
           </Text>
 
           {!isFullPush && (
             <>
-              <View style={s.warningWrap}>
+              <View style={styles.warningWrap}>
                 <Svg width={44} height={41} viewBox="0 0 44 42" fill="none">
                   <Path
                     d="M15.0204 3.00073C7.98038 5.75483 3 12.552 3 20.5007C3 28.4495 7.98038 35.2466 15.0204 38.0007M28.9796 38.0007C36.0196 35.2466 41 28.4495 41 20.5007C41 12.552 36.0196 5.75483 28.9796 3.00073"
@@ -177,10 +177,10 @@ export default function BoxBoxSheet({
                     strokeLinecap="round"
                   />
                 </Svg>
-                <Text style={s.warningMark}>M</Text>
+                <Text style={styles.warningMark}>M</Text>
               </View>
-              <Text style={s.desc}>Pace got slower{'\n'}Need Recovery</Text>
-              <View style={s.progressTrack}>
+              <Text style={styles.desc}>Pace got slower{'\n'}Need Recovery</Text>
+              <View style={styles.progressTrack}>
                 <Svg width="100%" height="100%" viewBox="0 0 306 12" preserveAspectRatio="none" fill="none">
                   <Rect x="0" y="0" width="306" height="12" rx="6" fill="rgba(255,255,255,0.1)" />
                   <Defs>
@@ -192,8 +192,8 @@ export default function BoxBoxSheet({
                   <Rect x="0" y="0" width="62" height="12" rx="6" fill="url(#boxboxProgress)" />
                 </Svg>
               </View>
-              <Text style={s.critical}>Critical</Text>
-              <Text style={s.good}>Good</Text>
+              <Text style={styles.critical}>Critical</Text>
+              <Text style={styles.good}>Good</Text>
             </>
           )}
         </View>
@@ -203,7 +203,7 @@ export default function BoxBoxSheet({
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: {

@@ -119,7 +119,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
               return (
                 <Pressable
                   key={color}
-                  onPress={() => setTeamColor(selected ? null : color)}
+                  onPress={() => setTeamColor(teamColor === color ? null : color)}
                   style={[
                     styles.colorSwatch,
                     { backgroundColor: color },
@@ -193,15 +193,13 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             label="MAKE DEBUT"
             enabled={canSubmit}
             onPress={() => {
-              const finalName = trimmedName;
               setProfile({
-                displayName: finalName,
+                displayName: trimmedName,
                 raceNumber: normalizedNumber,
                 nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
               });
-              // Supabase에 프로필 저장 (비동기, 실패해도 로컬은 유지)
               upsertProfile({
-                display_name: finalName,
+                display_name: trimmedName,
                 race_number: normalizedNumber,
                 accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,
               }).catch(() => {});

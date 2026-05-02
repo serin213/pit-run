@@ -166,8 +166,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
           <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
           <View style={{ marginLeft: 12 }}>
-            <Text style={s.racerNumber}>#{profile.raceNumber}</Text>
-            <Text style={s.racerName}>{profile.displayName}</Text>
+            <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
+            <Text style={styles.racerName}>{profile.displayName}</Text>
           </View>
         </View>
 
@@ -179,8 +179,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         {/* ── 3. 설정 리스트 ── */}
         <View style={{ marginTop: 28 }}>
           {/* Notifications */}
-          <View style={s.listRow}>
-            <Text style={s.listLabel}>Notifications</Text>
+          <View style={styles.listRow}>
+            <Text style={styles.listLabel}>Notifications</Text>
             <View style={{ position: 'absolute', right: 20 }}>
               <AnimatedToggle
                 on={notificationsEnabled}
@@ -190,25 +190,25 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           </View>
 
           {/* Terms & Privacy */}
-          <View style={[s.listRow, { marginTop: 24 }]}>
-            <Text style={s.listLabel}>Terms &amp; Privacy</Text>
+          <View style={[styles.listRow, { marginTop: 24 }]}>
+            <Text style={styles.listLabel}>Terms &amp; Privacy</Text>
             <ChevronRight />
           </View>
 
           {/* Send Feedback */}
-          <View style={[s.listRow, { marginTop: 24 }]}>
-            <Text style={s.listLabel}>Send Feedback</Text>
+          <View style={[styles.listRow, { marginTop: 24 }]}>
+            <Text style={styles.listLabel}>Send Feedback</Text>
             <ChevronRight />
           </View>
 
           {/* Sign Out */}
-          <Pressable style={[s.listRow, { marginTop: 24 }]} onPress={handleSignOut}>
-            <Text style={[s.listLabel, { color: 'rgba(255,255,255,0.4)' }]}>Sign Out</Text>
+          <Pressable style={[styles.listRow, { marginTop: 24 }]} onPress={handleSignOut}>
+            <Text style={[styles.listLabel, { color: 'rgba(255,255,255,0.4)' }]}>Sign Out</Text>
             <ChevronRight opacity={0.3} />
           </Pressable>
 
           {/* Version */}
-          <Text style={[s.version, { marginTop: 24 }]}>Version {APP_VERSION}</Text>
+          <Text style={[styles.version, { marginTop: 24 }]}>Version {APP_VERSION}</Text>
         </View>
       </ScrollView>
 
@@ -229,7 +229,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   racerNumber: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
