@@ -58,6 +58,6 @@ const s = StyleSheet.create({
     lineHeight: 12,
     color: '#FFFFFF',
     includeFontPadding: false,
-    textTransform: 'capitalize',
+    textTransform: 'uppercase',
   },
 });
