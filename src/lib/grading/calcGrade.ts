@@ -1,8 +1,7 @@
 import { calculateGrade } from '../../core/qualifying';
+import type { QualifyingGrade as Grade } from '../../types/qualifying';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type Grade = 'f3' | 'f2' | 'f1_rookie' | 'f1' | 'f1_champion';
 
 export type GradeTier = {
   grade: Grade;
