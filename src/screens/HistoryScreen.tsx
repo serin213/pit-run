@@ -40,7 +40,7 @@ import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import { fetchQualifyingHistory } from '../api/qualifying';
 import { fetchSessions } from '../api/sessions';
-import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
+import { GRADE_COLORS, GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 import GradientCardBorder from '../components/GradientCardBorder';
@@ -574,23 +574,23 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   <Svg width={windowW} height={barH} viewBox={`0 0 ${windowW} ${barH}`}>
                     <Defs>
                       <SvgLG id={`${gradPrefix}_area`} x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
-                        <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0" />
+                        <Stop offset="0%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="1" />
+                        <Stop offset="100%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="0" />
                       </SvgLG>
                       <SvgLG
                         id={`${gradPrefix}_line`}
                         x1={20} y1="0" x2={windowW - 20} y2="0"
                         gradientUnits="userSpaceOnUse"
                       >
-                        <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
-                        <Stop offset="15%" stopColor="#E03A3E" stopOpacity="1" />
-                        <Stop offset="85%" stopColor="#E03A3E" stopOpacity="1" />
-                        <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0" />
+                        <Stop offset="0%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="0" />
+                        <Stop offset="15%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="1" />
+                        <Stop offset="85%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="1" />
+                        <Stop offset="100%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="0" />
                       </SvgLG>
                       {/* 컬럼 인디케이터 그라디언트: 상단 opacity 0 → 하단 opacity 0.5 */}
                       <SvgLG id={`${gradPrefix}_col`} x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0%" stopColor="#E03A3E" stopOpacity="0" />
-                        <Stop offset="100%" stopColor="#E03A3E" stopOpacity="0.5" />
+                        <Stop offset="0%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="0" />
+                        <Stop offset="100%" stopColor={GRADE_COLORS.f1_champion} stopOpacity="0.5" />
                       </SvgLG>
                       {/* 좌우 fade: 배경색으로 curve/그라데이션 가장자리를 자연스럽게 소멸 */}
                       <SvgLG id={`${gradPrefix}_fadeL`} x1="0" y1="0" x2="1" y2="0">
@@ -611,7 +611,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       <Path
                         key={tl.grade}
                         d={`M 20 ${tl.y} L ${windowW - 20} ${tl.y}`}
-                        stroke="#E03A3E" strokeWidth={1} strokeDasharray="4, 4" fill="none"
+                        stroke={GRADE_COLORS.f1_champion} strokeWidth={1} strokeDasharray="4, 4" fill="none"
                         opacity={tl.isNext ? 1 : 0.5}
                       />
                     ))}
@@ -637,7 +637,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* Selected dot — 22×22, inside stroke 4px #17171C */}
                     <Circle
                       cx={selDotX} cy={selDotY}
-                      r={9} fill="#E03A3E" stroke="#17171C" strokeWidth={4}
+                      r={9} fill={GRADE_COLORS.f1_champion} stroke="#17171C" strokeWidth={4}
                     />
                     {/* 좌우 fade 오버레이: curve 시작/끝 20px을 배경색으로 소멸 */}
                     <Rect x={20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 20,
     textAlign: 'center',
-    color: '#E03A3E',
+    color: GRADE_COLORS.f1_champion,
     opacity: 0.5,
   },
   thresholdLabel: {
@@ -940,7 +940,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    color: '#E03A3E',
+    color: GRADE_COLORS.f1_champion,
   },
 
   // ── GP 카드 ──

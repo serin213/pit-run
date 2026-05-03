@@ -43,13 +43,14 @@ import {
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
+import { GRADE_COLORS } from '../constants/grade';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
 const LICENSE_TROPHY_ICON = require('../../assets/race-trophy.png');
 
 const RECOMMENDED_WARMUP_MINUTES = 5;
-const ACCENT = '#E03A3E';
+const ACCENT = GRADE_COLORS.f1_champion;
 
 const GRADE_HINTS: Record<string, string> = {
   f1_champion: 'F1 Champion: 400m x 8, recovery 60s, target pace 4:00–4:20/km.',

@@ -28,6 +28,7 @@ import { useAuthStore } from '../store/authStore';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
+import { GRADE_COLORS } from '../constants/grade';
 
 const FW = 402;
 const FH = 874;
@@ -144,7 +145,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
   const boxBoxDriverName = getDriverDisplayName(profile?.displayName ?? '');
-  const boxBoxTeamColor = profile?.nameTagAccentColor ?? '#E03A3E';
+  const boxBoxTeamColor = profile?.nameTagAccentColor ?? GRADE_COLORS.f1_champion;
 
   const DIST_LEFT = 36; // fixed 36pt margin
   const DIST_RIGHT = windowW - DIST_LEFT;
@@ -379,7 +380,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           label={nameTagLabel}
           colorStart={displayTheme.end}
           colorEnd={displayTheme.start}
-          accentColor={profile?.nameTagAccentColor ?? '#E03A3E'}
+          accentColor={profile?.nameTagAccentColor ?? GRADE_COLORS.f1_champion}
           gradientX1={gradientX1}
           gradientY1={gradientY1}
           gradientX2={gradientX2}
