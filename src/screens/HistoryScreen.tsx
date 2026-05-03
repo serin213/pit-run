@@ -425,20 +425,21 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   // ─── Tooltip x-slide (RN Animated spring) ────────────────────────────────
   const tooltipXAnim = useRef(new Animated.Value(tooltipWrapLeft)).current;
-  // 사용자가 dot을 탭할 때만 spring 애니메이션 — 데이터 로드·레이아웃 변경은 항상 setValue
-  const isUserTapRef = useRef(false);
+  // 탭 포커스 시 초기 렌더 + onLayout 2회 변경은 즉시 이동 (애니메이션 없음)
+  const tooltipSkipCount = useRef(2);
+  useFocusEffect(useCallback(() => { tooltipSkipCount.current = 2; }, []));
   useEffect(() => {
-    if (isUserTapRef.current) {
-      isUserTapRef.current = false;
-      Animated.spring(tooltipXAnim, {
-        toValue: tooltipWrapLeft,
-        useNativeDriver: false,
-        tension: 180,
-        friction: 26,
-      }).start();
-    } else {
+    if (tooltipSkipCount.current > 0) {
       tooltipXAnim.setValue(tooltipWrapLeft);
+      tooltipSkipCount.current -= 1;
+      return;
     }
+    Animated.spring(tooltipXAnim, {
+      toValue: tooltipWrapLeft,
+      useNativeDriver: false,
+      tension: 180,
+      friction: 26,
+    }).start();
   }, [tooltipWrapLeft, tooltipXAnim]);
 
   // ─── Tooltip grade-slot reveal (등급 카드 영역만 확장/축소) ─────────────────
@@ -679,7 +680,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   return (
                     <Pressable
                       key={row.iso}
-                      onPress={() => { isUserTapRef.current = true; setSelectedIdx(i); }}
+                      onPress={() => setSelectedIdx(i)}
                       style={{ position: 'absolute', left, top: 0, width: right - left, height: barH }}
                     />
                   );
