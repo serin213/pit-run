@@ -43,7 +43,7 @@ function getInitialRoute(isAuthenticated: boolean, hasProfile: boolean): keyof R
 export default function RootNavigator() {
   const activeTab = useActiveTab();
   const showTabBar = activeTab !== undefined;
-  const { isLoading, isAuthenticated, initialize } = useAuthStore();
+  const { isLoading, isAuthenticated, initialize, cleanup } = useAuthStore();
   const profile = useAppStore((s) => s.profile);
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
   const [splashDone, setSplashDone] = useState(false);
@@ -53,7 +53,8 @@ export default function RootNavigator() {
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+    return () => cleanup();
+  }, [initialize, cleanup]);
 
   // 최소 1800ms 스플래시 노출 (confetti가 충분히 보이도록)
   useEffect(() => {
