@@ -38,6 +38,14 @@ const GRADE_THRESHOLDS: GradeThreshold[] = [
   },
 ];
 
+/**
+ * 등급별 최대 페이스(sec/km). 이 값 이하면 해당 등급 달성.
+ * f3는 상한 없음(undefined).
+ */
+export const GRADE_PACE_MAX: Partial<Record<QualifyingGrade, number>> = Object.fromEntries(
+  GRADE_THRESHOLDS.map((t) => [t.grade, t.maxPaceSec]),
+) as Partial<Record<QualifyingGrade, number>>;
+
 const FALLBACK_GRADE: Omit<GradeThreshold, 'maxPaceSec'> = {
   grade: 'f3',
   hint: 'F3: 1min run + 1min walk x 10, then repeat qualifying next week.',

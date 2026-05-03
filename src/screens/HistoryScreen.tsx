@@ -39,6 +39,7 @@ import { useAuthStore } from '../store/authStore';
 import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import { fetchQualifyingHistory } from '../api/qualifying';
+import { GRADE_PACE_MAX } from '../core/qualifying';
 import { fetchSessions } from '../api/sessions';
 import { GRADE_COLORS, GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
@@ -90,13 +91,6 @@ const QUALIFYING_TREND_MIN = 3;
 /** 트렌드 그래프 최대 표시 개수 (최신 순) */
 const QUALIFYING_TREND_MAX = 5;
 
-/** 각 등급을 달성하는 데 필요한 최대 페이스(초). f3은 상한 없음 */
-const GRADE_PACE_THRESHOLD: Partial<Record<QualifyingGrade, number>> = {
-  f1_champion: 240,
-  f1:          270,
-  f1_rookie:   330,
-  f2:          390,
-};
 
 /** 각 등급의 바로 위(더 빠른) 등급 */
 const GRADE_NEXT: Partial<Record<QualifyingGrade, QualifyingGrade>> = {
@@ -397,7 +391,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     if (nextGrade) gradesToShow.add(nextGrade);
     const lines: ThresholdLine[] = [];
     gradesToShow.forEach((grade) => {
-      const sec = GRADE_PACE_THRESHOLD[grade];
+      const sec = GRADE_PACE_MAX[grade];
       if (sec == null || !inRange(sec)) return;
       lines.push({ grade, y: paceToY(sec, minP, maxP, plotTopInBlock, plotH), isNext: grade === nextGrade });
     });
@@ -645,7 +639,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   </Svg>
                   {/* threshold 라벨 */}
                   {thresholdLines.map((tl) => {
-                    const sec = GRADE_PACE_THRESHOLD[tl.grade]!;
+                    const sec = GRADE_PACE_MAX[tl.grade]!;
                     const top = tl.isNext ? Math.max(0, tl.y - 18) : Math.min(barH - 18, tl.y - 18);
                     return (
                       <Text key={tl.grade} style={[styles.thresholdLabel, { left: 22, top, opacity: tl.isNext ? 1 : 0.5 }]}>
