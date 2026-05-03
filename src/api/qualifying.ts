@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withRetry } from './client';
 import type { QualifyingGrade } from '../types';
 
 export type QualifyingRow = {
@@ -14,24 +14,28 @@ export type QualifyingRow = {
 
 /** 최신 퀄리파잉 결과 조회 */
 export async function fetchLatestQualifying(): Promise<QualifyingRow | null> {
-  const { data, error } = await supabase
-    .from('qualifying_results')
-    .select('*')
-    .order('recorded_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('qualifying_results')
+      .select('*')
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  });
 }
 
 /** 전체 퀄리파잉 기록 조회 */
 export async function fetchQualifyingHistory(): Promise<QualifyingRow[]> {
-  const { data, error } = await supabase
-    .from('qualifying_results')
-    .select('*')
-    .order('recorded_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('qualifying_results')
+      .select('*')
+      .order('recorded_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  });
 }
 
 /** 퀄리파잉 결과 저장 */
