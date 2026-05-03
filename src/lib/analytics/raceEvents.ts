@@ -1,5 +1,5 @@
 import { randomUUID } from 'expo-crypto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getString, setString } from '../../platform/storage';
 import type { Grade, Tire, Program } from '../training/buildProgram';
 
 // ─── Event types ─────────────────────────────────────────────────────────────
@@ -109,10 +109,10 @@ const MAX_QUEUE_SIZE = 1000;
 async function logEvent(event: AnalyticsEvent): Promise<void> {
   console.log('[ANALYTICS]', JSON.stringify(event));
 
-  // TODO: 추후 POST /api/events 로 전송. 실패 시 AsyncStorage에 큐잉해서 재시도
+  // TODO: 추후 POST /api/events 로 전송. 실패 시 storage에 큐잉해서 재시도
 
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = getString(STORAGE_KEY);
     const queue: AnalyticsEvent[] = raw ? (JSON.parse(raw) as AnalyticsEvent[]) : [];
     queue.push(event);
     // 1000개 초과 시 오래된 것부터 drop
@@ -120,7 +120,7 @@ async function logEvent(event: AnalyticsEvent): Promise<void> {
       queue.length > MAX_QUEUE_SIZE
         ? queue.slice(queue.length - MAX_QUEUE_SIZE)
         : queue;
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    setString(STORAGE_KEY, JSON.stringify(trimmed));
   } catch {
     // storage 실패는 로깅에 영향 주지 않도록 무시
   }
@@ -250,7 +250,7 @@ export async function logOnboardingCompleted(
 /** 큐에 쌓인 이벤트 전체 반환 */
 export async function getPendingEvents(): Promise<AnalyticsEvent[]> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = getString(STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw) as AnalyticsEvent[];
   } catch {
@@ -261,12 +261,12 @@ export async function getPendingEvents(): Promise<AnalyticsEvent[]> {
 /** 전송 성공한 이벤트 제거 */
 export async function clearPendingEvents(eventIds: string[]): Promise<void> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = getString(STORAGE_KEY);
     if (!raw) return;
     const queue = JSON.parse(raw) as AnalyticsEvent[];
     const idSet = new Set(eventIds);
     const remaining = queue.filter((e) => !idSet.has(e.eventId));
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+    setString(STORAGE_KEY, JSON.stringify(remaining));
   } catch {
     // 실패 무시
   }
