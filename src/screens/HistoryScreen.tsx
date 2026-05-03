@@ -38,8 +38,8 @@ import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
-import { fetchQualifyingHistory } from '../api/qualifying';
-import { fetchSessions } from '../api/sessions';
+import { useQualifyingHistory } from '../hooks/useQualifyingHistory';
+import { useSessionHistory } from '../hooks/useSessionHistory';
 import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
@@ -250,95 +250,89 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     }, [slideAnim, fadeAnim]),
   );
 
+  const { load: loadQualifyingHistory } = useQualifyingHistory();
+  const { load: loadSessions } = useSessionHistory();
+
   useFocusEffect(
     useCallback(() => {
       if (!isAuthenticated) return;
 
       (async () => {
-        try {
-          const rows = await fetchQualifyingHistory();
-          if (rows.length > 0) {
-            const sorted = [...rows].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
-            let prevGrade: QualifyingGrade | null = null;
-            const mapped: QHistRow[] = sorted.map((r) => {
-              const d = new Date(r.recorded_at);
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              const isPromotion = prevGrade != null &&
-                GRADE_ORDER.indexOf(r.grade) < GRADE_ORDER.indexOf(prevGrade);
-              const promoted = isPromotion ? GRADE_DISPLAY_NAME[r.grade] : undefined;
-              prevGrade = r.grade;
-              return {
-                iso: r.recorded_at.slice(0, 10),
-                label: `${mm}.${dd}`,
-                paceSec: r.pace_sec_per_km,
-                grade: r.grade,
-                promotedGrade: promoted,
-              };
-            });
-            setQualifyingData(mapped);
-            setSelectedIdx(mapped.length - 1);
-          }
-        } catch (e) {
-          console.warn('[HistoryScreen] qualifying fetch error:', e);
+        // 두 API를 병렬 호출로 통합 (기존 2번 호출 → 1번)
+        const [qualRows, sessions] = await Promise.all([
+          loadQualifyingHistory(),
+          loadSessions(200),
+        ]);
+
+        // ─── Qualifying trend chart data ───────────────────────────────────
+        if (qualRows.length > 0) {
+          const sorted = [...qualRows].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
+          let prevGrade: QualifyingGrade | null = null;
+          const mapped: QHistRow[] = sorted.map((r) => {
+            const d = new Date(r.recorded_at);
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const isPromotion = prevGrade != null &&
+              GRADE_ORDER.indexOf(r.grade) < GRADE_ORDER.indexOf(prevGrade);
+            const promoted = isPromotion ? GRADE_DISPLAY_NAME[r.grade] : undefined;
+            prevGrade = r.grade;
+            return {
+              iso: r.recorded_at.slice(0, 10),
+              label: `${mm}.${dd}`,
+              paceSec: r.pace_sec_per_km,
+              grade: r.grade,
+              promotedGrade: promoted,
+            };
+          });
+          setQualifyingData(mapped);
+          setSelectedIdx(mapped.length - 1);
         }
 
-        try {
-          const [sessions, qualRows] = await Promise.all([
-            fetchSessions(200),
-            fetchQualifyingHistory(),
-          ]);
+        // ─── Session history data ──────────────────────────────────────────
+        const qualByDate = new Map<string, QualifyingGrade>();
+        for (const q of qualRows) {
+          qualByDate.set(q.recorded_at.slice(0, 10), q.grade);
+        }
 
-          // qualifying 결과를 날짜(iso)로 빠르게 조회할 수 있도록 map 구성
-          const qualByDate = new Map<string, QualifyingGrade>();
-          for (const q of qualRows) {
-            qualByDate.set(q.recorded_at.slice(0, 10), q.grade);
-          }
+        const now = new Date();
+        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const monthDist = sessions
+          .filter((s) => s.status === 'completed' && s.started_at.slice(0, 7) === thisMonth)
+          .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+        if (monthDist > 0) setThisMonthDistKm(monthDist);
 
-          // 이번 달 달린 거리 계산
-          const now = new Date();
-          const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-          const monthDist = sessions
-            .filter((s) => s.status === 'completed' && s.started_at.slice(0, 7) === thisMonth)
-            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
-          if (monthDist > 0) setThisMonthDistKm(monthDist);
+        const completed = sessions.filter((s) => s.status === 'completed');
+        if (completed.length > 0) {
+          const mapped: HistoryRow[] = completed.map((s) => {
+            const d = new Date(s.started_at);
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yy = String(d.getFullYear()).slice(2);
+            const sortKey = s.started_at.slice(0, 10);
+            const dateDisplay = `${dd}.${mm}.${yy}`;
+            const distKm = s.total_dist_km ?? 0;
 
-          // 완료된 세션 → HistoryRow 변환
-          const completed = sessions.filter((s) => s.status === 'completed');
-          if (completed.length > 0) {
-            const mapped: HistoryRow[] = completed.map((s) => {
-              const d = new Date(s.started_at);
-              const dd = String(d.getDate()).padStart(2, '0');
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const yy = String(d.getFullYear()).slice(2);
-              const sortKey = s.started_at.slice(0, 10);
-              const dateDisplay = `${dd}.${mm}.${yy}`;
-              const distKm = s.total_dist_km ?? 0;
-
-              if (s.type === 'grand_prix') {
-                const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
-                return {
-                  type: 'grand_prix',
-                  sortKey,
-                  dateDisplay,
-                  distKm,
-                  venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
-                  circuitId: s.circuit_id ?? 'monaco',
-                };
-              } else if (s.type === 'qualifying') {
-                const grade = qualByDate.get(sortKey) ?? 'f3';
-                return { type: 'qualifying', sortKey, dateDisplay, distKm, grade };
-              } else {
-                return { type: 'practice', sortKey, dateDisplay, distKm };
-              }
-            });
-            setHistoryData(mapped);
-          }
-        } catch (e) {
-          console.warn('[HistoryScreen] sessions fetch error:', e);
+            if (s.type === 'grand_prix') {
+              const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
+              return {
+                type: 'grand_prix',
+                sortKey,
+                dateDisplay,
+                distKm,
+                venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
+                circuitId: s.circuit_id ?? 'monaco',
+              };
+            } else if (s.type === 'qualifying') {
+              const grade = qualByDate.get(sortKey) ?? 'f3';
+              return { type: 'qualifying', sortKey, dateDisplay, distKm, grade };
+            } else {
+              return { type: 'practice', sortKey, dateDisplay, distKm };
+            }
+          });
+          setHistoryData(mapped);
         }
       })();
-    }, [isAuthenticated]),
+    }, [isAuthenticated, loadQualifyingHistory, loadSessions]),
   );
 
   // ─── Qualifying trend chart data ──────────────────────────────────────────
