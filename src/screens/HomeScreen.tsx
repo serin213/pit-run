@@ -49,7 +49,7 @@ import { logSessionStarted } from '../lib/analytics/raceEvents';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { GRADE_COLORS, GRADE_LABELS, GRADE_ORDER } from '../constants/grade';
 import type { QualifyingGrade } from '../types';
-import { fetchSessions } from '../api/sessions';
+import { useSessionHistory } from '../hooks/useSessionHistory';
 import { fmtDist } from '../utils/format';
 import { getWeekDates } from '../components/MonthCalendar';
 
@@ -302,38 +302,36 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [weekDistKm, setWeekDistKm] = useState(0);
   const [monthDistKm, setMonthDistKm] = useState(0);
 
+  const { load: loadSessions } = useSessionHistory();
+
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
       (async () => {
-        try {
-          const sessions = await fetchSessions(100);
-          const completed = sessions.filter((s) => s.status === 'completed');
+        const sessions = await loadSessions(100);
+        const completed = sessions.filter((s) => s.status === 'completed');
 
-          const now = new Date();
-          const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-          const weekDates = getWeekDates(now);
-          const weekStart = toISO(weekDates[0]);
-          const weekEnd = toISO(weekDates[6]);
+        const now = new Date();
+        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const weekDates = getWeekDates(now);
+        const weekStart = toISO(weekDates[0]);
+        const weekEnd = toISO(weekDates[6]);
 
-          const wDist = completed
-            .filter((s) => {
-              const d = s.started_at.slice(0, 10);
-              return d >= weekStart && d <= weekEnd;
-            })
-            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+        const wDist = completed
+          .filter((s) => {
+            const d = s.started_at.slice(0, 10);
+            return d >= weekStart && d <= weekEnd;
+          })
+          .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
 
-          const mDist = completed
-            .filter((s) => s.started_at.slice(0, 7) === thisMonth)
-            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+        const mDist = completed
+          .filter((s) => s.started_at.slice(0, 7) === thisMonth)
+          .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
 
-          setWeekDistKm(wDist);
-          setMonthDistKm(mDist);
-        } catch (e) {
-          console.warn('[HomeScreen] sessions fetch error:', e);
-        }
+        setWeekDistKm(wDist);
+        setMonthDistKm(mDist);
       })();
-    }, [user?.id]),
+    }, [user?.id, loadSessions]),
   );
 
   // 인스턴스 고유 ID (여러 HomeScreen 인스턴스의 gradient ID 충돌 방지)
