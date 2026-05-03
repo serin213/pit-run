@@ -40,5 +40,21 @@ export function useSupabaseProfile() {
     [isAuthenticated],
   );
 
-  return { profile, loading, reload: load, updateDisplayName };
+  /** 프로필 필드 저장 (upsertProfile 래퍼). 성공 시 로컬 상태도 갱신. */
+  const save = useCallback(
+    async (fields: { display_name: string; race_number?: string; accent_color?: string }) => {
+      if (!isAuthenticated) return null;
+      try {
+        const updated = await upsertProfile(fields);
+        setProfile(updated);
+        return updated;
+      } catch (e) {
+        console.warn('[useSupabaseProfile] save error:', e);
+        return null;
+      }
+    },
+    [isAuthenticated],
+  );
+
+  return { profile, loading, reload: load, updateDisplayName, save };
 }
