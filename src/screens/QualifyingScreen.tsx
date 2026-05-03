@@ -27,10 +27,10 @@ import { useAppStore } from '../store/appStore';
 import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { useSupabasePlans } from '../hooks/useSupabasePlans';
 import { generateIntervalPlan } from '../core/intervals';
 import { assignGrade } from '../lib/grading/calcGrade';
 import type { QualifyingResult } from '../types';
-import { insertPlan } from '../api/plans';
 import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
 import {
@@ -65,6 +65,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const { setQualifyingResult } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { startSession, endSession } = useSupabaseSession();
+  const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
   const [trialDistKm, setTrialDistKm] = useState(0);
@@ -205,7 +206,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
       .then((qRow) => {
         // 퀄리파잉 결과 저장 후 인터벌 플랜도 저장
         const plan = generateIntervalPlan(result.grade, result.paceSecPerKm);
-        insertPlan({
+        savePlan({
           based_on_qualifying_id: qRow?.id ?? null,
           segments: plan.segments,
         }).catch(() => {});
