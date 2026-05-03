@@ -41,7 +41,7 @@ export default function SplashScreen({ grade }: Props) {
     if (!grade) return;
     Animated.timing(confettiOpacity, {
       toValue: 1,
-      duration: 800,
+      duration: 500,
       useNativeDriver: true,
     }).start();
   }, [grade, confettiOpacity]);
