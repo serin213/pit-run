@@ -6,7 +6,7 @@ import { getDriverCode } from '../utils/driverCode';
 import { radius } from '../constants/radius';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
-import { upsertProfile } from '../api/profiles';
+import { useSupabaseProfile } from '../hooks/useSupabaseProfile';
 import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
@@ -18,6 +18,7 @@ const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
   const { setProfile } = useAppStore();
+  const { save } = useSupabaseProfile();
   const { width: windowW } = useWindowDimensions();
   const contentWidth = Math.max(0, windowW - 40);
   const ctaContainerH = 164;
@@ -198,7 +199,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 raceNumber: normalizedNumber,
                 nameTagAccentColor: teamColor ?? PREVIEW_DEFAULT_COLOR,
               });
-              upsertProfile({
+              save({
                 display_name: trimmedName,
                 race_number: normalizedNumber,
                 accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,

@@ -15,7 +15,7 @@ import GradientCtaButton from '../components/GradientCtaButton';
 import BackButton from '../components/BackButton';
 import { getDriverCode } from '../utils/driverCode';
 import { useAppStore } from '../store/appStore';
-import { upsertProfile } from '../api/profiles';
+import { useSupabaseProfile } from '../hooks/useSupabaseProfile';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
@@ -34,6 +34,7 @@ const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 
 export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps) {
   const { profile, setProfile } = useAppStore();
+  const { save } = useSupabaseProfile();
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
@@ -225,7 +226,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
               raceNumber: normalizedNumber,
               nameTagAccentColor: finalColor,
             });
-            upsertProfile({
+            save({
               display_name: trimmedName,
               race_number: normalizedNumber,
               accent_color: finalColor,
