@@ -3,6 +3,8 @@
  */
 
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useSharedValue, withTiming, useAnimatedStyle, Easing as ReanimatedEasing } from 'react-native-reanimated';
+import Reanimated from 'react-native-reanimated';
 import {
   Animated,
   Easing,
@@ -307,8 +309,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
+      let cancelled = false;
       (async () => {
         const sessions = await loadSessions(100);
+        if (cancelled) return;
         const completed = sessions.filter((s) => s.status === 'completed');
 
         const now = new Date();
@@ -331,6 +335,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         setWeekDistKm(wDist);
         setMonthDistKm(mDist);
       })();
+      return () => { cancelled = true; };
     }, [user?.id, loadSessions]),
   );
 
@@ -342,7 +347,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [devTestActive, setDevTestActive] = useState(false);
   const [svgKey, setSvgKey] = useState(0);
-  const calHeightAnim = useRef(new Animated.Value(CAL_H_WEEK)).current;
+  const calHeight = useSharedValue(CAL_H_WEEK);
+  const calHeightStyle = useAnimatedStyle(() => ({ height: calHeight.value }));
   const cardTransY = useRef(new Animated.Value(0)).current;
   const calContentOpacity = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -355,11 +361,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   }, [todayISO]);
 
   const animateCalHeight = useCallback((toH: number, toDelta: number) => {
-    Animated.parallel([
-      Animated.timing(calHeightAnim, { toValue: toH, duration: 300, useNativeDriver: false }),
-      Animated.timing(cardTransY, { toValue: toDelta, duration: 300, useNativeDriver: true }),
-    ]).start();
-  }, [calHeightAnim, cardTransY]);
+    calHeight.value = withTiming(toH, { duration: 300, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) });
+    Animated.timing(cardTransY, { toValue: toDelta, duration: 300, useNativeDriver: true }).start();
+  }, [calHeight, cardTransY]);
 
   const fadeCalContent = useCallback((onSwap: () => void) => {
     Animated.timing(calContentOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
@@ -548,15 +552,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       </Pressable>
 
       {/* ── 캘린더 카드 (y=170) ── */}
-      <Animated.View
-        style={{
+      <Reanimated.View
+        style={[{
           position: 'absolute',
           left: cardLeft,
           top: py(170),
           width: cardW,
-          height: calHeightAnim,
           ...radius.md,
-        }}
+        }, calHeightStyle]}
       >
         {/* GradientCardBorder를 항상 mount — 내부 내용만 교체해 테두리 flash 방지 */}
         <GradientCardBorder style={{ flex: 1 }} innerStyle={{ overflow: 'hidden' }} borderRadius={radius.md.borderRadius}>
@@ -577,7 +580,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             )}
           </Animated.View>
         </GradientCardBorder>
-      </Animated.View>
+      </Reanimated.View>
 
       {/* ── 서킷 카드 (pace 데이터 있을 때만) ── */}
       {showCircuitCard && (
