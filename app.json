@@ -20,7 +20,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.pit-run",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "달리는 동안 화면이 꺼져도 정확한 거리를 측정합니다.",
+        "NSLocationAlwaysUsageDescription": "화면이 꺼진 상태에서도 러닝 세션을 추적합니다.",
+        "NSLocationWhenInUseUsageDescription": "달리는 동안 정확한 거리를 측정합니다.",
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +36,14 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pitrun"
+      "package": "com.anonymous.pitrun",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -40,7 +53,17 @@
     "plugins": [
       "expo-font",
       "expo-asset",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "달리는 동안 화면이 꺼져도 정확한 거리를 측정합니다.",
+          "locationAlwaysPermission": "화면이 꺼진 상태에서도 러닝 세션을 추적합니다.",
+          "locationWhenInUsePermission": "달리는 동안 정확한 거리를 측정합니다.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ]
   }
 }
