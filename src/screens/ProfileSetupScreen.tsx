@@ -11,6 +11,7 @@ import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 import { useProfileValidation } from '../hooks/useProfileValidation';
+import { COLORS } from '../constants/colors';
 
 const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF'] as const;
 const PREVIEW_DEFAULT_COLOR = '#7C7C88';
@@ -292,10 +293,10 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 0 }],
   },
   inputUnderlineError: {
-    backgroundColor: '#E03A3E',
+    backgroundColor: COLORS.soft,
   },
   errorText: {
-    color: '#E03A3E',
+    color: COLORS.soft,
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
     lineHeight: 14,

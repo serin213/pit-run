@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withRetry } from './client';
 
 export type SessionType = 'practice' | 'qualifying' | 'grand_prix';
 export type SessionStatus = 'completed' | 'abandoned';
@@ -21,13 +21,15 @@ export type SessionRow = {
 
 /** 세션 목록 조회 (최근순) */
 export async function fetchSessions(limit = 50): Promise<SessionRow[]> {
-  const { data, error } = await supabase
-    .from('run_sessions')
-    .select('*')
-    .order('started_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data ?? [];
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('run_sessions')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  });
 }
 
 /** 세션 생성 (러닝 시작) */

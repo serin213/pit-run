@@ -21,6 +21,7 @@ import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useProfileValidation } from '../hooks/useProfileValidation';
+import { COLORS } from '../constants/colors';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -307,10 +308,10 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 0 }],
   },
   inputUnderlineError: {
-    backgroundColor: '#E03A3E',
+    backgroundColor: COLORS.soft,
   },
   errorText: {
-    color: '#E03A3E',
+    color: COLORS.soft,
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
     lineHeight: 14,

@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withRetry } from './client';
 import type { IntervalSegment } from '../core/intervals';
 
 export type { IntervalSegment };
@@ -14,14 +14,16 @@ export type PlanRow = {
 
 /** 최신 인터벌 플랜 조회 */
 export async function fetchLatestPlan(): Promise<PlanRow | null> {
-  const { data, error } = await supabase
-    .from('interval_plans')
-    .select('*')
-    .order('generated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('interval_plans')
+      .select('*')
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  });
 }
 
 /** 인터벌 플랜 생성 */
