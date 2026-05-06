@@ -1,4 +1,16 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { QualifyingGrade } from '../types';
+
+export type HistoryResultData = {
+  distKm: number;
+  elapsedMs: number;
+  circuitId?: string;
+};
+
+export type HistoryQualifyingData = {
+  grade: QualifyingGrade;
+  paceSec: number;
+};
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -8,14 +20,14 @@ export type RootStackParamList = {
   History: undefined;
   Profile: undefined;
   ProfileEdit: undefined;
-  Qualifying: undefined;
-  QualifyingPost: undefined;
+  Qualifying: { skipIntro?: boolean } | undefined;
+  QualifyingPost: { history?: HistoryQualifyingData } | undefined;
   NextRace: undefined;
   Setup: undefined;
   AllCircuits: { currentCircuitId: string | null };
   Countdown: undefined;
   Running: undefined;
-  Result: undefined;
+  Result: { history?: HistoryResultData } | undefined;
   Practice: undefined;
   PracticeResult: { distanceKm: number };
 };

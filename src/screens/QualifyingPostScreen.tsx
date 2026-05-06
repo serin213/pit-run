@@ -77,14 +77,17 @@ const GRADE_LABELS_SHORT: Record<QualifyingGrade, string> = {
   f3: 'F3', f2: 'F2', f1: 'F1', f1_rookie: 'ROOKIE', f1_champion: 'CHAMP',
 };
 
-export default function QualifyingPostScreen({ navigation }: QualifyingPostScreenProps) {
+export default function QualifyingPostScreen({ navigation, route }: QualifyingPostScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
 
+  const historyData = route.params?.history;
+  const isHistoryMode = !!historyData;
+
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
   const [devGrade, setDevGrade] = useState<QualifyingGrade | null>(null);
-  const grade = (__DEV__ && devGrade) ? devGrade : (qualifyingResult?.grade ?? 'f3');
+  const grade = (__DEV__ && devGrade) ? devGrade : (historyData?.grade ?? qualifyingResult?.grade ?? 'f3');
   const ctaTheme = CTA_THEME[grade];
   const gradeImg = GRADE_TEXT_IMAGES[grade];
 
@@ -132,9 +135,11 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
 
   const handleAnimationFinish = () => {};
 
-  const timeStr = qualifyingResult
-    ? formatPace(qualifyingResult.paceSecPerKm)
-    : `—'——"`;
+  const timeStr = historyData
+    ? formatPace(historyData.paceSec)
+    : qualifyingResult
+      ? formatPace(qualifyingResult.paceSecPerKm)
+      : `—'——"`;
 
   return (
     <View style={styles.root}>
@@ -205,9 +210,9 @@ export default function QualifyingPostScreen({ navigation }: QualifyingPostScree
         style={[styles.ctaWrap, { bottom: safeBottom + 20, opacity: ctaOpacity }]}
       >
         <GradientCtaButton
-          label="To the GRID"
+          label={isHistoryMode ? 'Back' : 'To the GRID'}
           enabled
-          onPress={() => navigation.replace('NextRace')}
+          onPress={() => isHistoryMode ? navigation.goBack() : navigation.replace('NextRace')}
           gradientStart={ctaTheme.gradientStart}
           gradientEnd={ctaTheme.gradientEnd}
           textColor={ctaTheme.textColor}

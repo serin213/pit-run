@@ -162,19 +162,21 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. 트로피 + 레이서 정보 ── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
-          <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
-            <Text style={styles.racerName}>{profile.displayName}</Text>
+        {/* ── 1. 트로피 + 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
+        <Pressable onPress={() => navigation.navigate('ProfileEdit')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
+            <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
+              <Text style={styles.racerName}>{profile.displayName}</Text>
+            </View>
           </View>
-        </View>
 
-        {/* ── 2. 팀 SVG ── */}
-        <View style={{ marginTop: -12 }}>
-          <TeamSvg color={profile.nameTagAccentColor} width={windowW} />
-        </View>
+          {/* ── 2. 팀 SVG ── */}
+          <View style={{ marginTop: -12 }}>
+            <TeamSvg color={profile.nameTagAccentColor} width={windowW} />
+          </View>
+        </Pressable>
 
         {/* ── 3. 설정 리스트 ── */}
         <View style={{ marginTop: 28 }}>

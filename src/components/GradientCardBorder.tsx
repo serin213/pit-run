@@ -8,7 +8,7 @@
  *   - 탭 전환 시 사라지는 문제 없음 (SVG가 항상 최상위)
  */
 import React, { useState } from 'react';
-import { View, ViewStyle, StyleSheet } from 'react-native';
+import { Pressable, View, ViewStyle, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 const STROKE_W = 0.5;
@@ -19,6 +19,7 @@ type Props = {
   style?: ViewStyle | ViewStyle[] | any;
   innerStyle?: ViewStyle | ViewStyle[] | any;
   borderRadius?: number;
+  onPress?: () => void;
   children: React.ReactNode;
 };
 
@@ -26,13 +27,16 @@ export default function GradientCardBorder({
   style,
   innerStyle,
   borderRadius = 12,
+  onPress,
   children,
 }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const Root = onPress ? Pressable : View;
 
   return (
-    <View
+    <Root
       style={[style, { borderRadius }]}
+      onPress={onPress}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         setSize((prev) =>
@@ -86,6 +90,6 @@ export default function GradientCardBorder({
           />
         </Svg>
       )}
-    </View>
+    </Root>
   );
 }

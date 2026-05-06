@@ -61,7 +61,8 @@ const GRADE_HINTS: Record<string, string> = {
 
 type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
-export default function QualifyingScreen({ navigation }: QualifyingScreenProps) {
+export default function QualifyingScreen({ navigation, route }: QualifyingScreenProps) {
+  const skipIntro = route.params?.skipIntro ?? false;
   const { setQualifyingResult } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { startSession, endSession } = useSupabaseSession();
@@ -74,7 +75,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
 
-  const [phase, setPhase] = useState<Phase>('intro');
+  const [phase, setPhase] = useState<Phase>(skipIntro ? 'warmup' : 'intro');
   const [warmupLeftSec, setWarmupLeftSec] = useState(RECOMMENDED_WARMUP_MINUTES * 60);
   const [trialStartedAt, setTrialStartedAt] = useState<number | null>(null);
   const [trialElapsedMs, setTrialElapsedMs] = useState(0);
@@ -251,10 +252,7 @@ export default function QualifyingScreen({ navigation }: QualifyingScreenProps) 
         distanceKm: effectiveDistKm,
       }).catch(() => {});
     }
-    setPhase('intro');
-    setWarmupLeftSec(RECOMMENDED_WARMUP_MINUTES * 60);
-    setTrialStartedAt(null);
-    setTrialElapsedMs(0);
+    navigation.goBack();
   };
 
   const timerFontSize = 120;
