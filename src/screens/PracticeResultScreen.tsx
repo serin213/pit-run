@@ -22,7 +22,7 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
   return (
     <View style={styles.container}>
       {/* 거리 + km */}
-      <View style={[styles.topContent, { paddingTop: safeTop + 130 }]}>
+      <View style={[styles.topContent, { paddingTop: safeTop + 102 }]}>
         <View style={styles.distanceRow}>
           <Text style={styles.distanceNum} allowFontScaling={false}>
             {distanceKm.toFixed(2)}
