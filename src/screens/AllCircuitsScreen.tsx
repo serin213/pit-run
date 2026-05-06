@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import { BlurView } from '../platform/blur';
 import {
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     lineHeight: 43,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: 1.8,
     includeFontPadding: false,
     marginBottom: 24,

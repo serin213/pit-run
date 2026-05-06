@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useRef, useCallback, RefObject, useState, useEffect } from 'react';
 import {
   View,
@@ -160,7 +161,7 @@ function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
         {/* Circuit SVG */}
         {trackPath && viewBox && (
           <View style={{ marginTop: 24, alignItems: 'center' }}>
-            <CardCircuitSvg path={trackPath} viewBox={viewBox} color="#FFFFFF" size={52} strokePx={3} />
+            <CardCircuitSvg path={trackPath} viewBox={viewBox} color={PALETTE.white} size={52} strokePx={3} />
           </View>
         )}
       </GradientCardBorder>
@@ -176,7 +177,7 @@ function FastestLapStickerCard({ fastestPaceS, variant = 'default' }: {
   const ref = useRef<View>(null);
   const isDefault  = variant === 'default';
   const pillBg     = isDefault ? '#8528c5' : '#AF3AFF4D';
-  const textColor  = isDefault ? '#FFFFFF' : '#AF3AFF';
+  const textColor  = isDefault ? PALETTE.white : '#AF3AFF';
   const iconSource = isDefault
     ? require('../../assets/icons/fastest-lap.png')
     : require('../../assets/icons/fastest-lap-purple.png');
@@ -209,7 +210,7 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
 }) {
   const ref = useRef<View>(null);
   const pillBg    = variant === 'solid' ? themeColor : themeColor + '4D';
-  const textColor = variant === 'solid' ? '#FFFFFF' : themeTextColor;
+  const textColor = variant === 'solid' ? PALETTE.white : themeTextColor;
   return (
     <View ref={ref} collapsable={false}>
       <GradientCardBorder innerStyle={{ flex: 0, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }}>
@@ -376,14 +377,14 @@ const styles = StyleSheet.create({
   smallBadgeText: {
     fontFamily: 'Formula1-Regular',
     fontSize: 10,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: -0.2,
   },
   smallDist: {
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
     lineHeight: 22,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 12,
   },
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
     lineHeight: 22,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
 
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 20,
     letterSpacing: 20 * -0.02,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
 
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   wideStatValue: {
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     marginTop: 8,
     includeFontPadding: false,
   },
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
   bigDist: {
     fontFamily: 'Formula1-Black',
     fontSize: 85,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     lineHeight: 85,
     includeFontPadding: false,
     letterSpacing: 85 * 0.05,

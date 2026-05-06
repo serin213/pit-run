@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
 import {
@@ -49,7 +50,7 @@ const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
 const LICENSE_TROPHY_ICON = require('../../assets/race-trophy.png');
 
 const RECOMMENDED_WARMUP_MINUTES = 5;
-const ACCENT = '#E03A3E';
+const ACCENT = PALETTE.red;
 
 const GRADE_HINTS: Record<string, string> = {
   f1_champion: 'F1 Champion: 400m x 8, recovery 60s, target pace 4:00–4:20/km.',
@@ -349,7 +350,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
                 <Defs>
                   <SvgLinearGradient id="qualBarGrad" x1="0" y1="0" x2="1" y2="0">
                     <Stop offset="0%" stopColor={ACCENT} />
-                    <Stop offset="100%" stopColor="#E03A8A" />
+                    <Stop offset="100%" stopColor={PALETTE.pink} />
                   </SvgLinearGradient>
                 </Defs>
                 <Rect x={0} y={0} width={barFillW} height={barH} rx={barH / 2} fill="url(#qualBarGrad)" />
@@ -530,10 +531,10 @@ function StepCard({
       <Svg width={width} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={width} y2={cardH}>
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+            <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+            <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+            <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+            <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
           </SvgLinearGradient>
         </Defs>
         <Rect x={0.25} y={0.25} width={width - 0.5} height={cardH - 0.5} rx={borderRadius - 0.25} ry={borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
@@ -638,7 +639,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
             onPress={() => dismiss(onContinue)}
             style={[styles.retireBtn, styles.retireContinueBtn, radius.sm]}
           >
-            <Text style={[styles.retireBtnLabel, { color: '#FFFFFF' }]} allowFontScaling={false}>
+            <Text style={[styles.retireBtnLabel, { color: PALETTE.white }]} allowFontScaling={false}>
               Continue
             </Text>
           </Pressable>
@@ -682,7 +683,7 @@ const styles = StyleSheet.create({
 
   // ── Intro ──
   introTitle: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     letterSpacing: 1.8,
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   introSubtitle: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
@@ -714,14 +715,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   stepCardLabel: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     letterSpacing: -0.4,
     includeFontPadding: false,
   },
   stepCardMeta: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
@@ -768,7 +769,7 @@ const styles = StyleSheet.create({
   timerText: {
     alignSelf: 'stretch',
     textAlign: 'center',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Black',
     letterSpacing: 5,
     includeFontPadding: false,
@@ -783,7 +784,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   distLabel: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
@@ -809,13 +810,13 @@ const styles = StyleSheet.create({
     left: 16,
     backgroundColor: 'rgba(252,184,39,0.2)',
     borderWidth: 1,
-    borderColor: '#FCB827',
+    borderColor: PALETTE.yellow,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   devFinishTxt: {
-    color: '#FCB827',
+    color: PALETTE.yellow,
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
     includeFontPadding: false,
@@ -835,7 +836,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   retireTitleText: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Regular',
     fontStyle: 'italic',
     fontSize: 30,
@@ -844,7 +845,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   retireDescText: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontStyle: 'italic',

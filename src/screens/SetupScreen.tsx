@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
 import { useFocusEffect } from '@react-navigation/native';
@@ -51,8 +52,8 @@ const TIRES: Array<{
   color: string;
   description: string;
 }> = [
-  { type: 'soft', letter: 'S', color: '#E03A3E', description: 'Short run, Long rest' },
-  { type: 'medium', letter: 'M', color: '#FCB827', description: 'Balanced' },
+  { type: 'soft', letter: 'S', color: PALETTE.red, description: 'Short run, Long rest' },
+  { type: 'medium', letter: 'M', color: PALETTE.yellow, description: 'Balanced' },
   { type: 'hard', letter: 'H', color: '#F8F8F9', description: 'Long run, Short rest' },
   { type: 'wet', letter: 'W', color: '#4CB5C9', description: 'Easy and Gentle' },
 ];
@@ -520,7 +521,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     lineHeight: 43,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: 1.8,
     includeFontPadding: false,
     marginBottom: TITLE_TO_TIRE_GAP,

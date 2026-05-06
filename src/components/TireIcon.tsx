@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
@@ -55,8 +56,8 @@ const LETTER_PATHS: Record<TireType, string> = {
 };
 
 const TIRE_COLORS: Record<TireType, string> = {
-  soft: '#E03A3E',
-  medium: '#FCB827',
+  soft: PALETTE.red,
+  medium: PALETTE.yellow,
   hard: '#F8F8F9',
   wet: '#4CB5C9',
 };

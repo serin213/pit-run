@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
+import { PALETTE } from '../constants/colors';
 
 type Props = {
   trackPath: string;
@@ -18,7 +19,7 @@ export default function CircuitMini({ trackPath, viewBox, width: W, height: H }:
       <Path
         d={trackPath}
         fill="none"
-        stroke="#FFFFFF"
+        stroke={PALETTE.white}
         strokeWidth={3.25 / scale}
         strokeLinecap="round"
         strokeLinejoin="round"

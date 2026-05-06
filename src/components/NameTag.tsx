@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Svg, { Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
@@ -24,7 +25,7 @@ export default function NameTag({
   label = 'LEC',
   colorStart,
   colorEnd,
-  accentColor = '#E03A3E',
+  accentColor = PALETTE.red,
   gradientX1 = 0,
   gradientY1 = 0.5,
   gradientX2 = 1,
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
     lineHeight: 12,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     textTransform: 'uppercase',
   },

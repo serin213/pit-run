@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { Pressable, View, ViewStyle, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
+import { PALETTE } from '../constants/colors';
 
 const STROKE_W = 0.5;
 export const CARD_FILL = 'rgba(32, 32, 40, 0.4)';
@@ -71,10 +72,10 @@ export default function GradientCardBorder({
         >
           <Defs>
             <SvgLinearGradient id="cardBorderGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={size.width} y2={size.height}>
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-              <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-              <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+              <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+              <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+              <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+              <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
             </SvgLinearGradient>
           </Defs>
           <Rect

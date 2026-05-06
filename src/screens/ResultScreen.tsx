@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
 import {
@@ -510,14 +511,14 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                 <RollingText
                   target={fmtTime(elapsedMs)}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
+                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: PALETTE.white }}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
                 <RollingText
                   target={fmtPace(totalPaceS)}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: '#FFFFFF' }}
+                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: PALETTE.white }}
                 />
 
                 <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
@@ -733,7 +734,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
           <GradientCtaButton
             height={58}
             label="To the GRID"
-            textColor={topTheme.line === '#FCB827' ? '#17171C' : '#FFFFFF'}
+            textColor={topTheme.line === PALETTE.yellow ? '#17171C' : PALETTE.white}
             enabled
             onPress={openSheet}
             gradientStart={topTheme.line}
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
     fontSize: 100,
     lineHeight: 110,
     letterSpacing: -2,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   checkerFlag: {
@@ -891,14 +892,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 100,
     lineHeight: 110,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: 5,
     includeFontPadding: false,
   },
   distUnit: {
     fontFamily: 'Formula1-Regular',
     fontSize: 30,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     lineHeight: 36,
     marginBottom: 6,
   },
@@ -960,7 +961,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: -0.2,
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.7,
   },
 
@@ -1027,7 +1028,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontFamily: 'Formula1-Regular',
     fontSize: 30,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: -0.3,
     marginBottom: 24,
     lineHeight: 36,

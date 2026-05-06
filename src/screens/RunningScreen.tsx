@@ -8,7 +8,7 @@ import { useRunning } from '../hooks/useRunning';
 import { useGPS } from '../hooks/useGPS';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { getDriverCode, getDriverDisplayName } from '../utils/driverCode';
-import { COLORS } from '../constants/colors';
+import { COLORS, PALETTE} from '../constants/colors';
 import { DEFAULT_CIRCUIT_KM as CIRCUIT_KM } from '../config/circuits';
 import PauseButton from '../components/PauseButton';
 import StopButton from '../components/StopButton';
@@ -35,13 +35,13 @@ const FH = 874;
 const BTN_BG = {
   yellow: '#FFDD94',
   purple: '#B850FF',
-  green: '#59B345',
+  green: PALETTE.green,
 } as const;
 
 const BTN_ICON = {
-  yellow: '#FCB827',
+  yellow: PALETTE.yellow,
   purple: '#C26AFF',
-  green: '#59B345',
+  green: PALETTE.green,
 } as const;
 
 const PACE_FIT_SAMPLE = '99\'59"';
@@ -130,21 +130,21 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const cfg = COLORS.sector[sector];
   const isInPitTheme = pitPhase === 'inPit';
   const displayTheme = isInPitTheme
-    ? { start: '#FFFFFF', end: '#CBCBCC' }
+    ? { start: PALETTE.white, end: '#CBCBCC' }
     : { start: cfg.start, end: cfg.end };
   const circuitLabel = activeCircuit?.displayName ?? 'Shanghai';
   const circuitKm = activeCircuit?.distanceKm ?? CIRCUIT_KM;
   const circuitPath = activeCircuit?.trackPath;
   const topTheme =
     isInPitTheme
-      ? { line: '#FFFFFF', text: '#FFFFFF' }
+      ? { line: PALETTE.white, text: PALETTE.white }
       : getCircuitTheme(circuitLabel);
   const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : 'RACING';
   const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
   const boxBoxDriverName = getDriverDisplayName(profile?.displayName ?? '');
-  const boxBoxTeamColor = profile?.nameTagAccentColor ?? '#E03A3E';
+  const boxBoxTeamColor = profile?.nameTagAccentColor ?? PALETTE.red;
 
   const DIST_LEFT = 36; // fixed 36pt margin
   const DIST_RIGHT = windowW - DIST_LEFT;
@@ -220,7 +220,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 
   const controlBgColor = BTN_BG[sector];
   const controlIconColor = BTN_ICON[sector];
-  const statusTextColor = isInPitTheme || isPaused ? '#FFFFFF' : topTheme.text;
+  const statusTextColor = isInPitTheme || isPaused ? PALETTE.white : topTheme.text;
   const statusTextOpacity = isInPitTheme || isPaused ? 0.7 : 1;
 
   useEffect(() => {
@@ -361,10 +361,10 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       >
         <CircuitMap
           progress={prog}
-          startColor={isInPitTheme ? '#8A8A8D' : displayTheme.start}
-          endColor={isInPitTheme ? '#FFFFFF' : displayTheme.end}
+          startColor={isInPitTheme ? PALETTE.grey : displayTheme.start}
+          endColor={isInPitTheme ? PALETTE.white : displayTheme.end}
           path={circuitPath}
-          accentColor={isInPitTheme ? '#8A8A8D' : displayTheme.start}
+          accentColor={isInPitTheme ? PALETTE.grey : displayTheme.start}
           overlays={activeCircuit?.overlays}
           viewBoxWidth={activeCircuit?.viewBox?.width}
           viewBoxHeight={activeCircuit?.viewBox?.height}
@@ -379,7 +379,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           label={nameTagLabel}
           colorStart={displayTheme.end}
           colorEnd={displayTheme.start}
-          accentColor={profile?.nameTagAccentColor ?? '#E03A3E'}
+          accentColor={profile?.nameTagAccentColor ?? PALETTE.red}
           gradientX1={gradientX1}
           gradientY1={gradientY1}
           gradientX2={gradientX2}
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   val: {
     position: 'absolute',
     fontFamily: 'Formula1-Bold',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     fontVariant: ['tabular-nums'],
   },
@@ -559,11 +559,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   debugCircuitArrowTxt: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontSize: 14,
   },
   debugCircuitName: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 12,
     letterSpacing: 0.5,
@@ -579,11 +579,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#FCB827',
+    borderColor: PALETTE.yellow,
     backgroundColor: 'rgba(252,184,39,0.16)',
   },
   debugBoxBoxTxt: {
-    color: '#FCB827',
+    color: PALETTE.yellow,
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
     lineHeight: 11,

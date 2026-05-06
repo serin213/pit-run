@@ -1,24 +1,26 @@
+import { PALETTE } from '../constants/colors';
+
 export type CircuitTheme = {
   line: string;
   text: string;
 };
 
 export const CIRCUIT_THEME_BY_NAME: Record<string, CircuitTheme> = {
-  SHANGHAI: { line: '#E03A3E', text: '#E03A3E' },
-  'LAS VEGAS': { line: '#3F5CFF', text: '#3F5CFF' },
-  SUZUKA: { line: '#E03A3E', text: '#E03A3E' },
-  MONACO: { line: '#E03A3E', text: '#E03A3E' },
-  HUNGARY: { line: '#59B345', text: '#59B345' },
-  HUNGARORING: { line: '#59B345', text: '#59B345' },
-  'MARINA BAY': { line: '#E03A3E', text: '#E03A3E' },
-  MONZA: { line: '#59B345', text: '#59B345' },
+  SHANGHAI: { line: PALETTE.red, text: PALETTE.red },
+  'LAS VEGAS': { line: PALETTE.blue, text: PALETTE.blue },
+  SUZUKA: { line: PALETTE.red, text: PALETTE.red },
+  MONACO: { line: PALETTE.red, text: PALETTE.red },
+  HUNGARY: { line: PALETTE.green, text: PALETTE.green },
+  HUNGARORING: { line: PALETTE.green, text: PALETTE.green },
+  'MARINA BAY': { line: PALETTE.red, text: PALETTE.red },
+  MONZA: { line: PALETTE.green, text: PALETTE.green },
   BAKU: { line: '#04A6CB', text: '#04A6CB' },
-  'ALBERT PARK': { line: '#3F5CFF', text: '#3F5CFF' },
-  SILVERSTONE: { line: '#3F5CFF', text: '#3F5CFF' },
-  SPA: { line: '#FCB827', text: '#FCB827' },
+  'ALBERT PARK': { line: PALETTE.blue, text: PALETTE.blue },
+  SILVERSTONE: { line: PALETTE.blue, text: PALETTE.blue },
+  SPA: { line: PALETTE.yellow, text: PALETTE.yellow },
 };
 
-export const DEFAULT_CIRCUIT_THEME: CircuitTheme = { line: '#E03A3E', text: '#E03A3E' };
+export const DEFAULT_CIRCUIT_THEME: CircuitTheme = { line: PALETTE.red, text: PALETTE.red };
 
 export function getCircuitTheme(circuitDisplayName: string): CircuitTheme {
   return CIRCUIT_THEME_BY_NAME[circuitDisplayName.toUpperCase()] ?? DEFAULT_CIRCUIT_THEME;

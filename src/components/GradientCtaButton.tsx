@@ -4,6 +4,7 @@ let _ctaBtnId = 0;
 import { Animated, Easing, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from 'react-native';
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { CTA_RADIUS } from '../constants/radius';
+import { PALETTE } from '../constants/colors';
 
 type GradientCtaButtonSingleProps = {
   variant?: 'single';
@@ -73,9 +74,9 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
     textButtonLabel = 'On a Treadmil?',
     textButtonChecked = false,
     onPressTextButton,
-    gradientStart = '#E03A3E',
+    gradientStart = PALETTE.red,
     gradientEnd = '#FF4D51',
-    textColor = '#FFFFFF',
+    textColor = PALETTE.white,
   } = props;
 
   const width = widthProp ?? defaultWidth;
@@ -114,7 +115,7 @@ export default function GradientCtaButton(props: GradientCtaButtonProps) {
                 <Svg width={10} height={7} viewBox="0 0 10 7">
                   <Path
                     d="M1 3L3.29289 5.29289C3.68342 5.68342 4.31658 5.68342 4.70711 5.29289L9 1"
-                    stroke="#FFFFFF"
+                    stroke={PALETTE.white}
                     strokeWidth={2}
                     strokeLinecap="round"
                     fill="none"
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   textButtonLabel: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#E03A3E',
+    backgroundColor: PALETTE.red,
   },
   press: {
     width: '100%',
@@ -237,12 +238,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnLabel: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
     includeFontPadding: false,
     letterSpacing: -0.22,
-    textShadowColor: '#FFFFFF',
+    textShadowColor: PALETTE.white,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 1,
   },
@@ -342,10 +343,10 @@ const dualStyles = StyleSheet.create({
     backgroundColor: '#34343F',
   },
   startBtn: {
-    backgroundColor: '#E03A3E',
+    backgroundColor: PALETTE.red,
   },
   dualLabel: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 22,
     lineHeight: 26,

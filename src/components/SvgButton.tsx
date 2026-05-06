@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
@@ -24,7 +25,7 @@ export default function SvgButton({
   fillOpacity = 1,
   stroke,
   strokeWidth = 0,
-  textColor = '#FFFFFF',
+  textColor = PALETTE.white,
   fontSize = 14,
   fontFamily = 'Formula1-Regular',
 }: Props) {

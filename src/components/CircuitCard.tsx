@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from
 import type { CircuitDefinition } from '../config/circuits';
 import { CARD_FILL } from './GradientCardBorder';
 import { radius } from '../constants/radius';
+import { PALETTE } from '../constants/colors';
 
 export type CircuitTagType = 'Sprint' | 'Mixed' | 'Tempo';
 
@@ -35,9 +36,9 @@ const TRACK_EDGE_INSET_GRID = 18;
 const TRACK_EDGE_INSET_FEATURED = 24;
 
 const TAG_CONFIG = {
-  Sprint: { bg: 'rgba(224,58,62,0.3)', color: '#E03A3E' },
-  Mixed: { bg: 'rgba(252,184,39,0.3)', color: '#FCB827' },
-  Tempo: { bg: 'rgba(89,179,69,0.3)', color: '#59B345' },
+  Sprint: { bg: 'rgba(224,58,62,0.3)', color: PALETTE.red },
+  Mixed: { bg: 'rgba(252,184,39,0.3)', color: PALETTE.yellow },
+  Tempo: { bg: 'rgba(89,179,69,0.3)', color: PALETTE.green },
 } as const;
 
 /** 카드 내부 텍스트·태그 패딩은 스케일 없이 고정 (Figma 167×182 / 346×182) */
@@ -209,9 +210,9 @@ export default function CircuitCard({
         <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <SvgLinearGradient id={`${gradId}_sel`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardWidth} y2={cardHeight}>
-              <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
-              <Stop offset="50%" stopColor="#E03A3E" stopOpacity="0.15" />
-              <Stop offset="100%" stopColor="#E03A3E" stopOpacity="1" />
+              <Stop offset="0%" stopColor={PALETTE.red} stopOpacity="1" />
+              <Stop offset="50%" stopColor={PALETTE.red} stopOpacity="0.15" />
+              <Stop offset="100%" stopColor={PALETTE.red} stopOpacity="1" />
             </SvgLinearGradient>
           </Defs>
           <Rect
@@ -242,10 +243,10 @@ export default function CircuitCard({
       <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardWidth} y2={cardHeight}>
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-            <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-            <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+            <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+            <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+            <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+            <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
           </SvgLinearGradient>
         </Defs>
         <Rect
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   name: {
     position: 'absolute',
     fontFamily: 'Formula1-Bold',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     zIndex: 1,
   },

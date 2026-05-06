@@ -3,6 +3,7 @@
  * HomeScreen과 HistoryScreen에서 동일하게 사용
  */
 
+import { PALETTE } from '../constants/colors';
 import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, {
@@ -111,8 +112,8 @@ function GradPill({ left, top, width, height }: {
     <Svg style={{ position: 'absolute', left, top }} width={width} height={height}>
       <Defs>
         <SvgLG id={id} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0%" stopColor="#E03A3E" />
-          <Stop offset="100%" stopColor="#E03A8A" />
+          <Stop offset="0%" stopColor={PALETTE.red} />
+          <Stop offset="100%" stopColor={PALETTE.pink} />
         </SvgLG>
       </Defs>
       <Rect
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     marginLeft: 8,
   },
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: -0.26,
     textAlign: 'center',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.3,
     includeFontPadding: false,
   },
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: -0.26,
     textAlign: 'center',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   calNumPast: {

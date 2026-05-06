@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useId, useMemo } from 'react';
 import { BlurView } from '../platform/blur';
 import {
@@ -100,10 +101,10 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
           <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
               </SvgLinearGradient>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     lineHeight: 43,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: 1.8,
     includeFontPadding: false,
     marginLeft: 4,
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.4,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     letterSpacing: -0.6,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   statLabel: {
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.26,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   ctaContainer: {

@@ -1,3 +1,4 @@
+import { PALETTE } from './colors';
 import type { QualifyingGrade } from '../types';
 
 export const GRADE_DISPLAY_NAME: Record<QualifyingGrade, string> = {
@@ -18,11 +19,11 @@ export const GRADE_LABELS: Record<QualifyingGrade, string> = {
 };
 
 export const GRADE_COLORS: Record<QualifyingGrade, string> = {
-  f1_champion: '#E03A3E',
-  f1: '#8528C5',
-  f1_rookie: '#59B345',
-  f2: '#FCB827',
-  f3: '#FFFFFF',
+  f1_champion: PALETTE.red,
+  f1: PALETTE.purple,
+  f1_rookie: PALETTE.green,
+  f2: PALETTE.yellow,
+  f3: PALETTE.white,
 };
 
 /** Ordered from fastest to slowest */

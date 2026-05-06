@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.02 * 13,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 29,
     letterSpacing: -0.02 * 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 4,
   },
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.7,
     includeFontPadding: false,
   },
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.3,
     includeFontPadding: false,
   },

@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -47,11 +48,11 @@ const GRADE_TEXT_IMAGES: Record<QualifyingGrade, GradeImageInfo> = {
 type CtaTheme = { gradientStart: string; gradientEnd: string; textColor: string };
 
 const CTA_THEME: Record<QualifyingGrade, CtaTheme> = {
-  f3:          { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: '#FFFFFF' },
+  f3:          { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: PALETTE.white },
   f2:          { gradientStart: GRADE_COLORS.f2,          gradientEnd: '#FFBE35', textColor: '#17171C' },
-  f1_rookie:   { gradientStart: GRADE_COLORS.f1_rookie,   gradientEnd: '#50C736', textColor: '#FFFFFF' },
-  f1:          { gradientStart: GRADE_COLORS.f1,          gradientEnd: '#8C29CF', textColor: '#FFFFFF' },
-  f1_champion: { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: '#FFFFFF' },
+  f1_rookie:   { gradientStart: GRADE_COLORS.f1_rookie,   gradientEnd: '#50C736', textColor: PALETTE.white },
+  f1:          { gradientStart: GRADE_COLORS.f1,          gradientEnd: '#8C29CF', textColor: PALETTE.white },
+  f1_champion: { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: PALETTE.white },
 };
 
 const GLOBE = require('../../assets/qualifying/globe.png');
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   devBtnTextActive: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
   },
   bottomGradient: {
     position: 'absolute',
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 30,
     letterSpacing: 0,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   ctaWrap: {

@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
@@ -79,11 +80,11 @@ export default function ReadyScreen({
                   width={cardContentW}
                   height={OPTION_H}
                   radius={10}
-                  fill={selected ? '#FCB827' : 'rgba(255,255,255,0.02)'}
+                  fill={selected ? PALETTE.yellow : 'rgba(255,255,255,0.02)'}
                   fillOpacity={selected ? 0.15 : 1}
-                  stroke={selected ? '#FCB827' : 'rgba(255,255,255,0.12)'}
+                  stroke={selected ? PALETTE.yellow : 'rgba(255,255,255,0.12)'}
                   strokeWidth={1}
-                  textColor={selected ? '#FFFFFF' : '#EAEAEA'}
+                  textColor={selected ? PALETTE.white : '#EAEAEA'}
                   fontFamily={selected ? 'Formula1-Bold' : 'Formula1-Regular'}
                   fontSize={14}
                   label={`${circuit.displayName} (${circuit.distanceKm.toFixed(2)}km)`}
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 38,
     fontFamily: 'Formula1-Black',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: 1.5,
     textAlign: 'center',
   },
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 14,
   },

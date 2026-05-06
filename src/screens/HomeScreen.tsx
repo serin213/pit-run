@@ -2,6 +2,7 @@
  * HomeScreen v4
  */
 
+import { PALETTE } from '../constants/colors';
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useSharedValue, withTiming, useAnimatedStyle, Easing as ReanimatedEasing } from 'react-native-reanimated';
 import Reanimated from 'react-native-reanimated';
@@ -220,7 +221,7 @@ function StartButton({ posStyle, onPress }: { posStyle: object; onPress: () => v
 const startButtonStyles = StyleSheet.create({
   startBtn: {
     flex: 1,
-    backgroundColor: '#E03A3E',
+    backgroundColor: PALETTE.red,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -230,7 +231,7 @@ const startButtonStyles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 20,
     letterSpacing: -0.17,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
 });
@@ -598,10 +599,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Svg key={svgKey} width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLG id={`hcbg_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
               </SvgLG>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
@@ -673,10 +674,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Svg key={`rq-${svgKey}`} width={cardW} height={renewalCardH} style={StyleSheet.absoluteFill} pointerEvents="none">
               <Defs>
                 <SvgLG id={`hcbgrq_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={renewalCardH}>
-                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                  <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                  <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+                  <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+                  <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                  <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                  <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
                 </SvgLG>
               </Defs>
               <Rect x={0.25} y={0.25} width={cardW - 0.5} height={renewalCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgrq_${idBase}_${svgKey})`} strokeWidth={0.5} />
@@ -761,10 +762,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Svg key={`q-${svgKey}`} width={cardW} height={qCardH} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
               <SvgLG id={`hcbgq_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={qCardH}>
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
               </SvgLG>
             </Defs>
             <Rect x={0.25} y={0.25} width={cardW - 0.5} height={qCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgq_${idBase}_${svgKey})`} strokeWidth={0.5} />
@@ -809,7 +810,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               navigation.navigate('Result');
             }}
             style={{
-              backgroundColor: '#3F5CFF',
+              backgroundColor: PALETTE.blue,
               borderRadius: 6,
               paddingHorizontal: 8,
               paddingVertical: 4,
@@ -822,7 +823,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Pressable
             onPress={toggleDevTest}
             style={{
-              backgroundColor: devTestActive ? '#E03A3E' : '#444455',
+              backgroundColor: devTestActive ? PALETTE.red : '#444455',
               borderRadius: 6,
               paddingHorizontal: 8,
               paddingVertical: 4,
@@ -863,7 +864,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.26,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },
@@ -875,14 +876,14 @@ const styles = StyleSheet.create({
   streakNum: {
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   streakDistUnit: {
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
 
@@ -895,7 +896,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     letterSpacing: -0.6,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   statLabel: {
@@ -904,7 +905,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.26,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },
@@ -913,7 +914,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   qSubtitle: {
@@ -922,7 +923,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.2,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
   },

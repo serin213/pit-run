@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -18,9 +19,9 @@ function getTimeStr(): string {
 function BatteryIcon() {
   return (
     <Svg width={25} height={12} viewBox="0 0 25 12">
-      <Rect x={0.5} y={0.5} width={21} height={11} rx={3.5} stroke="#FFFFFF" strokeWidth={1} fill="none" />
-      <Rect x={22} y={3.5} width={2} height={5} rx={1} fill="#FFFFFF" opacity={0.5} />
-      <Rect x={2} y={2} width={17} height={8} rx={2} fill="#FFFFFF" />
+      <Rect x={0.5} y={0.5} width={21} height={11} rx={3.5} stroke={PALETTE.white} strokeWidth={1} fill="none" />
+      <Rect x={22} y={3.5} width={2} height={5} rx={1} fill={PALETTE.white} opacity={0.5} />
+      <Rect x={2} y={2} width={17} height={8} rx={2} fill={PALETTE.white} />
     </Svg>
   );
 }
@@ -28,10 +29,10 @@ function BatteryIcon() {
 function WifiIcon() {
   return (
     <Svg width={16} height={12} viewBox="0 0 16 12">
-      <Path d="M 0.5 4.5 A 8.5 8.5 0 0 1 15.5 4.5" stroke="#FFFFFF" strokeWidth={1.5} fill="none" strokeLinecap="round" />
-      <Path d="M 2.8 7 A 5.5 5.5 0 0 1 13.2 7" stroke="#FFFFFF" strokeWidth={1.5} fill="none" strokeLinecap="round" />
-      <Path d="M 5.2 9.5 A 3 3 0 0 1 10.8 9.5" stroke="#FFFFFF" strokeWidth={1.5} fill="none" strokeLinecap="round" />
-      <Circle cx={8} cy={11.5} r={1} fill="#FFFFFF" />
+      <Path d="M 0.5 4.5 A 8.5 8.5 0 0 1 15.5 4.5" stroke={PALETTE.white} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+      <Path d="M 2.8 7 A 5.5 5.5 0 0 1 13.2 7" stroke={PALETTE.white} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+      <Path d="M 5.2 9.5 A 3 3 0 0 1 10.8 9.5" stroke={PALETTE.white} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+      <Circle cx={8} cy={11.5} r={1} fill={PALETTE.white} />
     </Svg>
   );
 }
@@ -39,10 +40,10 @@ function WifiIcon() {
 function SignalIcon() {
   return (
     <Svg width={17} height={12} viewBox="0 0 17 12">
-      <Rect x={0} y={9} width={3} height={3} rx={0.5} fill="#FFFFFF" />
-      <Rect x={4.5} y={6} width={3} height={6} rx={0.5} fill="#FFFFFF" />
-      <Rect x={9} y={3} width={3} height={9} rx={0.5} fill="#FFFFFF" />
-      <Rect x={13.5} y={0} width={3} height={12} rx={0.5} fill="#FFFFFF" />
+      <Rect x={0} y={9} width={3} height={3} rx={0.5} fill={PALETTE.white} />
+      <Rect x={4.5} y={6} width={3} height={6} rx={0.5} fill={PALETTE.white} />
+      <Rect x={9} y={3} width={3} height={9} rx={0.5} fill={PALETTE.white} />
+      <Rect x={13.5} y={0} width={3} height={12} rx={0.5} fill={PALETTE.white} />
     </Svg>
   );
 }
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: PALETTE.white,
     backgroundColor: 'transparent',
   },
   statusContent: {
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
   },
   timeText: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.3,
@@ -158,6 +159,6 @@ const styles = StyleSheet.create({
     width: 134,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PALETTE.white,
   },
 });

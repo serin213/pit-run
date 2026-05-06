@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     fontSize: 100,
     lineHeight: 100,
     letterSpacing: 5,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
   },
   distanceUnit: {
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 30,
     letterSpacing: -0.6,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     marginLeft: 8,
     marginBottom: 4,
     includeFontPadding: false,

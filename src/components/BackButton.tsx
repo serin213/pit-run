@@ -3,6 +3,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import Svg, { Path } from 'react-native-svg';
+import { PALETTE } from '../constants/colors';
 
 type Props = {
   onPress?: () => void;
@@ -24,7 +25,7 @@ export default function BackButton({ onPress }: Props) {
       <Svg width={10} height={17} viewBox="0 0 10 17" fill="none">
         <Path
           d="M9 1L2 8.5L9 16"
-          stroke="#FFFFFF"
+          stroke={PALETTE.white}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"

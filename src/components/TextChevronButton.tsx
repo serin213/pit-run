@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -16,7 +17,7 @@ export default function TextChevronButton({ label, onPress, style, hitSlop = 12 
       <Svg width={20} height={13} viewBox="0 0 20 13" style={styles.icon}>
         <Path
           d="M1.5 1.5L7 6.5L1.5 11.5"
-          stroke="#FFFFFF"
+          stroke={PALETTE.white}
           strokeOpacity={0.5}
           strokeWidth={3}
           strokeLinecap="round"
@@ -25,7 +26,7 @@ export default function TextChevronButton({ label, onPress, style, hitSlop = 12 
         />
         <Path
           d="M11.5 1.5L17 6.5L11.5 11.5"
-          stroke="#FFFFFF"
+          stroke={PALETTE.white}
           strokeOpacity={0.5}
           strokeWidth={3}
           strokeLinecap="round"
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 24,

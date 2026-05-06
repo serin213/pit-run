@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
@@ -30,7 +31,7 @@ export function useSyncOnLogin() {
           const isDefault =
             current.displayName === 'LEC' &&
             current.raceNumber === '16' &&
-            current.nameTagAccentColor === '#E03A3E';
+            current.nameTagAccentColor === PALETTE.red;
 
           // Supabase에 프로필이 있고 로컬이 기본값이면 Supabase 우선
           if (profile.display_name && isDefault) {

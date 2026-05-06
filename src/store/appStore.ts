@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import { create } from 'zustand';
 import { createMMKV } from 'react-native-mmkv';
 import type { TireType } from '../constants/colors';
@@ -45,7 +46,7 @@ const saved = loadPersisted();
 const DEFAULT_PROFILE: UserProfile = {
   displayName: 'LEC',
   raceNumber: '16',
-  nameTagAccentColor: '#E03A3E',
+  nameTagAccentColor: PALETTE.red,
 };
 
 const DEFAULT_PACE_RECORDS = {

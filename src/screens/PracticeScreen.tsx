@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +12,7 @@ const PLAY_BUTTON = require('../../assets/control-buttons/play-red.png');
 const PAUSE_BUTTON = require('../../assets/control-buttons/pause-red.png');
 const STOP_BUTTON = require('../../assets/control-buttons/stop-red.png');
 
-const ACCENT = '#E03A3E';
+const ACCENT = PALETTE.red;
 const CONTROL_BUTTON_SIZE = 76;
 const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   timerText: {
     alignSelf: 'stretch',
     textAlign: 'center',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Black',
     letterSpacing: 5,
     includeFontPadding: false,

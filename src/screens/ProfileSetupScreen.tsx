@@ -11,9 +11,9 @@ import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 import { useProfileValidation } from '../hooks/useProfileValidation';
-import { COLORS } from '../constants/colors';
+import { COLORS, PALETTE} from '../constants/colors';
 
-const TEAM_COLORS = ['#E03A8A', '#E03A3E', '#FF8716', '#FCB827', '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF'] as const;
+const TEAM_COLORS = [PALETTE.pink, PALETTE.red, PALETTE.orange, PALETTE.yellow, PALETTE.green, PALETTE.teal, PALETTE.blue, PALETTE.purple, PALETTE.white] as const;
 const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 
@@ -63,7 +63,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
               autoFocus
               keyboardType="ascii-capable"
               returnKeyType="next"
-              selectionColor="#FFFFFF"
+              selectionColor={PALETTE.white}
               placeholder=""
               style={[styles.inputText, styles.inputNoOutline]}
             />
@@ -94,7 +94,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
               onSubmitEditing={onBlurNumber}
               keyboardType="number-pad"
               returnKeyType="done"
-              selectionColor="#FFFFFF"
+              selectionColor={PALETTE.white}
               placeholder=""
               style={[styles.inputText, styles.inputNoOutline]}
             />
@@ -145,10 +145,10 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             >
               <Defs>
                 <SvgLinearGradient id="previewCardBorder" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={contentWidth} y2={PREVIEW_CARD_H}>
-                  <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-                  <Stop offset="25%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                  <Stop offset="75%" stopColor="#FFFFFF" stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.12" />
+                  <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
+                  <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                  <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
+                  <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
                 </SvgLinearGradient>
               </Defs>
               <Rect
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 43,
     fontFamily: 'Formula1-Bold',
-    color: '#FFFFFF',
+    color: PALETTE.white,
     letterSpacing: -0.36,
     includeFontPadding: false,
   },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   inputText: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,
@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
   },
   inputUnderlineSpread: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PALETTE.white,
     transform: [{ scaleX: 0 }],
   },
   inputUnderlineError: {
-    backgroundColor: COLORS.soft,
+    backgroundColor: PALETTE.red,
   },
   errorText: {
-    color: COLORS.soft,
+    color: PALETTE.red,
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
     lineHeight: 14,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     height: 37.5,
   },
   previewName: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,

@@ -3,6 +3,7 @@ import { BlurView } from '../platform/blur';
 import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { radius } from '../constants/radius';
+import { PALETTE } from '../constants/colors';
 
 interface Props {
   visible: boolean;
@@ -37,7 +38,7 @@ export default function BoxBoxSheet({
   visible,
   onClose,
   driverName = 'LECLERC',
-  teamColor = '#E03A3E',
+  teamColor = PALETTE.red,
   mode = 'boxbox',
 }: Props) {
   const { width: windowW } = useWindowDimensions();
@@ -172,7 +173,7 @@ export default function BoxBoxSheet({
                 <Svg width={44} height={41} viewBox="0 0 44 42" fill="none">
                   <Path
                     d="M15.0204 3.00073C7.98038 5.75483 3 12.552 3 20.5007C3 28.4495 7.98038 35.2466 15.0204 38.0007M28.9796 38.0007C36.0196 35.2466 41 28.4495 41 20.5007C41 12.552 36.0196 5.75483 28.9796 3.00073"
-                    stroke="#FCB827"
+                    stroke={PALETTE.yellow}
                     strokeWidth={6}
                     strokeLinecap="round"
                   />
@@ -185,8 +186,8 @@ export default function BoxBoxSheet({
                   <Rect x="0" y="0" width="306" height="12" rx="6" fill="rgba(255,255,255,0.1)" />
                   <Defs>
                     <LinearGradient id="boxboxProgress" x1="0" y1="6" x2="62" y2="6" gradientUnits="userSpaceOnUse">
-                      <Stop offset="0%" stopColor="#E03A3E" />
-                      <Stop offset="100%" stopColor="#FCB827" />
+                      <Stop offset="0%" stopColor={PALETTE.red} />
+                      <Stop offset="100%" stopColor={PALETTE.yellow} />
                     </LinearGradient>
                   </Defs>
                   <Rect x="0" y="0" width="62" height="12" rx="6" fill="url(#boxboxProgress)" />
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 28,
     top: SHEET_TOP_TO_DRIVER,
-    color: '#E03A3E',
+    color: PALETTE.red,
     fontFamily: 'Formula1-Bold',
     fontSize: 36,
     lineHeight: DRIVER_LINE_HEIGHT,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 28,
     top: TITLE_TOP,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Italic',
     fontSize: 30,
     lineHeight: 36,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   warningMark: {
     position: 'absolute',
-    color: '#FCB827',
+    color: PALETTE.yellow,
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
     lineHeight: 24,

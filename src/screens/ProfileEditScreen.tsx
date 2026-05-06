@@ -21,13 +21,13 @@ import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useProfileValidation } from '../hooks/useProfileValidation';
-import { COLORS } from '../constants/colors';
+import { COLORS, PALETTE} from '../constants/colors';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TEAM_COLORS = [
-  '#E03A8A', '#E03A3E', '#FF8716', '#FCB827',
-  '#59B345', '#04CBBA', '#3F5CFF', '#8528C5', '#FFFFFF',
+  PALETTE.pink, PALETTE.red, PALETTE.orange, PALETTE.yellow,
+  PALETTE.green, PALETTE.teal, PALETTE.blue, PALETTE.purple, PALETTE.white,
 ] as const;
 const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 
@@ -97,7 +97,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 autoCorrect={false}
                 keyboardType="ascii-capable"
                 returnKeyType="next"
-                selectionColor="#FFFFFF"
+                selectionColor={PALETTE.white}
                 placeholder=""
                 style={[styles.inputText, styles.inputNoOutline]}
               />
@@ -135,7 +135,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
                 onSubmitEditing={onBlurNumber}
                 keyboardType="number-pad"
                 returnKeyType="done"
-                selectionColor="#FFFFFF"
+                selectionColor={PALETTE.white}
                 placeholder=""
                 style={[styles.inputText, styles.inputNoOutline]}
               />
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 43,
     letterSpacing: 36 * 0.05,
-    color: '#FFFFFF',
+    color: PALETTE.white,
     includeFontPadding: false,
     marginLeft: 4,
   },
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   inputText: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,
@@ -304,14 +304,14 @@ const styles = StyleSheet.create({
   },
   inputUnderlineSpread: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PALETTE.white,
     transform: [{ scaleX: 0 }],
   },
   inputUnderlineError: {
-    backgroundColor: COLORS.soft,
+    backgroundColor: PALETTE.red,
   },
   errorText: {
-    color: COLORS.soft,
+    color: PALETTE.red,
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
     lineHeight: 14,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   previewName: {
-    color: '#FFFFFF',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,

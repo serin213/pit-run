@@ -1,3 +1,4 @@
+import { PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { BlurView } from '../platform/blur';
@@ -136,7 +137,7 @@ export default function TabBar({ activeTab }: Props) {
     }, NAVIGATE_DELAY_MS);
   }, [iconCenters, navigation, pillCenterX, pillScaleX, pillScaleY]);
 
-  const strokeColors = [0, 1, 2, 3].map((i) => (activeTab === i ? '#E03A3E' : '#FFFFFF'));
+  const strokeColors = [0, 1, 2, 3].map((i) => (activeTab === i ? PALETTE.red : PALETTE.white));
   const [hL, pL, tL, uL] = iconLefts;
 
   return (
@@ -164,10 +165,10 @@ export default function TabBar({ activeTab }: Props) {
       <Svg width={tabBarW} height={TAB_BAR_H} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <SvgLG id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={tabBarW} y2={TAB_BAR_H}>
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-            <Stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="70%" stopColor="#FFFFFF" stopOpacity="0.03" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.25" />
+            <Stop offset="30%" stopColor={PALETTE.white} stopOpacity="0.03" />
+            <Stop offset="70%" stopColor={PALETTE.white} stopOpacity="0.03" />
+            <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.15" />
           </SvgLG>
         </Defs>
         <Rect x={0.5} y={0.5} width={tabBarW - 1} height={TAB_BAR_H - 1} rx={TAB_BAR_H / 2 - 0.5} ry={TAB_BAR_H / 2 - 0.5} fill="none" stroke={`url(#${gradId})`} strokeWidth={1} />
