@@ -639,7 +639,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           {/* START 버튼: 서킷 bottom + 32px gap */}
           <StartButton
             posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
-            onPress={() => navigation.navigate('Setup')}
+            onPress={() => navigation.navigate('Countdown')}
           />
           </View>
         </Animated.View>
@@ -738,7 +738,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               {/* START 버튼 */}
               <StartButton
                 posStyle={{ position: 'absolute', left: 20, top: rqStartTop, width: startBtnW, height: 44 }}
-                onPress={() => navigation.navigate('Qualifying')}
+                onPress={() => navigation.navigate('Qualifying', { skipIntro: true })}
               />
             </View>
           </Animated.View>
@@ -784,7 +784,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
             <StartButton
               posStyle={{ position: 'absolute', left: 20, top: qCtaTop, width: startBtnW, height: 44 }}
-              onPress={() => navigation.navigate('Qualifying')}
+              onPress={() => navigation.navigate('Qualifying', { skipIntro: true })}
             />
           </View>
         </Animated.View>

@@ -121,12 +121,19 @@ function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function ResultScreen({ navigation }: ResultScreenProps) {
+export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
 
-  const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
+  const historyData = route.params?.history;
+  const isHistoryMode = !!historyData;
+
+  const runStore = useRunStore();
+  const { distKm, elapsedMs, paceHistory, resetRun } = isHistoryMode
+    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], resetRun: () => {} }
+    : runStore;
+
   const {
     selectedCircuitId,
     selectedTire,
@@ -140,7 +147,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
 
-  const circuit            = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
+  const circuitId          = isHistoryMode ? (historyData.circuitId ?? selectedCircuitId) : selectedCircuitId;
+  const circuit            = CIRCUITS.find((c) => c.id === circuitId) ?? CIRCUITS[0];
   const topTheme           = getCircuitTheme(circuit.displayName.toUpperCase());
   const themeRgb           = useMemo(() => hexToRgb(topTheme.line), [topTheme.line]);
   const circuitResultImage = CIRCUIT_RESULT_IMAGES[circuit.id] ?? null;
@@ -325,6 +333,10 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   }, [sheetAnim]);
 
   const handleConfirm = useCallback(() => {
+    if (isHistoryMode) {
+      navigation.goBack();
+      return;
+    }
     // 홈 이동 + 데이터 저장을 즉시 실행, 시트 닫힘 애니메이션은 독립적으로 실행
     recordActivity();
     addDistance(distKm);
@@ -360,7 +372,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       setShowSheet(false);
     });
   }, [
-    sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
+    isHistoryMode, sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
     paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
   ]);
 

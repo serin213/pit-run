@@ -123,9 +123,9 @@ type QHistRow = {
 };
 
 type HistoryRow =
-  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; venue: string; circuitId: string }
-  | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number }
-  | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade };
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string }
+  | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
+  | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
 // ─── Fallback demo data ───────────────────────────────────────────────────────
 
@@ -138,9 +138,9 @@ const FALLBACK_QUALIFYING: QHistRow[] = [
 ];
 
 const FALLBACK_HISTORY: HistoryRow[] = [
-  { type: 'grand_prix', sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, circuitId: 'monaco' },
-  { type: 'qualifying', sortKey: '2023-01-20', dateDisplay: '20.01.23', distKm: 4.55, grade: 'f2' },
-  { type: 'practice',   sortKey: '2023-01-15', dateDisplay: '15.01.23', distKm: 3.21 },
+  { type: 'grand_prix', sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, elapsedMs: 1800000, circuitId: 'monaco' },
+  { type: 'qualifying', sortKey: '2023-01-20', dateDisplay: '20.01.23', distKm: 4.55, grade: 'f2', paceSec: 355 },
+  { type: 'practice',   sortKey: '2023-01-15', dateDisplay: '15.01.23', distKm: 3.21, elapsedMs: 960000 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -292,8 +292,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         // ─── Session history data ──────────────────────────────────────────
         const qualByDate = new Map<string, QualifyingGrade>();
+        const qualPaceByDate = new Map<string, number>();
         for (const q of qualRows) {
-          qualByDate.set(q.recorded_at.slice(0, 10), q.grade);
+          const dateKey = q.recorded_at.slice(0, 10);
+          qualByDate.set(dateKey, q.grade);
+          qualPaceByDate.set(dateKey, q.pace_sec_per_km);
         }
 
         const now = new Date();
@@ -313,6 +316,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             const sortKey = s.started_at.slice(0, 10);
             const dateDisplay = `${dd}.${mm}.${yy}`;
             const distKm = s.total_dist_km ?? 0;
+            const elapsedMs = s.total_time_ms ?? 0;
 
             if (s.type === 'grand_prix') {
               const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
@@ -321,14 +325,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 sortKey,
                 dateDisplay,
                 distKm,
+                elapsedMs,
                 venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
                 circuitId: s.circuit_id ?? 'monaco',
               };
             } else if (s.type === 'qualifying') {
               const grade = qualByDate.get(sortKey) ?? 'f3';
-              return { type: 'qualifying', sortKey, dateDisplay, distKm, grade };
+              const paceSec = qualPaceByDate.get(sortKey) ?? 300;
+              return { type: 'qualifying', sortKey, dateDisplay, distKm, grade, paceSec };
             } else {
-              return { type: 'practice', sortKey, dateDisplay, distKm };
+              return { type: 'practice', sortKey, dateDisplay, distKm, elapsedMs };
             }
           });
           setHistoryData(mapped);
@@ -529,7 +535,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     style={[styles.tooltipWrap, { left: tooltipXAnim, top: 0 }]}
                     onLayout={(e) => setTooltipWrapW(e.nativeEvent.layout.width)}
                   >
-                    <View style={styles.tooltipColumn}>
+                    <Pressable
+                      style={styles.tooltipColumn}
+                      onPress={() => navigation.navigate('QualifyingPost', { history: { grade: selected.grade, paceSec: selected.paceSec } })}
+                    >
                       <View style={styles.tooltipBubble}>
                         <Reanimated.View style={[styles.tooltipGradeSlot, gradeSlotStyle]}>
                           {selected.promotedGrade && RACER_CARD_IMAGES[selected.promotedGrade] ? (
@@ -548,7 +557,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                           fill="rgba(224,58,62,0.15)"
                         />
                       </Svg>
-                    </View>
+                    </Pressable>
                   </Animated.View>
                 );
               })()}
@@ -739,12 +748,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
           {historySorted.map((row) => {
             if (row.type === 'grand_prix' || row.type === 'practice') {
+              const historyData = {
+                distKm: row.distKm,
+                elapsedMs: row.elapsedMs,
+                circuitId: row.type === 'grand_prix' ? row.circuitId : undefined,
+              };
               return (
                 <GradientCardBorder
                   key={row.sortKey}
                   style={styles.gpCardOuter}
                   innerStyle={styles.gpCardInner}
                   borderRadius={16}
+                  onPress={() => navigation.navigate('Result', { history: historyData })}
                 >
                   <View style={styles.gpTextCol}>
                     <Text style={styles.gpDate}>{row.dateDisplay}</Text>
@@ -767,6 +782,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 style={styles.gpCardOuter}
                 innerStyle={styles.gpCardInner}
                 borderRadius={16}
+                onPress={() => navigation.navigate('QualifyingPost', { history: { grade: row.grade, paceSec: row.paceSec } })}
               >
                 <View style={styles.gpTextCol}>
                   <Text style={styles.gpDate}>{row.dateDisplay}</Text>

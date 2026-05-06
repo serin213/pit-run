@@ -164,7 +164,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
             variant="dual"
             width={ctaRowW}
             onPressLeft={() => navigation.navigate('Home')}
-            onPressRight={() => navigation.navigate('Setup')}
+            onPressRight={() => navigation.navigate('Countdown')}
           />
         </View>
       </View>
