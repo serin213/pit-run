@@ -311,6 +311,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   const [showSheet, setShowSheet]   = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
+  // ref로 최신값 추적 — setTimeout 클로저에서 state를 못 읽는 문제 방지
+  const selectedDiffRef = useRef<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const resetTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const diffNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -343,6 +345,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     addDistance(distKm);
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
+    const diff = selectedDiffRef.current;
     const saves: Promise<unknown>[] = [
       endSession({
         status: 'completed',
@@ -350,6 +353,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
         total_time_ms: elapsedMs,
         avg_pace_sec_per_km: avgPace,
         best_pace_sec_per_km: bestPace,
+        payload: diff ? { difficulty: diff } : undefined,
       }),
     ];
     if (user?.id && currentRaceEventId) {
@@ -379,6 +383,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   const handleDiffSelect = useCallback((id: string) => {
     setSelectedDiff(id);
+    selectedDiffRef.current = id;
     ringScaleAnim.setValue(0.5);
     ringOpacityAnim.setValue(0);
     Animated.parallel([
@@ -733,10 +738,10 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
         <View style={{ paddingBottom: safeBottom + 16 }}>
           <GradientCtaButton
             height={58}
-            label="To the GRID"
+            label={isHistoryMode ? 'Confirm' : 'To the GRID'}
             textColor={topTheme.line === PALETTE.yellow ? '#17171C' : PALETTE.white}
             enabled
-            onPress={openSheet}
+            onPress={isHistoryMode ? handleConfirm : openSheet}
             gradientStart={topTheme.line}
             gradientEnd={topTheme.text}
           />

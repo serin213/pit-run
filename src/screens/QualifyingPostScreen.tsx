@@ -211,7 +211,7 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
         style={[styles.ctaWrap, { bottom: safeBottom + 20, opacity: ctaOpacity }]}
       >
         <GradientCtaButton
-          label={isHistoryMode ? 'Back' : 'To the GRID'}
+          label={isHistoryMode ? 'Confirm' : 'To the GRID'}
           enabled
           onPress={() => isHistoryMode ? navigation.goBack() : navigation.replace('NextRace')}
           gradientStart={ctaTheme.gradientStart}

@@ -123,7 +123,7 @@ type QHistRow = {
 };
 
 type HistoryRow =
-  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string }
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null }
   | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
   | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
@@ -318,6 +318,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             const distKm = s.total_dist_km ?? 0;
             const elapsedMs = s.total_time_ms ?? 0;
 
+            const difficulty = typeof s.payload?.difficulty === 'string' ? s.payload.difficulty : null;
+
             if (s.type === 'grand_prix') {
               const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
               return {
@@ -328,6 +330,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 elapsedMs,
                 venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
                 circuitId: s.circuit_id ?? 'monaco',
+                difficulty,
               };
             } else if (s.type === 'qualifying') {
               const grade = qualByDate.get(sortKey) ?? 'f3';
@@ -747,11 +750,33 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
           {historySorted.map((row) => {
-            if (row.type === 'grand_prix' || row.type === 'practice') {
+            if (row.type === 'practice') {
+              return (
+                <GradientCardBorder
+                  key={row.sortKey}
+                  style={styles.gpCardOuter}
+                  innerStyle={styles.gpCardInner}
+                  borderRadius={16}
+                  onPress={() => navigation.navigate('PracticeResult', { distanceKm: row.distKm, fromHistory: true })}
+                >
+                  <View style={styles.gpTextCol}>
+                    <Text style={styles.gpDate}>{row.dateDisplay}</Text>
+                    <Text style={styles.gpVenue}>Practice</Text>
+                  </View>
+                  <View style={styles.gpDistRow}>
+                    <Text style={styles.gpDist}>{fmtDist(row.distKm)}</Text>
+                    <Text style={styles.gpDistUnit}>km</Text>
+                  </View>
+                </GradientCardBorder>
+              );
+            }
+
+            if (row.type === 'grand_prix') {
               const historyData = {
                 distKm: row.distKm,
                 elapsedMs: row.elapsedMs,
-                circuitId: row.type === 'grand_prix' ? row.circuitId : undefined,
+                circuitId: row.circuitId,
+                difficulty: row.difficulty,
               };
               return (
                 <GradientCardBorder
@@ -763,9 +788,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 >
                   <View style={styles.gpTextCol}>
                     <Text style={styles.gpDate}>{row.dateDisplay}</Text>
-                    <Text style={styles.gpVenue}>
-                      {row.type === 'grand_prix' ? row.venue : 'Practice'}
-                    </Text>
+                    <Text style={styles.gpVenue}>{row.venue}</Text>
                   </View>
                   <View style={styles.gpDistRow}>
                     <Text style={styles.gpDist}>{fmtDist(row.distKm)}</Text>

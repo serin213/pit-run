@@ -5,6 +5,7 @@ export type HistoryResultData = {
   distKm: number;
   elapsedMs: number;
   circuitId?: string;
+  difficulty?: string | null;
 };
 
 export type HistoryQualifyingData = {
@@ -29,7 +30,7 @@ export type RootStackParamList = {
   Running: undefined;
   Result: { history?: HistoryResultData } | undefined;
   Practice: undefined;
-  PracticeResult: { distanceKm: number };
+  PracticeResult: { distanceKm: number; fromHistory?: boolean };
 };
 
 export type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;

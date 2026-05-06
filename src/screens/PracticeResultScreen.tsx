@@ -11,7 +11,7 @@ const RACE_FLAG = require('../../assets/practice-race-flag.png');
 const CTA_H = 44;
 
 export default function PracticeResultScreen({ navigation, route }: PracticeResultScreenProps) {
-  const { distanceKm } = route.params;
+  const { distanceKm, fromHistory = false } = route.params;
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();
   const { width: windowW } = useWindowDimensions();
@@ -46,9 +46,9 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
       {/* CTA */}
       <View style={[styles.ctaWrap, { bottom: ctaBottom }]}>
         <GradientCtaButton
-          label="To the GRID"
+          label={fromHistory ? 'Confirm' : 'To the GRID'}
           enabled
-          onPress={() => navigation.popToTop()}
+          onPress={() => fromHistory ? navigation.goBack() : navigation.popToTop()}
         />
       </View>
     </View>
