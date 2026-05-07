@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
 import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius } from '../constants/radius';
 import { PALETTE } from '../constants/colors';
 
@@ -24,12 +24,8 @@ const WAVE_BASE_TOP = WAVE_GROUP_TOP + WAVE_BASE_Y_IN_GROUP;
 const WAVE_BASE_SIDE = 28;
 const WAVE_BASE_TO_TITLE_GAP = 16;
 const TITLE_TOP = WAVE_BASE_TOP + 4 + WAVE_BASE_TO_TITLE_GAP;
-const DETAIL_TOP = 250;
-const DETAIL_TEXT_TOP = 242;
-const PROGRESS_TOP = 310;
-const LABEL_TOP = 328;
 const SHEET_BOTTOM_PADDING = 36;
-const BOXBOX_BASE_SHEET_HEIGHT = 380;
+const BOXBOX_BASE_SHEET_HEIGHT = 266;
 const FULL_PUSH_BASE_SHEET_HEIGHT = 218;
 const WAVE_MIN_COLUMN_WIDTH = 32;
 const WAVE_COLUMN_OVERLAP = 0.2;
@@ -54,9 +50,7 @@ export default function BoxBoxSheet({
   const colWidth = waveWidth / colCount;
   const fadeWidth = colWidth * 2;
   const isFullPush = mode === 'fullPush';
-  const sheetHeight = isFullPush
-    ? FULL_PUSH_BASE_SHEET_HEIGHT
-    : Math.max(BOXBOX_BASE_SHEET_HEIGHT, LABEL_TOP + 16 + SHEET_BOTTOM_PADDING);
+  const sheetHeight = isFullPush ? FULL_PUSH_BASE_SHEET_HEIGHT : BOXBOX_BASE_SHEET_HEIGHT;
   const barSeeds = useMemo(
     () =>
       Array.from({ length: 64 }, (_, idx) => {
@@ -140,12 +134,12 @@ export default function BoxBoxSheet({
                   <Stop offset="100%" stopColor={waveEndColor} stopOpacity={1} />
                 </LinearGradient>
                 <LinearGradient id="fadeLeft" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={fadeWidth} y2="0">
-                  <Stop offset="0%" stopColor="#101014" stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#101014" stopOpacity={0} />
+                  <Stop offset="0%" stopColor="#16161C" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#16161C" stopOpacity={0} />
                 </LinearGradient>
                 <LinearGradient id="fadeRight" gradientUnits="userSpaceOnUse" x1={waveWidth} y1="0" x2={waveWidth - fadeWidth} y2="0">
-                  <Stop offset="0%" stopColor="#101014" stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#101014" stopOpacity={0} />
+                  <Stop offset="0%" stopColor="#16161C" stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#16161C" stopOpacity={0} />
                 </LinearGradient>
               </Defs>
               {waveColumns.map((col, idx) => (
@@ -164,39 +158,8 @@ export default function BoxBoxSheet({
           </View>
 
           <Text style={[styles.title, { top: isFullPush ? 150 : TITLE_TOP }]}>
-            {isFullPush ? '"FULL PUSH"' : '"BOX BOX"'}
+            {isFullPush ? '"FULL PUSH"' : '"BOX BOX\n RECOVERY TIME"'}
           </Text>
-
-          {!isFullPush && (
-            <>
-              <View style={styles.warningWrap}>
-                <Svg width={44} height={41} viewBox="0 0 44 42" fill="none">
-                  <Path
-                    d="M15.0204 3.00073C7.98038 5.75483 3 12.552 3 20.5007C3 28.4495 7.98038 35.2466 15.0204 38.0007M28.9796 38.0007C36.0196 35.2466 41 28.4495 41 20.5007C41 12.552 36.0196 5.75483 28.9796 3.00073"
-                    stroke={PALETTE.yellow}
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                  />
-                </Svg>
-                <Text style={styles.warningMark}>M</Text>
-              </View>
-              <Text style={styles.desc}>Pace got slower{'\n'}Need Recovery</Text>
-              <View style={styles.progressTrack}>
-                <Svg width="100%" height="100%" viewBox="0 0 306 12" preserveAspectRatio="none" fill="none">
-                  <Rect x="0" y="0" width="306" height="12" rx="6" fill="rgba(255,255,255,0.1)" />
-                  <Defs>
-                    <LinearGradient id="boxboxProgress" x1="0" y1="6" x2="62" y2="6" gradientUnits="userSpaceOnUse">
-                      <Stop offset="0%" stopColor={PALETTE.red} />
-                      <Stop offset="100%" stopColor={PALETTE.yellow} />
-                    </LinearGradient>
-                  </Defs>
-                  <Rect x="0" y="0" width="62" height="12" rx="6" fill="url(#boxboxProgress)" />
-                </Svg>
-              </View>
-              <Text style={styles.critical}>Critical</Text>
-              <Text style={styles.good}>Good</Text>
-            </>
-          )}
         </View>
       </BlurView>
       </Animated.View>
@@ -240,64 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     letterSpacing: -0.3,
-    includeFontPadding: false,
-  },
-  warningWrap: {
-    position: 'absolute',
-    left: 31,
-    top: DETAIL_TOP,
-    width: 44,
-    height: 41,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  warningMark: {
-    position: 'absolute',
-    color: PALETTE.yellow,
-    fontFamily: 'Formula1-Bold',
-    fontSize: 20,
-    lineHeight: 24,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  desc: {
-    position: 'absolute',
-    left: 89,
-    top: DETAIL_TEXT_TOP,
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'Formula1-Italic',
-    fontSize: 20,
-    lineHeight: 24,
-    letterSpacing: -0.2,
-    includeFontPadding: false,
-  },
-  progressTrack: {
-    position: 'absolute',
-    left: 31,
-    right: 31,
-    top: PROGRESS_TOP,
-    height: 12,
-  },
-  critical: {
-    position: 'absolute',
-    left: 30,
-    top: LABEL_TOP,
-    color: 'rgba(255,255,255,0.3)',
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.13,
-    includeFontPadding: false,
-  },
-  good: {
-    position: 'absolute',
-    right: 30,
-    top: LABEL_TOP,
-    color: 'rgba(255,255,255,0.3)',
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.13,
     includeFontPadding: false,
   },
 });
