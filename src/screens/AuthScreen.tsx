@@ -19,6 +19,7 @@ import Svg, {
 
 import { signIn } from '../platform/auth';
 import { useAuthStore } from '../store/authStore';
+import LiveActivityPreviewModal from '../components/LiveActivityPreviewModal';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -74,6 +75,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [laPreviewVisible, setLaPreviewVisible] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) navigation.replace('ProfileSetup');
@@ -194,6 +196,19 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
           <Text style={styles.devSkipText}>DEV: Skip Auth</Text>
         </Pressable>
       )}
+
+      {/* Live Activity preview button */}
+      <Pressable
+        style={styles.laPreviewBtn}
+        onPress={() => setLaPreviewVisible(true)}
+      >
+        <Text style={styles.laPreviewBtnText}>🏎 LA Preview</Text>
+      </Pressable>
+
+      <LiveActivityPreviewModal
+        visible={laPreviewVisible}
+        onClose={() => setLaPreviewVisible(false)}
+      />
     </View>
   );
 }
@@ -268,6 +283,22 @@ const styles = StyleSheet.create({
   },
   devSkipText: {
     color: PALETTE.yellow,
+    fontFamily: 'Formula1-Bold',
+    fontSize: 10,
+  },
+  laPreviewBtn: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    backgroundColor: 'rgba(232,0,45,0.15)',
+    borderWidth: 1,
+    borderColor: PALETTE.red,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  laPreviewBtnText: {
+    color: PALETTE.red,
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
   },
