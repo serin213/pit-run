@@ -537,12 +537,14 @@ const styles = StyleSheet.create({
   },
   debugToolsWrap: {
     position: 'absolute',
-    top: 44,
-    right: 16,
+    bottom: 130,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: 8,
     zIndex: 20,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   debugCircuitWrap: {
     position: 'absolute',
