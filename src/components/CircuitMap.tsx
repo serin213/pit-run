@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { svgPathProperties } from 'svg-path-properties';
 import { PALETTE } from '../constants/colors';
 
@@ -21,6 +21,8 @@ interface Props {
   startRect?: Rect;
   checkerFlagCenter?: Point;
   startLenOverride?: number;
+  strokeWidth?: number;
+  dotColor?: string;
 }
 
 export const CIRCUIT_VIEWBOX = { width: 286, height: 185 } as const;
@@ -236,6 +238,8 @@ export function getCircuitTangentAtProgress(
 }
 
 export default function CircuitMap({
+  strokeWidth: sw = 5,
+  dotColor,
   progress,
   startColor = PALETTE.yellow,
   endColor = '#FC8A27',
@@ -288,10 +292,17 @@ export default function CircuitMap({
     return out;
   }, [drawn, endColor, hasAnchors, startColor, startLen, totalSpan]);
 
+  const dotPoint = useMemo(() => {
+    if (!dotColor) return null;
+    const pathProps = getPathProps(path);
+    const dotLen = hasAnchors ? startLen + p * (totalLength - startLen) : p * totalLength;
+    return pathProps.getPointAtLength(dotLen);
+  }, [dotColor, path, p, totalLength, startLen, hasAnchors]);
+
   return (
     <View style={styles.wrap}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${vbW} ${vbH}`} preserveAspectRatio="xMidYMid meet">
-        <Path d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={5} strokeMiterlimit={10} />
+        <Path d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeMiterlimit={10} />
         {overlays?.map((o, i) => (
           <Path
             key={`overlay-${i}`}
@@ -299,20 +310,25 @@ export default function CircuitMap({
             fill={o.fill === 'accent' ? (accentColor ?? startColor) : PALETTE.white}
           />
         ))}
-        {/* Forward gradient segments */}
         {[...gradientSegments].reverse().map((seg, idx) => (
           <Path
             key={`seg-${idx}`}
             d={path}
             fill="none"
             stroke={seg.color}
-            strokeWidth={5}
+            strokeWidth={sw}
             strokeMiterlimit={10}
             strokeLinecap="butt"
             strokeLinejoin="round"
             strokeDasharray={`0 ${seg.gap} ${seg.len + 0.2} ${totalLength}`}
           />
         ))}
+        {dotPoint && dotColor ? (
+          <>
+            <Circle cx={dotPoint.x} cy={dotPoint.y} r={8} fill={dotColor} fillOpacity={0.5} />
+            <Circle cx={dotPoint.x} cy={dotPoint.y} r={4} fill={dotColor} />
+          </>
+        ) : null}
       </Svg>
     </View>
   );
