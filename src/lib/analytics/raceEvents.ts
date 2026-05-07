@@ -1,6 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import * as Storage from '../../platform/storage';
 import type { Grade, Tire, Program } from '../training/buildProgram';
+import { postAnalyticsEvents } from '../../api/events';
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
@@ -104,13 +105,26 @@ export type AnalyticsEvent =
 const STORAGE_KEY = 'pending_events';
 const MAX_QUEUE_SIZE = 1000;
 
-// ─── Internal helper ──────────────────────────────────────────────────────────
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+/** AnalyticsEvent → analytics_events 테이블 row 변환 */
+function toRow(event: AnalyticsEvent) {
+  const { eventId, type, userId, timestamp, ...rest } = event as AnalyticsEvent & {
+    userId: string;
+  };
+  return {
+    event_id: eventId,
+    event_type: type,
+    user_id: userId,
+    timestamp,
+    payload: rest as Record<string, unknown>,
+  };
+}
 
 async function logEvent(event: AnalyticsEvent): Promise<void> {
   console.log('[ANALYTICS]', JSON.stringify(event));
 
-  // TODO: 추후 POST /api/events 로 전송. 실패 시 storage에 큐잉해서 재시도
-
+  // 1. 로컬 큐에 저장 (전송 실패 시 재시도를 위한 안전망)
   try {
     const raw = Storage.getString(STORAGE_KEY);
     const queue: AnalyticsEvent[] = raw ? (JSON.parse(raw) as AnalyticsEvent[]) : [];
@@ -124,6 +138,9 @@ async function logEvent(event: AnalyticsEvent): Promise<void> {
   } catch {
     // storage 실패는 로깅에 영향 주지 않도록 무시
   }
+
+  // 2. 큐 전체 전송 시도 (fire-and-forget — 실패 시 큐에 남아 다음 기회에 재시도)
+  flushPendingEvents().catch(() => {});
 }
 
 // ─── Exported log functions ───────────────────────────────────────────────────
@@ -269,5 +286,22 @@ export async function clearPendingEvents(eventIds: string[]): Promise<void> {
     Storage.setString(STORAGE_KEY, JSON.stringify(remaining));
   } catch {
     // 실패 무시
+  }
+}
+
+/**
+ * 로컬 큐에 쌓인 이벤트를 Supabase analytics_events 테이블로 전송.
+ * - 성공한 이벤트만 큐에서 제거 (부분 성공 없음 — 배치 단위로 처리).
+ * - 앱 시작 시, 네트워크 복구 시 호출해 미전송 이벤트를 처리.
+ */
+export async function flushPendingEvents(): Promise<void> {
+  const pending = await getPendingEvents();
+  if (pending.length === 0) return;
+
+  try {
+    await postAnalyticsEvents(pending.map(toRow));
+    await clearPendingEvents(pending.map((e) => e.eventId));
+  } catch {
+    // 전송 실패 — 큐에 그대로 유지, 다음 기회에 재시도
   }
 }

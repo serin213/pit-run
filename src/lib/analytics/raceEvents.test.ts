@@ -8,14 +8,17 @@ vi.mock('expo-crypto', () => ({
   randomUUID: () => `test-uuid-${++_uuidCounter}`,
 }));
 
-// AsyncStorage: 인메모리 구현
+// platform/storage: 인메모리 MMKV 구현 (react-native-mmkv 대체)
 const _store: Record<string, string> = {};
-vi.mock('@react-native-async-storage/async-storage', () => ({
-  default: {
-    getItem: async (key: string) => _store[key] ?? null,
-    setItem: async (key: string, value: string) => { _store[key] = value; },
-    removeItem: async (key: string) => { delete _store[key]; },
-  },
+vi.mock('../../platform/storage', () => ({
+  getString: (key: string) => _store[key] ?? undefined,
+  setString: (key: string, value: string) => { _store[key] = value; },
+  remove: (key: string) => { delete _store[key]; },
+}));
+
+// api/events: 네트워크 없는 환경 시뮬레이션 — 전송 실패 시 큐 유지 동작 검증
+vi.mock('../../api/events', () => ({
+  postAnalyticsEvents: async () => { throw new Error('network unavailable'); },
 }));
 
 // ─── Imports (after mocks) ───────────────────────────────────────────────────

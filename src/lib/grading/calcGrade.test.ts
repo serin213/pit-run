@@ -17,20 +17,20 @@ describe('calcGradeFromPace', () => {
     expect(calcGradeFromPace(200)).toBe('f1_champion');
   });
 
-  it('220초 → f1 (경계값, minPaceSec 포함)', () => {
-    expect(calcGradeFromPace(220)).toBe('f1');
+  it('241초 → f1 (경계값 직후)', () => {
+    expect(calcGradeFromPace(241)).toBe('f1');
   });
 
-  it('219초 → f1_champion (경계값 직전)', () => {
-    expect(calcGradeFromPace(219)).toBe('f1_champion');
+  it('240초 → f1_champion (경계값 포함)', () => {
+    expect(calcGradeFromPace(240)).toBe('f1_champion');
   });
 
-  it('360초 → f3', () => {
-    expect(calcGradeFromPace(360)).toBe('f3');
+  it('391초 → f3', () => {
+    expect(calcGradeFromPace(391)).toBe('f3');
   });
 
-  it('285초 → f2 (경계값)', () => {
-    expect(calcGradeFromPace(285)).toBe('f2');
+  it('331초 → f2 (경계값 직후)', () => {
+    expect(calcGradeFromPace(331)).toBe('f2');
   });
 
   it('0 입력 → throw', () => {
@@ -53,8 +53,8 @@ describe('assignGrade', () => {
     expect(result.expiresAt).toBe(now + REQUALIFYING_INTERVAL_MS);
   });
 
-  it('F2 (300초) → expiresAt null', () => {
-    const result = assignGrade(300, now);
+  it('F2 (350초) → expiresAt null', () => {
+    const result = assignGrade(350, now);
     expect(result.grade).toBe('f2');
     expect(result.expiresAt).toBeNull();
   });
@@ -65,8 +65,8 @@ describe('assignGrade', () => {
     expect(result.expiresAt).toBeNull();
   });
 
-  it('F1 Rookie (260초) → expiresAt = now + 90일', () => {
-    const result = assignGrade(260, now);
+  it('F1 Rookie (300초) → expiresAt = now + 90일', () => {
+    const result = assignGrade(300, now);
     expect(result.grade).toBe('f1_rookie');
     expect(result.expiresAt).toBe(now + REQUALIFYING_INTERVAL_MS);
   });
@@ -88,7 +88,7 @@ describe('isGradeExpired', () => {
   const now = 1_700_000_000_000;
 
   it('expiresAt이 null이면 항상 false', () => {
-    const assignment = assignGrade(300, now); // F2, expiresAt null
+    const assignment = assignGrade(350, now); // F2, expiresAt null
     expect(isGradeExpired(assignment, now + 1000 * DAY_MS)).toBe(false);
   });
 
@@ -109,7 +109,7 @@ describe('requiresReQualifying', () => {
   const now = 1_700_000_000_000;
 
   it('F2 유저는 만료돼도 false (expiresAt이 null)', () => {
-    const assignment = assignGrade(300, now);
+    const assignment = assignGrade(350, now);
     expect(requiresReQualifying(assignment, now + 1000 * DAY_MS)).toBe(false);
   });
 
@@ -147,7 +147,7 @@ describe('getDaysUntilExpiry', () => {
   });
 
   it('F2 → null', () => {
-    const assignment = assignGrade(300, now);
+    const assignment = assignGrade(350, now);
     expect(getDaysUntilExpiry(assignment, now)).toBeNull();
   });
 });

@@ -33,7 +33,9 @@ import { useAuthStore } from '../store/authStore';
 import { logRaceCompleted } from '../lib/analytics/raceEvents';
 import { radius } from '../constants/radius';
 import { selectCommentary } from '../lib/commentary/selectCommentary';
-import { GRADE_COLORS } from '../constants/grade';
+import { GRADE_COLORS, GRADE_DISPLAY_NAME } from '../constants/grade';
+import { GRADE_TIERS } from '../lib/grading/calcGrade';
+import { useSessionHistory } from '../hooks/useSessionHistory';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -144,9 +146,19 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     currentRaceEventId,
     setCurrentRaceEventId,
     setSelectedCircuitId,
+    activityDates,
   } = useAppStore();
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
+  const { sessions, load: loadSessions } = useSessionHistory();
+  const [sessionsReady, setSessionsReady] = useState(false);
+
+  // 비 히스토리 모드에서 한 번만 세션 로드
+  useEffect(() => {
+    if (isHistoryMode) return;
+    loadSessions(200).then(() => setSessionsReady(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const circuitId          = isHistoryMode ? (historyData.circuitId ?? selectedCircuitId) : selectedCircuitId;
   const circuit            = CIRCUITS.find((c) => c.id === circuitId) ?? CIRCUITS[0];
@@ -166,23 +178,113 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // ─── Commentary ───────────────────────────────────────────────────────────
   // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
   const completedAtRef = useRef(Date.now());
-  const commentary = useMemo(() => selectCommentary({
-    completedAt:       completedAtRef.current,
-    circuitId:         circuit.id,
-    tire:              null,   // TODO: run store에 타이어 추가 후 연결
-    avgPaceSec:        totalPaceS,
-    sectorPaces:       paceHistory,
-    isOverallPB:       false,  // TODO: 전체 기록 비교 후 연결
-    isCircuitPB:       false,  // TODO: 서킷 기록 비교 후 연결
-    goalPaceSec:       null,   // TODO: qualifyingResult 목표 페이스 연결
-    userGrade:         qualifyingResult?.grade ?? 'f3',
-    nextGradeName:     null,   // TODO: 등급 임계값 정의 후 연결
-    nextGradePaceSec:  null,   // TODO: 등급 임계값 정의 후 연결
-    totalRaceCount:    0,      // TODO: 유저 히스토리 연결
-    daysSinceLastRace: null,   // TODO: 유저 히스토리 연결
-    currentStreakDays:  0,      // TODO: 유저 히스토리 연결
+
+  // 다음 등급 정보 (동기 계산)
+  const { nextGradeName, nextGradePaceSec } = useMemo(() => {
+    const grade = qualifyingResult?.grade;
+    if (!grade) return { nextGradeName: null, nextGradePaceSec: null };
+    const tierIdx = GRADE_TIERS.findIndex((t) => t.grade === grade);
+    if (tierIdx <= 0) return { nextGradeName: null, nextGradePaceSec: null };
+    const betterTier = GRADE_TIERS[tierIdx - 1];
+    return {
+      nextGradeName: GRADE_DISPLAY_NAME[betterTier.grade],
+      nextGradePaceSec: betterTier.maxPaceSec,
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []); // 마운트 시 한 번만 계산
+  }, []);
+
+  // 연속 달리기 일수 (동기 계산 — recordActivity는 홈 이동 시 호출되므로 오늘 미포함)
+  const currentStreakDays = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    // 현재 런 완료 시점을 오늘로 포함
+    const datesWithToday = activityDates.includes(today)
+      ? activityDates
+      : [...activityDates, today];
+    const sorted = [...datesWithToday].sort().reverse();
+    let streak = 0;
+    let expected = today;
+    for (const d of sorted) {
+      if (d === expected) {
+        streak++;
+        const dt = new Date(expected + 'T00:00:00');
+        dt.setDate(dt.getDate() - 1);
+        expected = dt.toISOString().slice(0, 10);
+      } else if (d < expected) {
+        break;
+      }
+    }
+    return streak;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // commentary state: 마운트 시 동기값으로 초기화, 세션 로드 후 1회 갱신
+  const commentaryUpdatedRef = useRef(false);
+  const [commentary, setCommentary] = useState(() => selectCommentary({
+    completedAt:      completedAtRef.current,
+    circuitId:        circuit.id,
+    tire:             isHistoryMode ? null : selectedTire,
+    avgPaceSec:       totalPaceS,
+    sectorPaces:      paceHistory,
+    isOverallPB:      false,
+    isCircuitPB:      false,
+    goalPaceSec:      isHistoryMode ? null : (qualifyingResult?.paceSecPerKm ?? null),
+    userGrade:        qualifyingResult?.grade ?? 'f3',
+    nextGradeName,
+    nextGradePaceSec,
+    totalRaceCount:   0,
+    daysSinceLastRace: null,
+    currentStreakDays,
+  }));
+
+  // 세션 로드 완료 후 PB / 횟수 / 간격 계산해서 commentary 1회 재산정
+  useEffect(() => {
+    if (!sessionsReady || commentaryUpdatedRef.current) return;
+    commentaryUpdatedRef.current = true;
+
+    const gpSessions = sessions.filter(
+      (s) => s.type === 'grand_prix' && s.status === 'completed',
+    );
+    const totalRaceCount = gpSessions.length + 1;
+
+    const prevBestOverall =
+      gpSessions.length > 0
+        ? Math.min(...gpSessions.map((s) => s.avg_pace_sec_per_km ?? Infinity))
+        : Infinity;
+    const isOverallPB = totalPaceS > 0 && totalPaceS < prevBestOverall;
+
+    const circuitSessions = gpSessions.filter((s) => s.circuit_id === circuitId);
+    const prevBestCircuit =
+      circuitSessions.length > 0
+        ? Math.min(...circuitSessions.map((s) => s.avg_pace_sec_per_km ?? Infinity))
+        : Infinity;
+    const isCircuitPB = circuitSessions.length > 0 && totalPaceS > 0 && totalPaceS < prevBestCircuit;
+
+    const daysSinceLastRace =
+      gpSessions.length > 0
+        ? Math.floor(
+            (Date.now() - new Date(gpSessions[0].started_at).getTime()) /
+              (24 * 60 * 60 * 1000),
+          )
+        : null;
+
+    setCommentary(selectCommentary({
+      completedAt:      completedAtRef.current,
+      circuitId:        circuit.id,
+      tire:             selectedTire,
+      avgPaceSec:       totalPaceS,
+      sectorPaces:      paceHistory,
+      isOverallPB,
+      isCircuitPB,
+      goalPaceSec:      qualifyingResult?.paceSecPerKm ?? null,
+      userGrade:        qualifyingResult?.grade ?? 'f3',
+      nextGradeName,
+      nextGradePaceSec,
+      totalRaceCount,
+      daysSinceLastRace,
+      currentStreakDays,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionsReady]);
 
   // ─── Sector paces (1 entry per km) ────────────────────────────────────────
 
