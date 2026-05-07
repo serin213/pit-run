@@ -25,8 +25,12 @@ export function useRunning() {
   useEffect(() => {
     if (isRunning) {
       if (!isLiveActivitySupported()) return;
-      const { profile } = useAppStore.getState();
-      startLiveActivity(profile.displayName, profile.nameTagAccentColor).then(id => {
+      const { profile, selectedCircuitId } = useAppStore.getState();
+      startLiveActivity(
+        profile.displayName,
+        profile.nameTagAccentColor,
+        selectedCircuitId ?? 'shanghai',
+      ).then(id => {
         activityIdRef.current = id;
       });
     } else {
@@ -41,7 +45,7 @@ export function useRunning() {
   useEffect(() => {
     const id = activityIdRef.current;
     if (!id) return;
-    const { distKm, elapsedMs, paceS, sector, tire } = useRunStore.getState();
+    const { distKm, elapsedMs, paceS, sector, tire, prog } = useRunStore.getState();
     updateLiveActivity(id, {
       distKm,
       elapsedMs: Math.round(elapsedMs),
@@ -49,6 +53,8 @@ export function useRunning() {
       sector,
       tire,
       pitPhase,
+      prog,
+      isPaused,
     });
   }, [pitPhase]);
 
@@ -70,7 +76,7 @@ export function useRunning() {
         const id = activityIdRef.current;
         if (id && ts - lastLAUpdateRef.current >= LA_UPDATE_INTERVAL_MS) {
           lastLAUpdateRef.current = ts;
-          const { distKm, elapsedMs, paceS, sector, tire, pitPhase: phase } =
+          const { distKm, elapsedMs, paceS, sector, tire, pitPhase: phase, prog } =
             useRunStore.getState();
           updateLiveActivity(id, {
             distKm,
@@ -79,6 +85,8 @@ export function useRunning() {
             sector,
             tire,
             pitPhase: phase,
+            prog,
+            isPaused,
           });
         }
       }
