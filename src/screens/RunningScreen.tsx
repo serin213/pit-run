@@ -128,7 +128,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   }, [startRun]);
 
   const cfg = COLORS.sector[sector];
-  const isInPitTheme = pitPhase === 'inPit';
+  // 바텀싯이 떠있는 동안(pitPhase !== 'none')에는 항상 inPit 테마
+  const isInPitTheme = pitPhase !== 'none';
   const displayTheme = isInPitTheme
     ? { start: PALETTE.white, end: '#CBCBCC' }
     : { start: cfg.start, end: cfg.end };
@@ -389,8 +390,12 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 
       {SHOW_DEBUG_SECTOR_SWITCH && (
         <View style={styles.debugToolsWrap}>
-          <Pressable onPress={triggerBoxBox} style={styles.debugBoxBoxBtn}>
-            <Text style={styles.debugBoxBoxTxt}>BOX</Text>
+          <Pressable
+            onPress={triggerBoxBox}
+            disabled={pitPhase !== 'none'}
+            style={[styles.debugBoxBoxBtn, pitPhase !== 'none' && { opacity: 0.4 }]}
+          >
+            <Text style={styles.debugBoxBoxTxt}>BOX BOX</Text>
           </Pressable>
           <Pressable onPress={() => setSector('yellow')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.yellow }]}>
             <Text style={styles.debugSectorTxt}>Y</Text>
