@@ -18,12 +18,18 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.pit-run",
+      "appleTeamId": "B2VD87U846",
       "usesAppleSignIn": true,
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.anonymous.pit-run"]
+      },
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "달리는 동안 화면이 꺼져도 정확한 거리를 측정합니다.",
         "NSLocationAlwaysUsageDescription": "화면이 꺼진 상태에서도 러닝 세션을 추적합니다.",
         "NSLocationWhenInUseUsageDescription": "달리는 동안 정확한 거리를 측정합니다.",
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": ["location"],
+        "NSSupportsLiveActivities": true,
+        "NSSupportsLiveActivitiesFrequentUpdates": true
       }
     },
     "android": {
@@ -50,6 +56,7 @@
       "expo-font",
       "expo-asset",
       "expo-apple-authentication",
+      "@bacons/apple-targets",
       [
         "expo-location",
         {
