@@ -1,7 +1,7 @@
 import { requireNativeModule, Platform } from 'expo-modules-core';
 
 interface PitRunLiveActivityNative {
-  startActivity(driverName: string, teamColor: string): Promise<string | null>;
+  startActivity(driverName: string, teamColor: string, circuitId: string): Promise<string | null>;
   updateActivity(
     activityId: string,
     distKm: number,
@@ -9,7 +9,9 @@ interface PitRunLiveActivityNative {
     paceS: number,
     sector: string,
     tire: string,
-    pitPhase: string
+    pitPhase: string,
+    prog: number,
+    isPaused: boolean
   ): Promise<void>;
   endActivity(activityId: string): Promise<void>;
   endAllActivities(): Promise<void>;

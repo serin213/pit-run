@@ -12,9 +12,12 @@ struct PitRunAttributes: ActivityAttributes {
         var sector: String    // "yellow" | "purple" | "green"
         var tire: String      // "soft" | "medium" | "hard"
         var pitPhase: String  // "none" | "boxbox" | "inPit" | "fullPush"
+        var prog: Double      // 0.0 – 1.0
+        var isPaused: Bool
     }
     var driverName: String
     var teamColor: String
+    var circuitId: String
 }
 
 public class PitRunLiveActivityModule: Module {
@@ -25,8 +28,8 @@ public class PitRunLiveActivityModule: Module {
     public func definition() -> ModuleDefinition {
         Name("PitRunLiveActivity")
 
-        // startActivity(driverName, teamColor) -> activityId | null
-        AsyncFunction("startActivity") { (driverName: String, teamColor: String, promise: Promise) in
+        // startActivity(driverName, teamColor, circuitId) -> activityId | null
+        AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
             guard #available(iOS 16.1, *) else {
                 promise.resolve(nil as String?)
                 return
@@ -38,10 +41,11 @@ public class PitRunLiveActivityModule: Module {
 
             let initialState = PitRunAttributes.ContentState(
                 distKm: 0, elapsedMs: 0, paceS: 0,
-                sector: "yellow", tire: "soft", pitPhase: "none"
+                sector: "yellow", tire: "soft", pitPhase: "none",
+                prog: 0, isPaused: false
             )
             let content = ActivityContent(state: initialState, staleDate: nil)
-            let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor)
+            let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
 
             do {
                 let activity = try Activity<PitRunAttributes>.request(
@@ -56,7 +60,7 @@ public class PitRunLiveActivityModule: Module {
             }
         }
 
-        // updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase)
+        // updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused)
         AsyncFunction("updateActivity") { (
             activityId: String,
             distKm: Double,
@@ -65,6 +69,8 @@ public class PitRunLiveActivityModule: Module {
             sector: String,
             tire: String,
             pitPhase: String,
+            prog: Double,
+            isPaused: Bool,
             promise: Promise
         ) in
             guard #available(iOS 16.1, *) else {
@@ -78,7 +84,8 @@ public class PitRunLiveActivityModule: Module {
 
             let newState = PitRunAttributes.ContentState(
                 distKm: distKm, elapsedMs: elapsedMs, paceS: paceS,
-                sector: sector, tire: tire, pitPhase: pitPhase
+                sector: sector, tire: tire, pitPhase: pitPhase,
+                prog: prog, isPaused: isPaused
             )
             let content = ActivityContent(state: newState, staleDate: nil)
 

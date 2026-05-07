@@ -19,8 +19,10 @@ export interface LiveActivityState {
   elapsedMs: number;
   paceS: number;
   sector: 'yellow' | 'purple' | 'green';
-  tire: 'soft' | 'medium' | 'hard';
+  tire: 'soft' | 'medium' | 'hard' | 'wet';
   pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush';
+  prog: number;
+  isPaused: boolean;
 }
 
 export function isLiveActivitySupported(): boolean {
@@ -30,8 +32,9 @@ export function isLiveActivitySupported(): boolean {
 export async function startLiveActivity(
   driverName: string,
   teamColor: string,
+  circuitId: string,
 ): Promise<string | null> {
-  return nativeStart(driverName, teamColor);
+  return nativeStart(driverName, teamColor, circuitId);
 }
 
 export async function updateLiveActivity(
@@ -46,6 +49,8 @@ export async function updateLiveActivity(
     state.sector,
     state.tire,
     state.pitPhase,
+    state.prog,
+    state.isPaused,
   );
 }
 
