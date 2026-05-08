@@ -17,11 +17,11 @@
     "scheme": "pitrun",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.pit-run",
+      "bundleIdentifier": "com.pitrun.apps",
       "appleTeamId": "B2VD87U846",
       "usesAppleSignIn": true,
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.anonymous.pit-run"]
+        "com.apple.security.application-groups": ["group.com.pitrun.apps"]
       },
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "달리는 동안 화면이 꺼져도 정확한 거리를 측정합니다.",
@@ -38,7 +38,7 @@
         "backgroundColor": "#17171C"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pitrun",
+      "package": "com.pitrun.apps",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

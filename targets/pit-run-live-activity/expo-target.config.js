@@ -3,7 +3,7 @@ module.exports = {
   type: "widget",
   name: "PitRunLiveActivity",
   deploymentTarget: "16.1",
-  bundleIdentifier: "com.anonymous.pit-run.live-activity",
+  bundleIdentifier: "com.pitrun.apps.liveactivity",
   frameworks: ["ActivityKit"],
   entitlements: {},
 };
