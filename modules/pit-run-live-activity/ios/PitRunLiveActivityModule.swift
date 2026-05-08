@@ -3,7 +3,7 @@ import ActivityKit
 
 // Must mirror PitRunAttributes in the Widget Extension exactly.
 // Both targets share the same struct layout; the system matches them by bundle ID.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 struct PitRunAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var distKm: Double
@@ -30,7 +30,7 @@ public class PitRunLiveActivityModule: Module {
 
         // startActivity(driverName, teamColor, circuitId) -> activityId | null
         AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
-            guard #available(iOS 16.1, *) else {
+            guard #available(iOS 16.2, *) else {
                 promise.resolve(nil as String?)
                 return
             }
@@ -73,7 +73,7 @@ public class PitRunLiveActivityModule: Module {
             isPaused: Bool,
             promise: Promise
         ) in
-            guard #available(iOS 16.1, *) else {
+            guard #available(iOS 16.2, *) else {
                 promise.resolve(nil as String?)
                 return
             }
@@ -97,7 +97,7 @@ public class PitRunLiveActivityModule: Module {
 
         // endActivity(activityId)
         AsyncFunction("endActivity") { (activityId: String, promise: Promise) in
-            guard #available(iOS 16.1, *) else {
+            guard #available(iOS 16.2, *) else {
                 promise.resolve(nil as String?)
                 return
             }
@@ -115,7 +115,7 @@ public class PitRunLiveActivityModule: Module {
 
         // endAllActivities() — 앱 강제 종료 등 예외 상황용
         AsyncFunction("endAllActivities") { (promise: Promise) in
-            guard #available(iOS 16.1, *) else {
+            guard #available(iOS 16.2, *) else {
                 promise.resolve(nil as String?)
                 return
             }
@@ -130,7 +130,7 @@ public class PitRunLiveActivityModule: Module {
 
         // isSupported() — iOS 16.1+ 실기기 여부 체크
         Function("isSupported") { () -> Bool in
-            if #available(iOS 16.1, *) {
+            if #available(iOS 16.2, *) {
                 return ActivityAuthorizationInfo().areActivitiesEnabled
             }
             return false

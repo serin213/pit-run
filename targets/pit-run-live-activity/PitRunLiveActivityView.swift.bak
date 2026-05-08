@@ -3,6 +3,7 @@ import SwiftUI
 import WidgetKit
 
 // MARK: - Color Helper
+
 private extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -16,12 +17,14 @@ private extension Color {
 }
 
 // MARK: - Formatters
+
 private func formatPace(_ s: Int) -> String {
     guard s > 0 else { return "--'--\"" }
     return String(format: "%d'%02d\"", s / 60, s % 60)
 }
 
 // MARK: - Circuit Path Data
+
 private struct CircuitInfo {
     let pathData: String
     let vw: CGFloat
@@ -64,17 +67,17 @@ private let SPA_PATH =
     "M181.403 87.2138C190.301 90.2609 220.456 97.1401 225.284 98.8965C230.113 100.666 231.456 101.97 233.318 104.139C235.18 106.321 234.981 111.763 233.625 114.052C232.281 116.341 230.086 118.776 231.802 124.271C233.252 128.915 238.479 130.751 240.953 131.829C242.895 132.681 260.613 140.797 260.613 140.797C260.613 140.797 260.945 140.944 261.411 141.263C264.217 143.166 265.042 146.958 263.446 149.965L255.572 164.788C255.572 164.788 252.446 170.616 246.035 170.496C239.624 170.376 229.568 168.234 221.268 163.457C212.968 158.68 203.165 150.125 200.145 145.973C197.126 141.822 184.183 123.592 180.91 119.694C177.638 115.795 166.838 107.745 143.321 103.221C143.321 103.221 134.383 101.159 124.846 108.384C114.618 116.128 100.332 122.847 81.856 125.868C81.856 125.868 74.7397 126.999 71.1084 128.05C67.4905 129.088 67.8636 125.855 67.8636 125.855L67.6766 122.275C67.6766 122.275 67.5307 120.918 66.1607 120.199C65.2828 119.734 64.1918 120.426 63.5134 120.985C62.7153 121.65 61.9178 122.328 61.1065 122.967L44.8147 135.69L41.2161 138.5L6.76983 165.4C6.76983 165.4 2.10179 169.352 2.52743 163.817C2.82006 160.051 7.03611 149.087 9.69637 142.46C11.0664 139.054 12.7424 135.781 14.6844 132.667L16.4808 129.793C19.3938 125.123 22.7054 120.718 26.3633 116.62L35.0754 106.867C37.4962 104.152 40.0367 101.558 42.6171 99.003C44.6921 96.9538 47.8177 93.2414 50.7174 87.4134C51.2894 86.2691 51.7687 85.0981 52.2476 83.9139C53.0324 82.0244 55.7861 77.2742 63.9265 75.4513C73.0113 73.4022 75.3789 70.2486 96.5147 52.5383C101.326 48.4831 112.033 42.4658 116.785 39.9641L200.012 3.69186C200.012 3.69186 204.814 0.764542 208.578 4.07774L211.797 7.7236C211.797 7.7236 214.138 10.3582 218.834 8.60178C223.516 6.84539 229.048 4.25073 229.048 4.25073C229.048 4.25073 233.784 2.34795 236.91 5.12891C240.036 7.90987 265.388 36.3848 265.388 36.3848C265.388 36.3848 268.461 40.483 264.39 44.701C262.355 46.8167 260.28 47.0163 258.71 46.6837C257.353 46.4042 256.17 45.5925 255.278 44.5414L244.04 31.2487C244.04 31.2487 242.124 29.0665 239.304 28.8003C236.484 28.5342 232.122 31.0624 221.933 36.2783C211.744 41.4943 179.262 51.1545 179.262 51.1545C179.262 51.1545 173.742 52.6048 171.561 59.4042C171.029 61.0808 170.868 62.8372 170.922 64.5936L171.041 68.1064C171.121 70.6212 171.348 73.136 171.72 75.6243C171.72 75.6243 172.651 84.2199 181.403 87.2138Z"
 
 private let CIRCUIT_DATA: [String: CircuitInfo] = [
-    "shanghai":    CircuitInfo(pathData: SHANGHAI_PATH,    vw: 286, vh: 185, name: "SHANGHAI",    flagImageName: "china"),
-    "las-vegas":   CircuitInfo(pathData: LAS_VEGAS_PATH,   vw: 311, vh: 167, name: "LAS VEGAS",   flagImageName: "usa"),
-    "suzuka":      CircuitInfo(pathData: SUZUKA_PATH,      vw: 328, vh: 180, name: "SUZUKA",       flagImageName: "japan"),
-    "monaco":      CircuitInfo(pathData: MONACO_PATH,      vw: 337, vh: 139, name: "MONACO",       flagImageName: "monaco"),
-    "hungaroring": CircuitInfo(pathData: HUNGARORING_PATH, vw: 274, vh: 239, name: "HUNGARY",      flagImageName: "hungary"),
-    "marina-bay":  CircuitInfo(pathData: MARINA_BAY_PATH,  vw: 328, vh: 192, name: "MARINA BAY",  flagImageName: "singapore"),
-    "monza":       CircuitInfo(pathData: MONZA_PATH,       vw: 305, vh: 156, name: "MONZA",        flagImageName: "italy"),
-    "baku":        CircuitInfo(pathData: BAKU_PATH,        vw: 317, vh: 177, name: "BAKU",         flagImageName: "azerbaijan"),
-    "albert-park": CircuitInfo(pathData: ALBERT_PARK_PATH, vw: 313, vh: 157, name: "ALBERT PARK", flagImageName: "australia"),
-    "silverstone": CircuitInfo(pathData: SILVERSTONE_PATH, vw: 277, vh: 166, name: "SILVERSTONE",  flagImageName: "uk"),
-    "spa":         CircuitInfo(pathData: SPA_PATH,         vw: 269, vh: 173, name: "SPA",          flagImageName: "belgium"),
+    "shanghai":    CircuitInfo(pathData: SHANGHAI_PATH,    vw: 286, vh: 185, name: "SHANGHAI",    flagImageName: "flag-china"),
+    "las-vegas":   CircuitInfo(pathData: LAS_VEGAS_PATH,   vw: 311, vh: 167, name: "LAS VEGAS",   flagImageName: "flag-usa"),
+    "suzuka":      CircuitInfo(pathData: SUZUKA_PATH,      vw: 328, vh: 180, name: "SUZUKA",       flagImageName: "flag-japan"),
+    "monaco":      CircuitInfo(pathData: MONACO_PATH,      vw: 337, vh: 139, name: "MONACO",       flagImageName: "flag-monaco"),
+    "hungaroring": CircuitInfo(pathData: HUNGARORING_PATH, vw: 274, vh: 239, name: "HUNGARY",      flagImageName: "flag-hungary"),
+    "marina-bay":  CircuitInfo(pathData: MARINA_BAY_PATH,  vw: 328, vh: 192, name: "MARINA BAY",  flagImageName: "flag-singapore"),
+    "monza":       CircuitInfo(pathData: MONZA_PATH,       vw: 305, vh: 156, name: "MONZA",        flagImageName: "flag-italy"),
+    "baku":        CircuitInfo(pathData: BAKU_PATH,        vw: 317, vh: 177, name: "BAKU",         flagImageName: "flag-azerbaijan"),
+    "albert-park": CircuitInfo(pathData: ALBERT_PARK_PATH, vw: 313, vh: 157, name: "ALBERT PARK", flagImageName: "flag-australia"),
+    "silverstone": CircuitInfo(pathData: SILVERSTONE_PATH, vw: 277, vh: 166, name: "SILVERSTONE",  flagImageName: "flag-uk"),
+    "spa":         CircuitInfo(pathData: SPA_PATH,         vw: 269, vh: 173, name: "SPA",          flagImageName: "flag-belgium"),
 ]
 
 // MARK: - SVG Path Parsing
@@ -200,6 +203,7 @@ private func parseSegs(_ d: String) -> [PathSeg] {
     return segs
 }
 
+// Build path from start up to frac of total length, using de Casteljau for partial curves
 private func buildProgressPath(segs: [PathSeg], frac: Double, tx: (CGPoint) -> CGPoint) -> Path {
     guard frac > 0, !segs.isEmpty else { return Path() }
     let lens = segs.map { segLen($0) }
@@ -255,6 +259,7 @@ private struct CircuitMapView: View {
             let sw: CGFloat = 4
             let style = StrokeStyle(lineWidth: sw, lineCap: .round, lineJoin: .round)
 
+            // Ghost track
             var fullPath = Path()
             for (i, seg) in segs.enumerated() {
                 if i == 0 { fullPath.move(to: tx(seg.from)) }
@@ -266,11 +271,13 @@ private struct CircuitMapView: View {
             }
             ctx.stroke(fullPath, with: .color(.white.opacity(0.08)), style: style)
 
+            // Progress line
             if prog > 0 {
                 let progressPath = buildProgressPath(segs: segs, frac: prog, tx: tx)
                 ctx.stroke(progressPath, with: .color(lineColor), style: style)
             }
 
+            // Dot: glow r=8 (50%) + solid r=4
             if showDot && prog > 0 {
                 let dot = tx(ptAtFrac(segs, prog))
                 ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 8, y: dot.y - 8, width: 16, height: 16)),
@@ -282,17 +289,10 @@ private struct CircuitMapView: View {
     }
 }
 
-// MARK: - Constants
+// MARK: - Lock Normal View
 
 private let BG_COLOR = Color(hex: "#17171C")
 private let AMBER    = Color(hex: "#FCA311")
-private let GREY     = Color(hex: "#666666")
-
-// MARK: - Bar Ratios
-
-private let BAR_RATIOS: [CGFloat] = [0.45, 0.65, 0.35, 0.80, 0.55, 0.90, 0.40, 0.70, 0.50, 0.85, 0.60, 0.75, 0.30]
-
-// MARK: - Lock Normal View
 
 private struct LockNormalView: View {
     let circuitId: String
@@ -303,13 +303,29 @@ private struct LockNormalView: View {
     let inPit: Bool
 
     var body: some View {
-        let color = inPit ? GREY : teamColor
-        let trackColor = inPit ? Color.white.opacity(0.25) : teamColor
-        let info = CIRCUIT_DATA[circuitId] ?? CIRCUIT_DATA["spa"]!
+        GeometryReader { geo in
+            let W = geo.size.width
+            let H = geo.size.height
+            let info = CIRCUIT_DATA[circuitId] ?? CIRCUIT_DATA["shanghai"]!
+            let vbAspect = info.vw / info.vh
 
-        HStack(alignment: .center, spacing: 0) {
-            // 왼쪽: 국기 + 서킷명 + 서킷맵
-            VStack(alignment: .leading, spacing: 4) {
+            // Stats column — right edge at W-36; estimated width for SVG calc
+            let statsColEst: CGFloat = 115
+            let flagRowH: CGFloat = 20
+            // SVG must sit below flag row (min 16pt gap) and above bottom (30pt)
+            let svgMinTop: CGFloat = 20 + flagRowH + 16   // = 56
+            let svgMaxH = max(0, H - 30 - svgMinTop)
+            let svgMaxW = max(0, W - 36 - 42 - statsColEst - 36)
+            let svgH = min(svgMaxH, svgMaxW / vbAspect)
+            let svgW = svgH * vbAspect
+            let svgY = H - 30 - svgH
+
+            let mapColor = inPit ? Color.white.opacity(0.25) : teamColor
+
+            ZStack(alignment: .topLeading) {
+                Color.clear
+
+                // Flag + circuit name: top:20, left:36
                 HStack(spacing: 6) {
                     Image(info.flagImageName)
                         .resizable()
@@ -317,57 +333,66 @@ private struct LockNormalView: View {
                         .frame(width: 20, height: 13)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                     Text(info.name)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Color.white)
                         .lineLimit(1)
                 }
+                .offset(x: 36, y: 20)
+
+                // Circuit SVG: left:36, bottom:30
                 CircuitMapView(
                     circuitId: circuitId,
                     prog: inPit ? 0 : prog,
-                    lineColor: trackColor,
+                    lineColor: mapColor,
                     showDot: !inPit
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.leading, 16)
-            .padding(.vertical, 14)
+                .frame(width: max(0, svgW), height: max(0, svgH))
+                .offset(x: 36, y: svgY)
 
-            // 오른쪽: DISTANCE + PACE
-            VStack(alignment: .leading, spacing: 2) {
-                Text("DISTANCE")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(0.4))
-                    .tracking(0.3)
-                Text(String(format: "%.2f", distKm))
-                    .font(.system(size: 30, weight: .bold).monospacedDigit())
-                    .foregroundStyle(color)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text("PACE")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(0.4))
-                    .tracking(0.3)
-                if inPit {
-                    Text("IN PIT")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(Color.white)
-                        .lineLimit(1)
-                } else {
-                    Text(formatPace(paceS))
-                        .font(.system(size: 30, weight: .bold).monospacedDigit())
-                        .foregroundStyle(color)
-                        .lineLimit(1)
+                // Stats column: right edge at W-36, spans top:20 to H-20
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("DISTANCE")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(Color.white.opacity(0.4))
+                            .tracking(0.5)
+                        Color.clear.frame(height: 2)
+                        Text(String(format: "%.2f", distKm))
+                            .font(.system(size: 28, weight: .bold).monospacedDigit())
+                            .foregroundStyle(inPit ? Color.white : teamColor)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                        Text("PACE")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(Color.white.opacity(0.4))
+                            .tracking(0.5)
+                        Color.clear.frame(height: 2)
+                        if inPit {
+                            Text("IN PIT")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundStyle(Color.white)
+                                .lineLimit(1)
+                        } else {
+                            Text(formatPace(paceS))
+                                .font(.system(size: 28, weight: .bold).monospacedDigit())
+                                .foregroundStyle(teamColor)
+                                .lineLimit(1)
+                        }
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
                 }
+                .padding(.trailing, 36)
+                .frame(width: W, height: H - 40)
+                .offset(y: 20)
             }
-            .frame(width: 110)
-            .padding(.vertical, 14)
-            .padding(.trailing, 16)
         }
     }
 }
 
-// MARK: - Lock Wave View
+// MARK: - Static Bars (BOX BOX / FULL PUSH)
+
+private let BAR_RATIOS: [CGFloat] = [0.45, 0.65, 0.35, 0.80, 0.55, 0.90, 0.40, 0.70, 0.50, 0.85, 0.60, 0.75]
 
 private struct LockWaveView: View {
     let teamColor: Color
@@ -375,84 +400,90 @@ private struct LockWaveView: View {
     let line2: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(line1)
-                    .font(.system(size: 24, weight: .heavy).italic())
-                    .foregroundStyle(teamColor)
-                    .lineLimit(1)
-                if let l2 = line2 {
-                    Text(l2)
-                        .font(.system(size: 24, weight: .heavy).italic())
-                        .foregroundStyle(teamColor)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.leading, 18)
-            .padding(.top, 16)
-
-            Spacer(minLength: 12)
-
+        ZStack(alignment: .topLeading) {
+            // Static bars
             GeometryReader { geo in
                 let W = geo.size.width
                 let H = geo.size.height
                 let count = BAR_RATIOS.count
-                let barW = W / CGFloat(count)
-                let maxBarH = H * 0.9
-                let fadeW = barW * 2
+                let gap: CGFloat = 6
+                let barW = (W - gap * CGFloat(count + 1)) / CGFloat(count)
+                let maxBarH = H * 0.7
 
                 ZStack(alignment: .bottom) {
+                    // Bottom area glow
                     LinearGradient(
                         colors: [teamColor.opacity(0), teamColor.opacity(0.25)],
                         startPoint: .top, endPoint: .bottom
                     )
+                    .frame(height: H * 0.4)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
-                    HStack(alignment: .bottom, spacing: 0) {
+                    // Bars
+                    HStack(alignment: .bottom, spacing: gap) {
                         ForEach(0..<count, id: \.self) { i in
-                            LinearGradient(
-                                colors: [teamColor.opacity(0), teamColor.opacity(1)],
-                                startPoint: .top, endPoint: .bottom
-                            )
-                            .frame(width: barW, height: maxBarH * BAR_RATIOS[i])
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(LinearGradient(
+                                    colors: [teamColor.opacity(0.9), teamColor.opacity(0.15)],
+                                    startPoint: .top, endPoint: .bottom
+                                ))
+                                .frame(width: barW, height: maxBarH * BAR_RATIOS[i])
                         }
                     }
+                    .padding(.horizontal, gap)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
 
-                    HStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [BG_COLOR, BG_COLOR.opacity(0)],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: fadeW)
-                        Spacer()
-                        LinearGradient(
-                            colors: [BG_COLOR.opacity(0), BG_COLOR],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: fadeW)
-                    }
-                    .frame(width: W, height: H)
+                // Side fades
+                HStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [BG_COLOR, BG_COLOR.opacity(0)],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .frame(width: 48)
+                    Spacer()
+                    LinearGradient(
+                        colors: [BG_COLOR.opacity(0), BG_COLOR],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .frame(width: 48)
+                }
+                .frame(width: W, height: H)
+            }
+
+            // Text overlay
+            VStack(alignment: .leading, spacing: 12) {
+                Text(line1)
+                    .font(.system(size: 24, weight: .heavy))
+                    .italic()
+                    .foregroundStyle(teamColor)
+                if let l2 = line2 {
+                    Text(l2)
+                        .font(.system(size: 24, weight: .heavy))
+                        .italic()
+                        .foregroundStyle(Color.white)
                 }
             }
+            .padding(.leading, 18)
+            .padding(.top, 16)
         }
     }
 }
 
-// MARK: - Live Activity View
+// MARK: - Lock Screen View
 
 struct PitRunLiveActivityView: View {
     let context: ActivityViewContext<PitRunAttributes>
 
     var body: some View {
-        let state   = context.state
-        let teamClr = Color(hex: context.attributes.teamColor)
+        let state    = context.state
+        let teamClr  = Color(hex: context.attributes.teamColor)
 
         ZStack {
             BG_COLOR
             switch state.pitPhase {
             case "boxbox":
-                LockWaveView(teamColor: teamClr, line1: "BOX BOX", line2: " RECOVERY TIME")
+                LockWaveView(teamColor: teamClr, line1: "\u{201C}BOX BOX", line2: "RECOVERY TIME\u{201D}")
             case "fullPush":
                 LockWaveView(teamColor: teamClr, line1: "FULL PUSH", line2: nil)
             case "inPit":
@@ -485,29 +516,37 @@ struct PitRunLiveActivity: Widget {
         ActivityConfiguration(for: PitRunAttributes.self) { context in
             PitRunLiveActivityView(context: context)
         } dynamicIsland: { context in
-            let state   = context.state
-            let teamClr = Color(hex: context.attributes.teamColor)
+            let state    = context.state
+            let teamClr  = Color(hex: context.attributes.teamColor)
 
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 12) {
-                        let isPaused = state.isPaused
-                        let btnName = isPaused ? "pause-yellow" : "pause-yellow"
-                        Link(destination: URL(string: isPaused ? "pitrun://resume" : "pitrun://pause")!) {
-                            Image(btnName)
-                                .resizable()
-                                .frame(width: 52, height: 52)
+                        Link(destination: URL(string: state.isPaused ? "pitrun://resume" : "pitrun://pause")!) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(AMBER.opacity(0.18))
+                                Image(systemName: state.isPaused ? "play.fill" : "pause.fill")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundStyle(AMBER)
+                            }
+                            .frame(width: 52, height: 52)
                         }
                         Link(destination: URL(string: "pitrun://stop")!) {
-                            Image("stop-yellow")
-                                .resizable()
-                                .frame(width: 52, height: 52)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.white.opacity(0.1))
+                                Image(systemName: "stop.fill")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundStyle(Color.white.opacity(0.75))
+                            }
+                            .frame(width: 52, height: 52)
                         }
                     }
                     .padding(.leading, 12)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text(String(format: "%.2f", state.distKm))
                             .font(.system(size: 30, weight: .bold).monospacedDigit())
                             .foregroundStyle(teamClr)
@@ -522,11 +561,10 @@ struct PitRunLiveActivity: Widget {
                 }
             } compactLeading: {
                 HStack(spacing: 5) {
-                    Image("icon")
+                    Image("race-flag")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 16, height: 16)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     Text(String(format: "%.2f", state.distKm))
                         .font(.system(size: 13, weight: .regular).monospacedDigit())
                         .foregroundStyle(AMBER)
@@ -547,17 +585,17 @@ struct PitRunLiveActivity: Widget {
     }
 }
 
-// MARK: - Preview
+// MARK: - Xcode Preview
 
 #Preview("Lock Screen", as: .content, using: PitRunAttributes(
     driverName: "LECLERC", teamColor: "#E8002D", circuitId: "monaco"
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000,   paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000,   paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000,   paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000,   paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
 }
 
 #Preview("DI Compact", as: .dynamicIsland(.compact), using: PitRunAttributes(
@@ -565,7 +603,8 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green",  tire: "soft",   pitPhase: "none",  prog: 0.42, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green",  tire: "soft",   pitPhase: "none",  prog: 0.42, isPaused: true)
 }
 
 #Preview("DI Expanded", as: .dynamicIsland(.expanded), using: PitRunAttributes(
@@ -573,5 +612,5 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none", prog: 0.60, isPaused: false)
+    PitRunAttributes.PitRunState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none",  prog: 0.60, isPaused: false)
 }
