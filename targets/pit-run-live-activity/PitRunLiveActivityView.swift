@@ -28,6 +28,10 @@ private struct CircuitInfo {
     let vh: CGFloat
     let name: String
     let flagImageName: String
+    /// Normalized [0,1] offset along the path where the runner starts.
+    /// Matches `getAnchorLengths` in src/components/CircuitMap.tsx.
+    /// Computed via .tmp/compute_startlen.mjs using svg-path-properties.
+    let startFrac: CGFloat
 }
 
 private let SHANGHAI_PATH =
@@ -64,17 +68,17 @@ private let SPA_PATH =
     "M181.403 87.2138C190.301 90.2609 220.456 97.1401 225.284 98.8965C230.113 100.666 231.456 101.97 233.318 104.139C235.18 106.321 234.981 111.763 233.625 114.052C232.281 116.341 230.086 118.776 231.802 124.271C233.252 128.915 238.479 130.751 240.953 131.829C242.895 132.681 260.613 140.797 260.613 140.797C260.613 140.797 260.945 140.944 261.411 141.263C264.217 143.166 265.042 146.958 263.446 149.965L255.572 164.788C255.572 164.788 252.446 170.616 246.035 170.496C239.624 170.376 229.568 168.234 221.268 163.457C212.968 158.68 203.165 150.125 200.145 145.973C197.126 141.822 184.183 123.592 180.91 119.694C177.638 115.795 166.838 107.745 143.321 103.221C143.321 103.221 134.383 101.159 124.846 108.384C114.618 116.128 100.332 122.847 81.856 125.868C81.856 125.868 74.7397 126.999 71.1084 128.05C67.4905 129.088 67.8636 125.855 67.8636 125.855L67.6766 122.275C67.6766 122.275 67.5307 120.918 66.1607 120.199C65.2828 119.734 64.1918 120.426 63.5134 120.985C62.7153 121.65 61.9178 122.328 61.1065 122.967L44.8147 135.69L41.2161 138.5L6.76983 165.4C6.76983 165.4 2.10179 169.352 2.52743 163.817C2.82006 160.051 7.03611 149.087 9.69637 142.46C11.0664 139.054 12.7424 135.781 14.6844 132.667L16.4808 129.793C19.3938 125.123 22.7054 120.718 26.3633 116.62L35.0754 106.867C37.4962 104.152 40.0367 101.558 42.6171 99.003C44.6921 96.9538 47.8177 93.2414 50.7174 87.4134C51.2894 86.2691 51.7687 85.0981 52.2476 83.9139C53.0324 82.0244 55.7861 77.2742 63.9265 75.4513C73.0113 73.4022 75.3789 70.2486 96.5147 52.5383C101.326 48.4831 112.033 42.4658 116.785 39.9641L200.012 3.69186C200.012 3.69186 204.814 0.764542 208.578 4.07774L211.797 7.7236C211.797 7.7236 214.138 10.3582 218.834 8.60178C223.516 6.84539 229.048 4.25073 229.048 4.25073C229.048 4.25073 233.784 2.34795 236.91 5.12891C240.036 7.90987 265.388 36.3848 265.388 36.3848C265.388 36.3848 268.461 40.483 264.39 44.701C262.355 46.8167 260.28 47.0163 258.71 46.6837C257.353 46.4042 256.17 45.5925 255.278 44.5414L244.04 31.2487C244.04 31.2487 242.124 29.0665 239.304 28.8003C236.484 28.5342 232.122 31.0624 221.933 36.2783C211.744 41.4943 179.262 51.1545 179.262 51.1545C179.262 51.1545 173.742 52.6048 171.561 59.4042C171.029 61.0808 170.868 62.8372 170.922 64.5936L171.041 68.1064C171.121 70.6212 171.348 73.136 171.72 75.6243C171.72 75.6243 172.651 84.2199 181.403 87.2138Z"
 
 private let CIRCUIT_DATA: [String: CircuitInfo] = [
-    "shanghai":    CircuitInfo(pathData: SHANGHAI_PATH,    vw: 286, vh: 185, name: "SHANGHAI",    flagImageName: "china"),
-    "las-vegas":   CircuitInfo(pathData: LAS_VEGAS_PATH,   vw: 311, vh: 167, name: "LAS VEGAS",   flagImageName: "usa"),
-    "suzuka":      CircuitInfo(pathData: SUZUKA_PATH,      vw: 328, vh: 180, name: "SUZUKA",       flagImageName: "japan"),
-    "monaco":      CircuitInfo(pathData: MONACO_PATH,      vw: 337, vh: 139, name: "MONACO",       flagImageName: "monaco"),
-    "hungaroring": CircuitInfo(pathData: HUNGARORING_PATH, vw: 274, vh: 239, name: "HUNGARY",      flagImageName: "hungary"),
-    "marina-bay":  CircuitInfo(pathData: MARINA_BAY_PATH,  vw: 328, vh: 192, name: "MARINA BAY",  flagImageName: "singapore"),
-    "monza":       CircuitInfo(pathData: MONZA_PATH,       vw: 305, vh: 156, name: "MONZA",        flagImageName: "italy"),
-    "baku":        CircuitInfo(pathData: BAKU_PATH,        vw: 317, vh: 177, name: "BAKU",         flagImageName: "azerbaijan"),
-    "albert-park": CircuitInfo(pathData: ALBERT_PARK_PATH, vw: 313, vh: 157, name: "ALBERT PARK", flagImageName: "australia"),
-    "silverstone": CircuitInfo(pathData: SILVERSTONE_PATH, vw: 277, vh: 166, name: "SILVERSTONE",  flagImageName: "uk"),
-    "spa":         CircuitInfo(pathData: SPA_PATH,         vw: 269, vh: 173, name: "SPA",          flagImageName: "belgium"),
+    "shanghai":    CircuitInfo(pathData: SHANGHAI_PATH,    vw: 286, vh: 185, name: "SHANGHAI",    flagImageName: "china",      startFrac: 0.0000),
+    "las-vegas":   CircuitInfo(pathData: LAS_VEGAS_PATH,   vw: 311, vh: 167, name: "LAS VEGAS",   flagImageName: "usa",        startFrac: 0.5093),
+    "suzuka":      CircuitInfo(pathData: SUZUKA_PATH,      vw: 328, vh: 180, name: "SUZUKA",      flagImageName: "japan",      startFrac: 0.5665),
+    "monaco":      CircuitInfo(pathData: MONACO_PATH,      vw: 337, vh: 139, name: "MONACO",      flagImageName: "monaco",     startFrac: 0.5067),
+    "hungaroring": CircuitInfo(pathData: HUNGARORING_PATH, vw: 274, vh: 239, name: "HUNGARY",     flagImageName: "hungary",    startFrac: 0.4111),
+    "marina-bay":  CircuitInfo(pathData: MARINA_BAY_PATH,  vw: 328, vh: 192, name: "MARINA BAY",  flagImageName: "singapore",  startFrac: 0.4461),
+    "monza":       CircuitInfo(pathData: MONZA_PATH,       vw: 305, vh: 156, name: "MONZA",       flagImageName: "italy",      startFrac: 0.4410),
+    "baku":        CircuitInfo(pathData: BAKU_PATH,        vw: 317, vh: 177, name: "BAKU",        flagImageName: "azerbaijan", startFrac: 0.4021),
+    "albert-park": CircuitInfo(pathData: ALBERT_PARK_PATH, vw: 313, vh: 157, name: "ALBERT PARK", flagImageName: "australia",  startFrac: 0.0787),
+    "silverstone": CircuitInfo(pathData: SILVERSTONE_PATH, vw: 277, vh: 166, name: "SILVERSTONE", flagImageName: "uk",         startFrac: 0.5578),
+    "spa":         CircuitInfo(pathData: SPA_PATH,         vw: 269, vh: 173, name: "SPA",         flagImageName: "belgium",    startFrac: 0.4140),
 ]
 
 // MARK: - SVG Path Parsing
@@ -92,10 +96,6 @@ private func cubicPt(t: CGFloat, p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPo
         x: u*u*u*p0.x + 3*u*u*t*p1.x + 3*u*t*t*p2.x + t*t*t*p3.x,
         y: u*u*u*p0.y + 3*u*u*t*p1.y + 3*u*t*t*p2.y + t*t*t*p3.y
     )
-}
-
-private func lerpPt(_ a: CGPoint, _ b: CGPoint, _ t: CGFloat) -> CGPoint {
-    CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
 }
 
 private func segLen(_ seg: PathSeg) -> CGFloat {
@@ -200,41 +200,6 @@ private func parseSegs(_ d: String) -> [PathSeg] {
     return segs
 }
 
-private func buildProgressPath(segs: [PathSeg], frac: Double, tx: (CGPoint) -> CGPoint) -> Path {
-    guard frac > 0, !segs.isEmpty else { return Path() }
-    let lens = segs.map { segLen($0) }
-    let total = lens.reduce(0, +)
-    guard total > 0 else { return Path() }
-    let target = CGFloat(min(1, max(0, frac))) * total
-    var acc: CGFloat = 0
-    var path = Path()
-    for (i, seg) in segs.enumerated() {
-        let l = lens[i]
-        if i == 0 { path.move(to: tx(seg.from)) }
-        if acc + l <= target {
-            if let c1 = seg.c1, let c2 = seg.c2 {
-                path.addCurve(to: tx(seg.to), control1: tx(c1), control2: tx(c2))
-            } else {
-                path.addLine(to: tx(seg.to))
-            }
-            acc += l
-        } else {
-            let t = l > 0 ? CGFloat((target - acc) / l) : 0
-            if let c1 = seg.c1, let c2 = seg.c2 {
-                let p01  = lerpPt(seg.from, c1, t)
-                let p12  = lerpPt(c1, c2, t)
-                let p012 = lerpPt(p01, p12, t)
-                let end  = cubicPt(t: t, p0: seg.from, p1: c1, p2: c2, p3: seg.to)
-                path.addCurve(to: tx(end), control1: tx(p01), control2: tx(p012))
-            } else {
-                path.addLine(to: tx(lerpPt(seg.from, seg.to, t)))
-            }
-            break
-        }
-    }
-    return path
-}
-
 // MARK: - Circuit Map View
 
 private struct CircuitMapView: View {
@@ -247,7 +212,8 @@ private struct CircuitMapView: View {
         Canvas { ctx, size in
             guard let info = CIRCUIT_DATA[circuitId] else { return }
             let scale = min(size.width / info.vw, size.height / info.vh)
-            let ox = (size.width  - info.vw * scale) / 2
+            // Left-aligned within column (no horizontal centering offset)
+            let ox: CGFloat = 0
             let oy = (size.height - info.vh * scale) / 2
             func tx(_ p: CGPoint) -> CGPoint { CGPoint(x: ox + p.x * scale, y: oy + p.y * scale) }
 
@@ -255,6 +221,7 @@ private struct CircuitMapView: View {
             let sw: CGFloat = 4
             let style = StrokeStyle(lineWidth: sw, lineCap: .round, lineJoin: .round)
 
+            // Build full path
             var fullPath = Path()
             for (i, seg) in segs.enumerated() {
                 if i == 0 { fullPath.move(to: tx(seg.from)) }
@@ -264,15 +231,22 @@ private struct CircuitMapView: View {
                     fullPath.addLine(to: tx(seg.to))
                 }
             }
-            ctx.stroke(fullPath, with: .color(.white.opacity(0.08)), style: style)
 
-            if prog > 0 {
-                let progressPath = buildProgressPath(segs: segs, frac: prog, tx: tx)
-                ctx.stroke(progressPath, with: .color(lineColor), style: style)
+            // Unrun portion of track (white 50%)
+            ctx.stroke(fullPath, with: .color(.white.opacity(0.5)), style: style)
+
+            // Trail from startFrac → endFrac (mirrors running screen: startLen + p·(total - startLen))
+            let startFrac = info.startFrac
+            let p = CGFloat(max(0, min(1, prog)))
+            let endFrac = startFrac + p * (1 - startFrac)
+            if endFrac > startFrac {
+                let trail = fullPath.trimmedPath(from: startFrac, to: endFrac)
+                ctx.stroke(trail, with: .color(lineColor), style: style)
             }
 
-            if showDot && prog > 0 {
-                let dot = tx(ptAtFrac(segs, prog))
+            // Dot at runner's current position (= endFrac)
+            if showDot {
+                let dot = tx(ptAtFrac(segs, Double(endFrac)))
                 ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 8, y: dot.y - 8, width: 16, height: 16)),
                          with: .color(lineColor.opacity(0.5)))
                 ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 4, y: dot.y - 4, width: 8, height: 8)),
@@ -285,31 +259,48 @@ private struct CircuitMapView: View {
 // MARK: - Constants
 
 private let BG_COLOR = Color(hex: "#17171C")
-private let AMBER    = Color(hex: "#FCA311")
 private let GREY     = Color(hex: "#666666")
 
-// MARK: - Bar Ratios
+// Sector palette — mirrors src/constants/colors.ts PALETTE
+private func sectorColor(_ sector: String) -> Color {
+    switch sector {
+    case "yellow": return Color(hex: "#FCB827")
+    case "green":  return Color(hex: "#59B345")
+    case "purple": return Color(hex: "#8528C5")
+    default:       return Color(hex: "#FCB827")
+    }
+}
 
-private let BAR_RATIOS: [CGFloat] = [0.45, 0.65, 0.35, 0.80, 0.55, 0.90, 0.40, 0.70, 0.50, 0.85, 0.60, 0.75, 0.30]
+/// Theme accent: sector color normally, white when in pit.
+/// Mirrors RunningScreen.tsx `isInPitTheme ? PALETTE.white : sectorTheme` pattern.
+private func themeColor(sector: String, inPit: Bool) -> Color {
+    inPit ? Color.white : sectorColor(sector)
+}
+
+// MARK: - Bar Ratios
+// Snapshot of BoxBoxSheet wave animation (BoxBoxSheet.tsx WAVE_BASE_Y_IN_GROUP=54).
+// Matches BAR_HEIGHTS [28,42,34,54,46,36,46,40,32,22,34,42,50] / 54 — 13 bars.
+private let BAR_RATIOS: [CGFloat] = [
+    0.52, 0.78, 0.63, 1.00, 0.85, 0.67, 0.85, 0.74, 0.59, 0.41, 0.63, 0.78, 0.93
+]
 
 // MARK: - Lock Normal View
 
 private struct LockNormalView: View {
     let circuitId: String
     let prog: Double
-    let teamColor: Color
+    let sector: String
     let distKm: Double
     let paceS: Int
     let inPit: Bool
 
     var body: some View {
-        let color = inPit ? GREY : teamColor
-        let trackColor = inPit ? Color.white.opacity(0.25) : teamColor
+        let color = themeColor(sector: sector, inPit: inPit)
         let info = CIRCUIT_DATA[circuitId] ?? CIRCUIT_DATA["spa"]!
 
-        HStack(alignment: .center, spacing: 0) {
+        HStack(alignment: .top, spacing: 0) {
             // 왼쪽: 국기 + 서킷명 + 서킷맵
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 6) {
                     Image(info.flagImageName)
                         .resizable()
@@ -317,52 +308,60 @@ private struct LockNormalView: View {
                         .frame(width: 20, height: 13)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                     Text(info.name)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.custom("Formula1-Display-Bold", size: 15))
                         .foregroundStyle(Color.white)
                         .lineLimit(1)
                 }
+                Color.clear.frame(height: 20)
                 CircuitMapView(
                     circuitId: circuitId,
-                    prog: inPit ? 0 : prog,
-                    lineColor: trackColor,
-                    showDot: !inPit
+                    prog: prog,
+                    lineColor: color,
+                    showDot: true
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.leading, 16)
-            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.leading, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 30)
 
-            // 오른쪽: DISTANCE + PACE
-            VStack(alignment: .leading, spacing: 2) {
+            // 오른쪽: DISTANCE + PACE (PACE 값 하단 고정, 가장 넓은 텍스트 기준 왼쪽 정렬)
+            VStack(alignment: .leading, spacing: 0) {
                 Text("DISTANCE")
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.custom("Formula1-Display-Regular", size: 13))
                     .foregroundStyle(Color.white.opacity(0.4))
                     .tracking(0.3)
+                Color.clear.frame(height: 4)
                 Text(String(format: "%.2f", distKm))
-                    .font(.system(size: 30, weight: .bold).monospacedDigit())
+                    .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
                     .foregroundStyle(color)
                     .lineLimit(1)
-                Spacer(minLength: 8)
+                    .offset(x: -1)
+                Color.clear.frame(height: 16)
+                Spacer(minLength: 0)
                 Text("PACE")
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.custom("Formula1-Display-Regular", size: 13))
                     .foregroundStyle(Color.white.opacity(0.4))
                     .tracking(0.3)
+                Color.clear.frame(height: 4)
                 if inPit {
                     Text("IN PIT")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.custom("Formula1-Display-Bold", size: 28))
                         .foregroundStyle(Color.white)
                         .lineLimit(1)
                 } else {
                     Text(formatPace(paceS))
-                        .font(.system(size: 30, weight: .bold).monospacedDigit())
+                        .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
                         .foregroundStyle(color)
                         .lineLimit(1)
+                        .offset(x: -1)
                 }
             }
-            .frame(width: 110)
-            .padding(.vertical, 14)
-            .padding(.trailing, 16)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.top, 20)
+            .padding(.bottom, 20)
+            .padding(.trailing, 24)
         }
     }
 }
@@ -378,27 +377,27 @@ private struct LockWaveView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(line1)
-                    .font(.system(size: 24, weight: .heavy).italic())
-                    .foregroundStyle(teamColor)
+                    .font(.custom("Formula1-Display-Italic", size: 24))
+                    .foregroundStyle(Color.white)
                     .lineLimit(1)
                 if let l2 = line2 {
                     Text(l2)
-                        .font(.system(size: 24, weight: .heavy).italic())
-                        .foregroundStyle(teamColor)
+                        .font(.custom("Formula1-Display-Italic", size: 24))
+                        .foregroundStyle(Color.white)
                         .lineLimit(1)
                 }
             }
-            .padding(.leading, 18)
-            .padding(.top, 16)
+            .padding(.leading, 24)
+            .padding(.top, 20)
 
-            Spacer(minLength: 12)
+            Color.clear.frame(height: 12)
 
             GeometryReader { geo in
                 let W = geo.size.width
                 let H = geo.size.height
                 let count = BAR_RATIOS.count
                 let barW = W / CGFloat(count)
-                let maxBarH = H * 0.9
+                let maxBarH = H
                 let fadeW = barW * 2
 
                 ZStack(alignment: .bottom) {
@@ -435,6 +434,9 @@ private struct LockWaveView: View {
                     .frame(width: W, height: H)
                 }
             }
+            .frame(minHeight: 60)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
     }
 }
@@ -452,14 +454,14 @@ struct PitRunLiveActivityView: View {
             BG_COLOR
             switch state.pitPhase {
             case "boxbox":
-                LockWaveView(teamColor: teamClr, line1: "BOX BOX", line2: " RECOVERY TIME")
+                LockWaveView(teamColor: teamClr, line1: "\u{201C}BOX BOX", line2: " RECOVERY TIME\u{201D}")
             case "fullPush":
-                LockWaveView(teamColor: teamClr, line1: "FULL PUSH", line2: nil)
+                LockWaveView(teamColor: teamClr, line1: "\u{201C}FULL PUSH\u{201D}", line2: nil)
             case "inPit":
                 LockNormalView(
                     circuitId: context.attributes.circuitId,
                     prog: state.prog,
-                    teamColor: teamClr,
+                    sector: state.sector,
                     distKm: state.distKm,
                     paceS: state.paceS,
                     inPit: true
@@ -468,7 +470,7 @@ struct PitRunLiveActivityView: View {
                 LockNormalView(
                     circuitId: context.attributes.circuitId,
                     prog: state.prog,
-                    teamColor: teamClr,
+                    sector: state.sector,
                     distKm: state.distKm,
                     paceS: state.paceS,
                     inPit: false
@@ -487,61 +489,70 @@ struct PitRunLiveActivity: Widget {
         } dynamicIsland: { context in
             let state   = context.state
             let teamClr = Color(hex: context.attributes.teamColor)
+            let pitMode = state.pitPhase == "inPit"
+            let isPaused = state.isPaused
+            let accentColor = themeColor(sector: state.sector, inPit: pitMode)
+
+            let leftBtn: String
+            let rightBtn: String
+            if pitMode {
+                leftBtn  = isPaused ? "inpit-play" : "inpit-pause"
+                rightBtn = "inpit-stop"
+            } else {
+                leftBtn  = isPaused ? "play-\(state.sector)" : "pause-\(state.sector)"
+                rightBtn = "stop-\(state.sector)"
+            }
 
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 12) {
-                        let isPaused = state.isPaused
-                        let btnName = isPaused ? "pause-yellow" : "pause-yellow"
                         Link(destination: URL(string: isPaused ? "pitrun://resume" : "pitrun://pause")!) {
-                            Image(btnName)
+                            Image(leftBtn)
                                 .resizable()
-                                .frame(width: 52, height: 52)
+                                .frame(width: 48, height: 48)
                         }
                         Link(destination: URL(string: "pitrun://stop")!) {
-                            Image("stop-yellow")
+                            Image(rightBtn)
                                 .resizable()
-                                .frame(width: 52, height: 52)
+                                .frame(width: 48, height: 48)
                         }
                     }
-                    .padding(.leading, 12)
+                    .padding(.leading, 0)
+                    .frame(maxHeight: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     HStack(alignment: .lastTextBaseline, spacing: 2) {
                         Text(String(format: "%.2f", state.distKm))
-                            .font(.system(size: 30, weight: .bold).monospacedDigit())
-                            .foregroundStyle(teamClr)
+                            .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
+                            .foregroundStyle(accentColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         Text("km")
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundStyle(teamClr)
+                            .font(.custom("Formula1-Display-Regular", size: 18))
+                            .foregroundStyle(accentColor)
+                            .lineLimit(1)
                     }
                     .padding(.trailing, 12)
+                    .frame(maxHeight: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     EmptyView()
                 }
             } compactLeading: {
-                HStack(spacing: 5) {
-                    Image("icon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    Text(String(format: "%.2f", state.distKm))
-                        .font(.system(size: 13, weight: .regular).monospacedDigit())
-                        .foregroundStyle(AMBER)
-                }
-                .padding(.leading, 4)
+                Image("race-flag")
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
             } compactTrailing: {
-                EmptyView()
+                Text(String(format: "%.2f", state.distKm))
+                    .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
+                    .foregroundStyle(Color.white)
             } minimal: {
-                Circle()
-                    .fill(teamClr)
-                    .overlay(
-                        Image(systemName: "flag.checkered")
-                            .font(.system(size: 6, weight: .bold))
-                            .foregroundStyle(.white)
-                    )
+                Image("race-flag")
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
             }
         }
     }
@@ -549,6 +560,7 @@ struct PitRunLiveActivity: Widget {
 
 // MARK: - Preview
 
+@available(iOS 18.0, *)
 #Preview("Lock Screen", as: .content, using: PitRunAttributes(
     driverName: "LECLERC", teamColor: "#E8002D", circuitId: "monaco"
 )) {
@@ -560,6 +572,7 @@ struct PitRunLiveActivity: Widget {
     PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
 }
 
+@available(iOS 18.0, *)
 #Preview("DI Compact", as: .dynamicIsland(.compact), using: PitRunAttributes(
     driverName: "LECLERC", teamColor: "#E8002D", circuitId: "shanghai"
 )) {
@@ -568,6 +581,7 @@ struct PitRunLiveActivity: Widget {
     PitRunAttributes.PitRunState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false)
 }
 
+@available(iOS 18.0, *)
 #Preview("DI Expanded", as: .dynamicIsland(.expanded), using: PitRunAttributes(
     driverName: "LECLERC", teamColor: "#1E41FF", circuitId: "silverstone"
 )) {

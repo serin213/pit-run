@@ -1,6 +1,1 @@
-{
-  "platforms": ["ios"],
-  "ios": {
-    "modules": ["PitRunLiveActivityModule"]
-  }
-}
+{"platforms":["apple"],"apple":{"modules":["PitRunLiveActivityModule"]}}

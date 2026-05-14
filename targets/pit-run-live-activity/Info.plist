@@ -7,5 +7,12 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Formula1-Display-Regular.ttf</string>
+		<string>Formula1-Display-Bold.ttf</string>
+		<string>Formula1-Display-Black.ttf</string>
+		<string>Formula1-Display-Italic.ttf</string>
+	</array>
 </dict>
 </plist>
