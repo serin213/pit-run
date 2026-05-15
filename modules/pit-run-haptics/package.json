@@ -1,0 +1,8 @@
+{
+  "name": "pit-run-haptics",
+  "version": "1.0.0",
+  "description": "Core Haptics module for PIT RUN — strong haptics that work in iOS silent mode",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "private": true
+}

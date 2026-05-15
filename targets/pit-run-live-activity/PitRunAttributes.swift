@@ -10,7 +10,7 @@ struct PitRunAttributes: ActivityAttributes {
         var paceS: Int
         var sector: String    // "yellow" | "purple" | "green"
         var tire: String      // "soft" | "medium" | "hard"
-        var pitPhase: String  // "none" | "boxbox" | "inPit" | "fullPush"
+        var pitPhase: String  // "none" | "boxbox" | "inPit" | "fullPush" | "completed"
         var prog: Double      // 0.0 – 1.0, circuit lap progress
         var isPaused: Bool
     }

@@ -31,7 +31,7 @@ interface RunState {
 
   // BOX BOX
   boxBoxActive: boolean;
-  pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush';
+  pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
 
   // GPS
   gpsEnabled: boolean;
@@ -51,7 +51,7 @@ interface RunState {
   triggerBoxBox: () => void;
   closeBoxBox: () => void;
   setBoxBoxActive: (active: boolean) => void;
-  setPitPhase: (phase: 'none' | 'boxbox' | 'inPit' | 'fullPush') => void;
+  setPitPhase: (phase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed') => void;
 }
 
 const INITIAL_STATE = {

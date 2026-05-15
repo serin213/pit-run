@@ -30,7 +30,8 @@
         "NSLocationAlwaysUsageDescription": "화면이 꺼진 상태에서도 러닝 세션을 추적합니다.",
         "NSLocationWhenInUseUsageDescription": "달리는 동안 정확한 거리를 측정합니다.",
         "UIBackgroundModes": [
-          "location"
+          "location",
+          "audio"
         ],
         "NSSupportsLiveActivities": true,
         "NSSupportsLiveActivitiesFrequentUpdates": true
@@ -71,7 +72,8 @@
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

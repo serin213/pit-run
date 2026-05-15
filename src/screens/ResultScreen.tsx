@@ -1,5 +1,6 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { endLiveActivity, getCurrentActivityId } from '../platform/liveActivity';
 import { BlurView } from '../platform/blur';
 import {
   Animated,
@@ -37,6 +38,7 @@ import { selectCommentary } from '../lib/commentary/selectCommentary';
 import { GRADE_COLORS, GRADE_DISPLAY_NAME } from '../constants/grade';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { useSessionHistory } from '../hooks/useSessionHistory';
+import { endAllLiveActivities } from '../platform/liveActivity';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -126,6 +128,12 @@ function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ResultScreen({ navigation, route }: ResultScreenProps) {
+  // Dismiss the lock-screen Live Activity the moment the result is on screen.
+  // useRunning has a 10s fallback in case the user never reaches this screen.
+  React.useEffect(() => {
+    const id = getCurrentActivityId();
+    if (id) endLiveActivity(id).catch(() => {});
+  }, []);
   const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
@@ -158,6 +166,13 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   useEffect(() => {
     if (isHistoryMode) return;
     loadSessions(200).then(() => setSessionsReady(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 결과 화면 진입 시 라이브 액티비티 종료 (자연 완주 + 수동 종료 모두 커버)
+  useEffect(() => {
+    if (isHistoryMode) return;
+    endAllLiveActivities().catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

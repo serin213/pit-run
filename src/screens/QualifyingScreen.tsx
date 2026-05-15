@@ -46,6 +46,8 @@ import {
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
+import { playSound } from '../platform/audio';
+import { successLong } from '../platform/haptics';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -188,6 +190,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const finishOneKm = () => {
+    playSound('qualifyingEnd');
+    successLong();
     const oneKmMs = Math.max(1000, trialElapsedMs);
     const paceSecPerKm = oneKmMs / 1000;
     const gradeAssignment = assignGrade(paceSecPerKm, Date.now());

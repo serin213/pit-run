@@ -459,6 +459,10 @@ struct PitRunLiveActivityView: View {
                 LockWaveView(teamColor: teamClr, line1: "\u{201C}BOX BOX", line2: " RECOVERY TIME\u{201D}")
             case "fullPush":
                 LockWaveView(teamColor: teamClr, line1: "\u{201C}FULL PUSH\u{201D}", line2: nil)
+            case "completed":
+                Link(destination: URL(string: "pitrun://result")!) {
+                    LockWaveView(teamColor: teamClr, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
+                }
             case "inPit":
                 LockNormalView(
                     circuitId: context.attributes.circuitId,

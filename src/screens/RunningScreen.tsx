@@ -28,6 +28,8 @@ import { useAuthStore } from '../store/authStore';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
+import { playSound } from '../platform/audio';
+import { doubleImpact, successLong } from '../platform/haptics';
 
 const FW = 402;
 const FH = 874;
@@ -120,7 +122,22 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   );
   const activeCircuit = SHOW_DEBUG_CIRCUIT_SWITCH ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
-  useRunning();
+  const autoFinishedRef = useRef(false);
+  const handleFinalLap = useCallback(() => {
+    playSound('finalLap');
+    doubleImpact();
+  }, []);
+  const handleAutoFinish = useCallback(() => {
+    if (autoFinishedRef.current) return;
+    autoFinishedRef.current = true;
+    playSound('chequeredFlag');
+    successLong();
+    setPitPhase('completed');
+    setBoxBoxActive(true);
+    stopRun();
+    navigation.replace('Result');
+  }, [navigation, setPitPhase, setBoxBoxActive, stopRun]);
+  useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
   useGPS(true);
 
   useEffect(() => {
@@ -234,7 +251,11 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       pitTimerRef.current = null;
     }
 
+    let hapticTimer: ReturnType<typeof setTimeout> | null = null;
+
     if (pitPhase === 'boxbox') {
+      playSound('boxbox');
+      hapticTimer = setTimeout(() => doubleImpact(), 400);
       pitTimerRef.current = setTimeout(() => {
         closeBoxBox();
         setPitPhase('inPit');
@@ -245,6 +266,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         setBoxBoxActive(true);
       }, IN_PIT_DURATION_MS);
     } else if (pitPhase === 'fullPush') {
+      playSound('fullPush');
+      hapticTimer = setTimeout(() => doubleImpact(), 400);
       pitTimerRef.current = setTimeout(() => {
         closeBoxBox();
         setPitPhase('none');
@@ -256,6 +279,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         clearTimeout(pitTimerRef.current);
         pitTimerRef.current = null;
       }
+      if (hapticTimer) clearTimeout(hapticTimer);
     };
   }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase]);
 
