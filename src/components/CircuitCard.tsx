@@ -4,7 +4,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from
 import type { CircuitDefinition } from '../config/circuits';
 import { CARD_FILL } from './GradientCardBorder';
 import { radius } from '../constants/radius';
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 
 export type CircuitTagType = 'Sprint' | 'Mixed' | 'Tempo';
 
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   distance: {
     position: 'absolute',
     fontFamily: 'Formula1-Regular',
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.34,
     includeFontPadding: false,
     zIndex: 1,

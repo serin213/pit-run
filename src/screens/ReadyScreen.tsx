@@ -1,11 +1,11 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 
 import type { CircuitDefinition } from '../config/circuits';
 import SvgButton from '../components/SvgButton';
 import GradientCtaButton from '../components/GradientCtaButton';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
 import GradientCardBorder from '../components/GradientCardBorder';
 import type { UserProfile, QualifyingResult } from '../types';
 import { GRADE_DISPLAY_NAME } from '../constants/grade';
@@ -33,7 +33,7 @@ export default function ReadyScreen({
   const { width: windowW } = useWindowDimensions();
   const hPad = 28;
   const cardContentW = windowW - hPad * 2 - 14 * 2;
-  const ctaContainerH = 164;
+  const ctaContainerH = CTA_AREA_HEIGHT;
   const ctaHeight = 54;
 
   return (
@@ -96,22 +96,7 @@ export default function ReadyScreen({
       </GradientCardBorder>
 
       {/* Bottom CTA area — absolute overlay with fade gradient */}
-      <View style={[styles.ctaContainer, { height: ctaContainerH }]} pointerEvents="box-none">
-        <Svg
-          width={windowW}
-          height={ctaContainerH}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLinearGradient id="readyFade" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={windowW} height={ctaContainerH} fill="url(#readyFade)" />
-        </Svg>
+      <CtaFadeBackground height={ctaContainerH}>
         <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
             height={ctaHeight}
@@ -120,7 +105,7 @@ export default function ReadyScreen({
             onPress={onStart}
           />
         </View>
-      </View>
+      </CtaFadeBackground>
     </View>
   );
 }
@@ -128,7 +113,7 @@ export default function ReadyScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
     justifyContent: 'center',
     gap: 18,
   },
@@ -178,12 +163,6 @@ const styles = StyleSheet.create({
   },
   circuitOptionPress: {
     height: OPTION_H,
-  },
-  ctaContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   ctaBtnWrap: {
     position: 'absolute',

@@ -1,6 +1,7 @@
-import { PALETTE } from '../constants/colors';
-import React, { useId, useMemo } from 'react';
-import { BlurView } from '../platform/blur';
+import { COLORS, PALETTE } from '../constants/colors';
+import React, { useMemo } from 'react';
+import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
+import TopSafeSpacer from '../components/TopSafeSpacer';
 import {
   ScrollView,
   StyleSheet,
@@ -8,13 +9,13 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
 import BackButton from '../components/BackButton';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
 import GradientCtaButton from '../components/GradientCtaButton';
-import { CARD_FILL } from '../components/GradientCardBorder';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
+import GradientCardBorder from '../components/GradientCardBorder';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import type { TireType } from '../constants/colors';
@@ -22,7 +23,7 @@ import type { NextRaceScreenProps } from '../navigation/types';
 import { radius } from '../constants/radius';
 
 const H_PAD = 20;
-const CTA_AREA_H = 164;
+const CTA_AREA_H = CTA_AREA_HEIGHT;
 /** 스페이서로 safeTop 처리 후 — 퀄리파잉 인트로 타이틀과 동일하게 safeTop+63 */
 const TITLE_TOP_PADDING = 63;
 
@@ -39,9 +40,6 @@ const TIRE_COPY: Record<TireType, string> = {
 export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
-
-  const rawId = useId();
-  const gradId = rawId.replace(/[^a-zA-Z0-9]/g, '_');
 
   const selectedCircuitId = useAppStore((s) => s.selectedCircuitId);
   const selectedTire = useAppStore((s) => s.selectedTire);
@@ -80,7 +78,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
 
   return (
     <View style={styles.root}>
-      <View style={{ height: safeTop, backgroundColor: '#17171C' }} />
+      <TopSafeSpacer safeTop={safeTop} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -97,69 +95,42 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
         </Text>
 
         {/* ── 서킷 카드 (홈과 동일 구조, 버튼 제외) ── */}
-        <View style={{ width: cardW, height: cardH, ...radius.lg, marginTop: 36 }}>
-          <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Defs>
-              <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-              </SvgLinearGradient>
-            </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
-          </Svg>
-          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: radius.lg.borderRadius - 0.5, borderCurve: radius.lg.borderCurve, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+        <GradientCardBorder
+          style={{ width: cardW, height: cardH, marginTop: 36 }}
+          borderRadius={radius.lg.borderRadius}
+        >
+          <Text style={styles.circuitName} numberOfLines={1} allowFontScaling={false}>
+            {circuit.displayName.toUpperCase()}
+          </Text>
 
-            <Text style={styles.circuitName} numberOfLines={1} allowFontScaling={false}>
-              {circuit.displayName.toUpperCase()}
-            </Text>
+          <Text style={[styles.statLabel, { top: 88 }]} allowFontScaling={false}>DISTANCE</Text>
+          <Text style={[styles.statValue, { top: 110 }]} allowFontScaling={false}>
+            {circuit.distanceKm.toFixed(1)}km
+          </Text>
 
-            <Text style={[styles.statLabel, { top: 88 }]} allowFontScaling={false}>DISTANCE</Text>
-            <Text style={[styles.statValue, { top: 110 }]} allowFontScaling={false}>
-              {circuit.distanceKm.toFixed(1)}km
-            </Text>
+          <Text style={[styles.statLabel, { top: 154 }]} allowFontScaling={false}>RACE TIME</Text>
+          <Text style={[styles.statValue, { top: 176 }]} allowFontScaling={false}>
+            {raceTimeStr}
+          </Text>
 
-            <Text style={[styles.statLabel, { top: 154 }]} allowFontScaling={false}>RACE TIME</Text>
-            <Text style={[styles.statValue, { top: 176 }]} allowFontScaling={false}>
-              {raceTimeStr}
-            </Text>
+          <Text style={[styles.statLabel, { top: 220 }]} allowFontScaling={false}>TYRE</Text>
 
-            <Text style={[styles.statLabel, { top: 220 }]} allowFontScaling={false}>TYRE</Text>
-
-            <View style={{ position: 'absolute', left: 26, top: 246 }}>
-              <TireIcon type={selectedTire} />
-            </View>
-
-            <View style={{ position: 'absolute', left: circuitSvgLeft, top: CIRCUIT_TOP_IN_CARD, width: circuitW, height: circuitH }}>
-              <CircuitMini
-                trackPath={circuit.trackPath}
-                viewBox={circuitVB}
-                width={circuitW}
-                height={circuitH}
-              />
-            </View>
-
+          <View style={{ position: 'absolute', left: 26, top: 246 }}>
+            <TireIcon type={selectedTire} />
           </View>
-        </View>
+
+          <View style={{ position: 'absolute', left: circuitSvgLeft, top: CIRCUIT_TOP_IN_CARD, width: circuitW, height: circuitH }}>
+            <CircuitMini
+              trackPath={circuit.trackPath}
+              viewBox={circuitVB}
+              width={circuitW}
+              height={circuitH}
+            />
+          </View>
+        </GradientCardBorder>
       </ScrollView>
 
-      <View style={[styles.ctaContainer, { height: CTA_AREA_H }]} pointerEvents="box-none">
-        <Svg
-          width={windowW}
-          height={CTA_AREA_H}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLinearGradient id="nextRaceFade" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={windowW} height={CTA_AREA_H} fill="url(#nextRaceFade)" />
-        </Svg>
+      <CtaFadeBackground height={CTA_AREA_H}>
         <View style={[styles.ctaRowWrap, { left: H_PAD, right: H_PAD, bottom: 40 }]}>
           <GradientCtaButton
             variant="dual"
@@ -168,10 +139,10 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
             onPressRight={() => navigation.navigate('Countdown')}
           />
         </View>
-      </View>
+      </CtaFadeBackground>
 
       <BackButton onPress={() => navigation.navigate('Home')} />
-      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
+      <TopSafeBlurOverlay safeTop={safeTop} />
     </View>
   );
 }
@@ -179,7 +150,7 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,
@@ -237,12 +208,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: PALETTE.white,
     includeFontPadding: false,
-  },
-  ctaContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   ctaRowWrap: {
     position: 'absolute',

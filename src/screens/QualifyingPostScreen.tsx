@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -49,7 +49,7 @@ type CtaTheme = { gradientStart: string; gradientEnd: string; textColor: string 
 
 const CTA_THEME: Record<QualifyingGrade, CtaTheme> = {
   f3:          { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: PALETTE.white },
-  f2:          { gradientStart: GRADE_COLORS.f2,          gradientEnd: '#FFBE35', textColor: '#17171C' },
+  f2:          { gradientStart: GRADE_COLORS.f2,          gradientEnd: '#FFBE35', textColor: COLORS.bg },
   f1_rookie:   { gradientStart: GRADE_COLORS.f1_rookie,   gradientEnd: '#50C736', textColor: PALETTE.white },
   f1:          { gradientStart: GRADE_COLORS.f1,          gradientEnd: '#8C29CF', textColor: PALETTE.white },
   f1_champion: { gradientStart: GRADE_COLORS.f1_champion, gradientEnd: '#FF4D51', textColor: PALETTE.white },
@@ -184,7 +184,7 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
 
       {/* 하단 그라데이션 — globe 하단 페이드 + CTA 배경 */}
       <LinearGradient
-        colors={['transparent', '#17171C']}
+        colors={['transparent', COLORS.bg]}
         style={[styles.bottomGradient, { width: windowW, height: windowH * 0.45, bottom: 0 }]}
         pointerEvents="none"
       />
@@ -242,7 +242,7 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   lottieWrap: {
     alignItems: 'center',
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   devBtnText: {
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     includeFontPadding: false,
   },
   devBtnTextActive: {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     letterSpacing: -0.26,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     includeFontPadding: false,
   },
   statValue: {

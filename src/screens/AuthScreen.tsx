@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
@@ -147,7 +147,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
               onPress={() => handleSignIn('apple')}
               disabled={loading}
             >
-              <AppleLogoSvg height={27} color="#17171C" />
+              <AppleLogoSvg height={27} color={COLORS.bg} />
               <View style={styles.iconGap} />
               <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
                 Start with Apple
@@ -216,7 +216,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
     justifyContent: 'flex-end',
   },
   bottomBlock: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,       // 20 × 1.3
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   darkText: {
-    color: '#17171C',
+    color: COLORS.bg,
   },
   lightText: {
     color: PALETTE.white,

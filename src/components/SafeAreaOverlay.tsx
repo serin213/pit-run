@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   dynamicIsland: {
     position: 'absolute',

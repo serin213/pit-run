@@ -46,6 +46,7 @@ import { COLORS, PALETTE} from '../constants/colors';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
 import GradientCardBorder from '../components/GradientCardBorder';
+import { radius } from '../constants/radius';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import { MonthGrid, calcColX, toISO, getMonthRowCount, getMonthGridHeight, MONTH_GRID_HEIGHT_5 } from '../components/MonthCalendar';
 
@@ -82,7 +83,7 @@ const RACER_CARD_W = Math.round(RACER_CARD_H * (393 / 204)); // 50px
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const FIGMA_STATUS = 59;
-const SIDE_PAD = 24;
+const SIDE_PAD = 20;
 const PACE_AXIS_PAD_MIN_SEC = 2;
 const PACE_AXIS_PAD_RATIO = 0.1;
 const PACE_AXIS_MIN_SPAN_SEC = 22;
@@ -481,7 +482,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.bg, opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
       <BlurView
         intensity={60}
         tint="dark"
@@ -497,12 +498,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 1. 등급 트로피 ── */}
         <Image
           source={trophySource}
-          style={[styles.trophy, { marginTop: safeTop + 64, marginLeft: 22 }]}
+          style={[styles.trophy, { marginTop: safeTop + 64, marginLeft: 26 }]}
           resizeMode="contain"
         />
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[styles.statsRow, { marginTop: 32, marginLeft: 20 }]}>
+        <View style={[styles.statsRow, { marginTop: 32, marginLeft: 24 }]}>
           {/* TOTAL */}
           <View style={styles.statGroup}>
             <Text style={styles.statLabel}>TOTAL</Text>
@@ -525,7 +526,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         {/* ── 4. 퀄리파잉 트렌드 (3개 이상일 때만) ── */}
         {showTrend && (
           <>
-            <Text style={[styles.sectionTitle, { marginTop: 52, marginLeft: 20 }]}>
+            <Text style={[styles.sectionTitle, { marginTop: 52, marginLeft: 24 }]}>
               Qualifying Trend
             </Text>
 
@@ -601,12 +602,12 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                       </SvgLG>
                       {/* 좌우 fade: 배경색으로 curve/그라데이션 가장자리를 자연스럽게 소멸 */}
                       <SvgLG id={`${gradPrefix}_fadeL`} x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-                        <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
+                        <Stop offset="0%" stopColor={COLORS.bg} stopOpacity="1" />
+                        <Stop offset="100%" stopColor={COLORS.bg} stopOpacity="0" />
                       </SvgLG>
                       <SvgLG id={`${gradPrefix}_fadeR`} x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0%" stopColor="#17171C" stopOpacity="0" />
-                        <Stop offset="100%" stopColor="#17171C" stopOpacity="1" />
+                        <Stop offset="0%" stopColor={COLORS.bg} stopOpacity="0" />
+                        <Stop offset="100%" stopColor={COLORS.bg} stopOpacity="1" />
                       </SvgLG>
                     </Defs>
                     {/* Area fill */}
@@ -644,7 +645,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     {/* Selected dot — 22×22, inside stroke 4px #17171C */}
                     <Circle
                       cx={selDotX} cy={selDotY}
-                      r={9} fill={PALETTE.red} stroke="#17171C" strokeWidth={4}
+                      r={9} fill={PALETTE.red} stroke={COLORS.bg} strokeWidth={4}
                     />
                     {/* 좌우 fade 오버레이: curve 시작/끝 20px을 배경색으로 소멸 */}
                     <Rect x={20} y={0} width={20} height={barH} fill={`url(#${gradPrefix}_fadeL)`} />
@@ -745,7 +746,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         </Animated.View>
 
         {/* ── 8. History 섹션 타이틀 ── */}
-        <Text style={[styles.sectionTitle, { marginTop: 48, marginLeft: SIDE_PAD }]}>History</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 48, marginLeft: 24 }]}>History</Text>
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>
@@ -756,7 +757,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   key={row.sortKey}
                   style={styles.gpCardOuter}
                   innerStyle={styles.gpCardInner}
-                  borderRadius={16}
+                  borderRadius={radius.sm.borderRadius}
                   onPress={() => navigation.navigate('PracticeResult', { distanceKm: row.distKm, fromHistory: true })}
                 >
                   <View style={styles.gpTextCol}>
@@ -783,7 +784,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                   key={row.sortKey}
                   style={styles.gpCardOuter}
                   innerStyle={styles.gpCardInner}
-                  borderRadius={16}
+                  borderRadius={radius.sm.borderRadius}
                   onPress={() => navigation.navigate('Result', { history: historyData })}
                 >
                   <View style={styles.gpTextCol}>
@@ -804,7 +805,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 key={row.sortKey}
                 style={styles.gpCardOuter}
                 innerStyle={styles.gpCardInner}
-                borderRadius={16}
+                borderRadius={radius.sm.borderRadius}
                 onPress={() => navigation.navigate('QualifyingPost', { history: { grade: row.grade, paceSec: row.paceSec } })}
               >
                 <View style={styles.gpTextCol}>
@@ -984,7 +985,7 @@ const styles = StyleSheet.create({
 
   // ── GP 카드 ──
   gpCardOuter: {
-    borderRadius: 16,
+    ...radius.sm,
   },
   gpCardInner: {
     flexDirection: 'row',

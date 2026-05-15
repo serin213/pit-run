@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -98,7 +98,7 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   timerGroup: {
     position: 'absolute',

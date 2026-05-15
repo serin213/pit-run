@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius } from '../constants/radius';
 import { PALETTE } from '../constants/colors';
+import { CARD_FILL } from './GradientCardBorder';
 
 interface Props {
   visible: boolean;
@@ -120,7 +121,7 @@ export default function BoxBoxSheet({
       </Animated.View>
       <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
       <BlurView intensity={10} tint="dark" style={[styles.sheet, { height: sheetHeight }]}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(32,32,40,0.35)' }}>
+        <View style={{ flex: 1, backgroundColor: CARD_FILL }}>
           <Text style={[styles.driver, { color: teamColor, top: isFullPush ? 25 : SHEET_TOP_TO_DRIVER }]}>
             {driverName}
           </Text>

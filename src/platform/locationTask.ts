@@ -10,6 +10,7 @@
 
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { COLORS } from '../constants/colors';
 import { getString, setString, remove } from './storage';
 
 export const BACKGROUND_LOCATION_TASK = 'pit-run-background-location';
@@ -56,7 +57,7 @@ export async function startBackgroundLocationTask(): Promise<void> {
     foregroundService: {
       notificationTitle: 'Pit Run',
       notificationBody: '러닝 세션이 진행 중입니다',
-      notificationColor: '#17171C',
+      notificationColor: COLORS.bg,
     },
     pausesUpdatesAutomatically: false,
     showsBackgroundLocationIndicator: true,

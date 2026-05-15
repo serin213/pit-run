@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
 import {
@@ -17,6 +17,7 @@ import RollingPNumber from '../components/result/RollingPNumber';
 import BarItem from '../components/result/BarItem';
 import { hexToRgb, bottomRoundedRect, makeLinePaths } from '../lib/utils/svgPath';
 import GradientCtaButton from '../components/GradientCtaButton';
+import { CARD_FILL } from '../components/GradientCardBorder';
 import ResultSharePage from './ResultSharePage';
 import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
@@ -828,8 +829,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
         >
           <Defs>
             <LinearGradient id="ctaFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%"  stopColor="#17171C" stopOpacity="0" />
-              <Stop offset="35%" stopColor="#17171C" stopOpacity="1" />
+              <Stop offset="0%"  stopColor={COLORS.bg} stopOpacity="0" />
+              <Stop offset="35%" stopColor={COLORS.bg} stopOpacity="1" />
             </LinearGradient>
           </Defs>
           <Path
@@ -841,7 +842,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
           <GradientCtaButton
             height={58}
             label={isHistoryMode ? 'Confirm' : 'To the GRID'}
-            textColor={topTheme.line === PALETTE.yellow ? '#17171C' : PALETTE.white}
+            textColor={topTheme.line === PALETTE.yellow ? COLORS.bg : PALETTE.white}
             enabled
             onPress={isHistoryMode ? handleConfirm : openSheet}
             gradientStart={topTheme.line}
@@ -867,7 +868,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
             ]}
           >
             <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: CARD_FILL }]} />
             <Text style={styles.sheetTitle}>How was it?</Text>
 
             <View style={styles.emojiTrackWrap}>
@@ -933,7 +934,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   contentArea: {
     flex: 1,
@@ -969,7 +970,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
     letterSpacing: 24 * -0.01, // -1%
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     paddingRight: 20,
   },
   circuitWrap: {
@@ -1015,7 +1016,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.26,
   },
 
@@ -1191,13 +1192,13 @@ const styles = StyleSheet.create({
   emojiLabelEdge: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.13,
   },
   emojiLabelCenter: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.13,
   },
 });

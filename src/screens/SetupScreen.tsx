@@ -1,9 +1,9 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BlurView } from '../platform/blur';
+import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
+import TopSafeSpacer from '../components/TopSafeSpacer';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
-import { useSafeBottom } from '../hooks/useSafeBottom';
 import {
   Animated,
   Easing,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
 import CircuitCard from '../components/CircuitCard';
 import TireIcon from '../components/TireIcon';
 import BackButton from '../components/BackButton';
@@ -44,7 +45,7 @@ const TITLE_TO_TIRE_GAP = 32;
 // Gap between tire section and circuit section (from Figma: y:256 - y:204 = 52)
 const TIRE_TO_CIRCUIT_GAP = 24;
 
-const CTA_CONTAINER_H = 164; // fade + START (treadmill row spec’d out for v1)
+const CTA_CONTAINER_H = CTA_AREA_HEIGHT; // fade + START (treadmill row spec’d out for v1)
 
 const TIRES: Array<{
   type: TireType;
@@ -71,7 +72,6 @@ function featuredTrackSize(cfg: CircuitCardConfig) {
 export default function SetupScreen({ navigation }: SetupScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
-  const safeBottom = useSafeBottom();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
   const {
@@ -320,7 +320,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
   return (
     <View style={styles.root}>
       {/* Status bar blocker — height matches SafeAreaOverlay's statusH */}
-      <View style={{ height: safeTop, backgroundColor: '#17171C' }} />
+      <TopSafeSpacer safeTop={safeTop} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -403,7 +403,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
               <Pressable style={styles.seeAllBtn} onPress={() => navigation.navigate('AllCircuits', { currentCircuitId: selectedCircuitId })}>
                 <Text style={styles.seeAllText} allowFontScaling={false}>see all</Text>
                 <Svg width={6} height={10} viewBox="0 0 6 10">
-                  <Path d="M1 1L5 5L1 9" stroke="rgba(255,255,255,0.5)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <Path d="M1 1L5 5L1 9" stroke={COLORS.text.secondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </Svg>
               </Pressable>
             </View>
@@ -443,22 +443,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
 
       {/* Bottom CTA — shown after tire selection */}
       {selectedTire !== null && (
-        <View style={[styles.ctaContainer, { height: CTA_CONTAINER_H }]} pointerEvents="box-none">
-          <Svg
-            width={windowW}
-            height={CTA_CONTAINER_H}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          >
-            <Defs>
-              <LinearGradient id="setupFade" x1="0" y1="1" x2="0" y2="0">
-                <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-                <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-                <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-              </LinearGradient>
-            </Defs>
-            <Rect x={0} y={0} width={windowW} height={CTA_CONTAINER_H} fill="url(#setupFade)" />
-          </Svg>
+        <CtaFadeBackground height={CTA_CONTAINER_H}>
           <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
             <GradientCtaButton
               width={windowW - H_PAD * 2}
@@ -495,13 +480,11 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
               textButtonType="none"
             />
           </View>
-        </View>
+        </CtaFadeBackground>
       )}
       {/* BackButton rendered last so it appears above scroll content and CTA */}
       <BackButton onPress={() => navigation.goBack()} />
-      {/* Safe-area blockers: inside the native screen view → reliably cover scroll content */}
-      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
-      <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: safeBottom, backgroundColor: '#17171C', zIndex: 1000 }} />
+      <TopSafeBlurOverlay safeTop={safeTop} />
     </View>
   );
 }
@@ -509,7 +492,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,
@@ -570,7 +553,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20.4,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.34,
     includeFontPadding: false,
   },
@@ -583,7 +566,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 22.1,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     letterSpacing: -0.34,
     includeFontPadding: false,
   },

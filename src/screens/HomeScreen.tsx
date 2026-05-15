@@ -2,7 +2,7 @@
  * HomeScreen v4
  */
 
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useSharedValue, withTiming, useAnimatedStyle, Easing as ReanimatedEasing } from 'react-native-reanimated';
 import Reanimated from 'react-native-reanimated';
@@ -592,22 +592,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             top: py(262),
             width: cardW,
             height: cardH,
-            ...radius.lg,
             transform: [{ translateY: cardTransY }],
           }}
         >
-          <Svg key={svgKey} width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Defs>
-              <SvgLG id={`hcbg_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={cardH}>
-                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-              </SvgLG>
-            </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={cardH - 0.5} rx={radius.lg.borderRadius - 0.25} ry={radius.lg.borderRadius - 0.25} fill="none" stroke={`url(#hcbg_${idBase}_${svgKey})`} strokeWidth={0.5} />
-          </Svg>
-          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: radius.lg.borderRadius - 0.5, borderCurve: radius.lg.borderCurve, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+          <GradientCardBorder style={{ flex: 1 }} borderRadius={radius.lg.borderRadius}>
           <Text style={styles.circuitName} numberOfLines={1}>
             {circuit.displayName.toUpperCase()}
           </Text>
@@ -642,7 +630,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
             onPress={() => navigation.navigate('Countdown')}
           />
-          </View>
+          </GradientCardBorder>
         </Animated.View>
       )}
 
@@ -667,22 +655,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               top: py(262),
               width: cardW,
               height: renewalCardH,
-              borderRadius: 16,
               transform: [{ translateY: cardTransY }],
             }}
           >
-            <Svg key={`rq-${svgKey}`} width={cardW} height={renewalCardH} style={StyleSheet.absoluteFill} pointerEvents="none">
-              <Defs>
-                <SvgLG id={`hcbgrq_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={renewalCardH}>
-                  <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-                  <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                  <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-                </SvgLG>
-              </Defs>
-              <Rect x={0.25} y={0.25} width={cardW - 0.5} height={renewalCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgrq_${idBase}_${svgKey})`} strokeWidth={0.5} />
-            </Svg>
-            <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+            <GradientCardBorder style={{ flex: 1 }} borderRadius={radius.sm.borderRadius}>
 
               {/* 제목 */}
               <Text style={styles.circuitName}>Qualifying</Text>
@@ -741,7 +717,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 posStyle={{ position: 'absolute', left: 20, top: rqStartTop, width: startBtnW, height: 44 }}
                 onPress={() => navigation.navigate('Qualifying', { skipIntro: true })}
               />
-            </View>
+            </GradientCardBorder>
           </Animated.View>
         );
       })()}
@@ -755,22 +731,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             top: py(262),
             width: cardW,
             height: qCardH,
-            borderRadius: 16,
             transform: [{ translateY: cardTransY }],
           }}
         >
-          <Svg key={`q-${svgKey}`} width={cardW} height={qCardH} style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Defs>
-              <SvgLG id={`hcbgq_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={qCardH}>
-                <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-                <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-              </SvgLG>
-            </Defs>
-            <Rect x={0.25} y={0.25} width={cardW - 0.5} height={qCardH - 0.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#hcbgq_${idBase}_${svgKey})`} strokeWidth={0.5} />
-          </Svg>
-          <View style={{ position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5, borderRadius: 15.5, backgroundColor: CARD_FILL, overflow: 'hidden' }}>
+          <GradientCardBorder style={{ flex: 1 }} borderRadius={radius.sm.borderRadius}>
             <Text style={styles.circuitName} numberOfLines={1}>Qualifying</Text>
 
             <Text style={[styles.qSubtitle, { left: 24, top: qSubtitleTop, width: cardW - 48 }]}>
@@ -787,7 +751,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               posStyle={{ position: 'absolute', left: 20, top: qCtaTop, width: startBtnW, height: 44 }}
               onPress={() => navigation.navigate('Qualifying', { skipIntro: true })}
             />
-          </View>
+          </GradientCardBorder>
         </Animated.View>
       )}
 
@@ -845,7 +809,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         <Animated.View
           style={{
             ...StyleSheet.absoluteFillObject,
-            backgroundColor: '#17171C',
+            backgroundColor: COLORS.bg,
             opacity: scrollY.interpolate({ inputRange: [0, 20], outputRange: [1, 0], extrapolate: 'clamp' }),
           }}
         />
