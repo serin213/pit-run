@@ -388,7 +388,9 @@ private struct LockWaveView: View {
                 }
             }
             .padding(.leading, 24)
-            .padding(.top, 20)
+            // 24pt Italic 텍스트의 cap height가 더 크므로 .padding(.top, 20) 시 LockNormalView(15pt+image)
+            // 보다 시각적으로 좁아 보임 → 6pt 추가 보정
+            .padding(.top, 26)
 
             Color.clear.frame(height: 12)
 
@@ -543,7 +545,7 @@ struct PitRunLiveActivity: Widget {
                     .renderingMode(.original)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 16, height: 16)
+                    .frame(width: 24, height: 24)
             } compactTrailing: {
                 Text(String(format: "%.2f", state.distKm))
                     .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
