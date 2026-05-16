@@ -31,6 +31,7 @@ export function useRunning(options: UseRunningOptions = {}) {
   const lastLAUpdateRef = useRef<number>(0);
   const finalLapFiredRef = useRef(false);
   const finishFiredRef = useRef(false);
+  const boxBoxTriggerCountRef = useRef(0);
   const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Always-fresh callback refs so the RAF closure picks up the latest handlers.
@@ -112,6 +113,7 @@ export function useRunning(options: UseRunningOptions = {}) {
 
     finalLapFiredRef.current = false;
     finishFiredRef.current = false;
+    boxBoxTriggerCountRef.current = 0;
 
     const loop = (ts: number) => {
       if (!isPaused && lastTsRef.current !== null) {
@@ -153,9 +155,21 @@ export function useRunning(options: UseRunningOptions = {}) {
     const { distKm, tire, boxBoxActive, pitPhase: phase, triggerBoxBox } =
       useRunStore.getState();
     if (boxBoxActive || phase !== 'none') return;
-    const threshold = TIRES[tire].boxBoxDistKm;
-    if (distKm > 0 && distKm % threshold < 0.005) {
+
+    const activePlan = useAppStore.getState().activePlan;
+
+    // activePlan이 있으면 인터벌 기반, 없으면 타이어 기반 fallback (Practice 등)
+    const intervalKm = activePlan
+      ? activePlan.intervals.distanceM / 1000
+      : TIRES[tire].boxBoxDistKm;
+    const maxReps = activePlan ? activePlan.intervals.reps : Infinity;
+
+    // 이미 모든 인터벌을 소화한 경우 더 이상 트리거 안 함 (cool-down)
+    if (boxBoxTriggerCountRef.current >= maxReps) return;
+
+    if (distKm > 0 && distKm % intervalKm < 0.005) {
       triggerBoxBox();
+      boxBoxTriggerCountRef.current += 1;
     }
   }
 
