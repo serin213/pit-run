@@ -27,6 +27,7 @@ import { signOut } from '../platform/auth';
 import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
 import FeedbackToast from '../components/FeedbackToast';
 import type { ProfileScreenProps } from '../navigation/types';
+import { calcQualifyingRank } from '../lib/ranking/calcRank';
 
 const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
@@ -159,6 +160,15 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
     ? (TROPHY_IMAGES[qualifyingResult.grade] ?? TROPHY_IMAGES.f3)
     : TROPHY_IMAGES.f3;
 
+  const globalRankLabel = qualifyingResult
+    ? calcQualifyingRank({
+        userQualifyingPaceSec: qualifyingResult.paceSecPerKm,
+        userGrade: qualifyingResult.grade,
+        totalAppUserCount: 0,
+        userRankInGlobalPool: null,
+      }).globalRank.displayLabel
+    : null;
+
   const handleSignOut = () => {
     signOut().then(() => {
       navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
@@ -190,6 +200,9 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
               <Text style={styles.racerName}>{profile.displayName}</Text>
+              {globalRankLabel && (
+                <Text style={styles.racerRank}>{globalRankLabel}</Text>
+              )}
             </View>
           </View>
 
@@ -291,6 +304,15 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 4,
+  },
+  racerRank: {
+    fontFamily: 'Formula1-Regular',
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: -0.02 * 13,
+    color: PALETTE.white,
+    opacity: 0.6,
+    marginTop: 2,
   },
   listRow: {
     height: 24,

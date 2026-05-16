@@ -24,6 +24,8 @@ import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
+import { calcRaceRank } from '../lib/ranking/calcRank';
+import type { Tire as RankTire } from '../lib/ranking/types';
 import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
@@ -156,6 +158,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     setCurrentRaceEventId,
     setSelectedCircuitId,
     activityDates,
+    activePlan,
   } = useAppStore();
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
@@ -194,6 +197,29 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // ─── Commentary ───────────────────────────────────────────────────────────
   // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
   const completedAtRef = useRef(Date.now());
+
+  // 베타 phase 1: 글로벌은 외부 분포로, 등급별은 유저 10명 미만이면 자동 UNRANKED.
+  const raceRank = (() => {
+    if (isHistoryMode || !qualifyingResult || !selectedTire || totalPaceS <= 0) return null;
+    // wet은 buildProgram/calcRaceRank 미지원이라 보수적으로 medium 매핑
+    const tireForRank: RankTire =
+      selectedTire === 'wet' ? 'medium' : (selectedTire as RankTire);
+    const plannedReps = activePlan?.intervals.reps ?? 0;
+    if (plannedReps <= 0) return null;
+    return calcRaceRank({
+      userHardAveragePaceSec: totalPaceS,
+      userGrade: qualifyingResult.grade,
+      circuitId: circuit.id,
+      tire: tireForRank,
+      completedAt: completedAtRef.current,
+      completedReps: plannedReps,  // Result 도달 = 완주로 간주
+      plannedReps,
+      poolTotalCount: 0,
+      poolGradeCount: 0,
+      userRankInPool: null,
+      userRankInGradePool: 1,
+    });
+  })();
 
   // 다음 등급 정보 (동기 계산)
   const { nextGradeName, nextGradePaceSec } = useMemo(() => {
@@ -587,7 +613,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                 <View style={styles.rankRow}>
                   <Text style={[styles.rankText, { color: topTheme.text }]}>P</Text>
                   <View style={{ width: 8 }} />
-                  <RollingPNumber target={12} color={topTheme.text} />
+                  <RollingPNumber target={raceRank?.gradeRank.pNumber ?? null} color={topTheme.text} />
                   {checkerFlagImage && (
                     <>
                       <View style={{ width: 12 }} />

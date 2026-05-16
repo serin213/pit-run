@@ -13,6 +13,7 @@ import { LinearGradient } from '../platform/gradient';
 import LottieView, { type AnimationObject } from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
+import { calcQualifyingRank } from '../lib/ranking/calcRank';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
 import { formatPace } from '../core/pace';
@@ -142,6 +143,19 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
       ? formatPace(qualifyingResult.paceSecPerKm)
       : `—'——"`;
 
+  const paceSecForRank = historyData
+    ? historyData.paceSec
+    : qualifyingResult?.paceSecPerKm ?? null;
+
+  const globalRankLabel = paceSecForRank
+    ? calcQualifyingRank({
+        userQualifyingPaceSec: paceSecForRank,
+        userGrade: grade,
+        totalAppUserCount: 0,
+        userRankInGlobalPool: null,
+      }).globalRank.displayLabel
+    : '—%';
+
   return (
     <View style={styles.root}>
       {/* [DEV] 등급 전환 버튼 */}
@@ -201,7 +215,7 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
       {/* 성적 — 애니메이션 종료 후 fade in */}
       <Animated.View style={[styles.statsWrap, { marginTop: gradeImg.statsMarginTop, opacity: statsOpacity }]}>
         <Text style={styles.statLabel}>GLOBAL RANK</Text>
-        <Text style={[styles.statValue, { marginTop: 8 }]}>—%</Text>
+        <Text style={[styles.statValue, { marginTop: 8 }]}>{globalRankLabel}</Text>
         <Text style={[styles.statLabel, { marginTop: 24 }]}>TIME</Text>
         <Text style={[styles.statValue, { marginTop: 8 }]}>{timeStr}</Text>
       </Animated.View>
