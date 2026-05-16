@@ -122,7 +122,9 @@ function toRow(event: AnalyticsEvent) {
 }
 
 async function logEvent(event: AnalyticsEvent): Promise<void> {
-  console.log('[ANALYTICS]', JSON.stringify(event));
+  if (__DEV__) {
+    console.log('[ANALYTICS]', JSON.stringify(event));
+  }
 
   // 1. 로컬 큐에 저장 (전송 실패 시 재시도를 위한 안전망)
   try {

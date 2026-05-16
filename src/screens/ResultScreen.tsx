@@ -501,11 +501,20 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       }),
     ];
     if (user?.id && currentRaceEventId) {
+      // retire 시점까지 실제로 통과한 인터벌 횟수 계산
+      const activePlan = useAppStore.getState().activePlan;
+      const actualCompletedReps = activePlan
+        ? Math.min(
+            activePlan.intervals.reps,
+            Math.floor((distKm * 1000) / activePlan.intervals.distanceM),
+          )
+        : 0;
+
       saves.push(
         logRaceCompleted({
           raceStartedEventId: currentRaceEventId,
           userId: user.id,
-          completedReps: 0,
+          completedReps: actualCompletedReps,
           actualHardPace: avgPace ?? 0,
           actualEasyPace: null,
           totalDurationSec: Math.round(elapsedMs / 1000),

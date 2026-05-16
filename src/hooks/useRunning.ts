@@ -60,9 +60,13 @@ export function useRunning(options: UseRunningOptions = {}) {
           profile.displayName,
           profile.nameTagAccentColor,
           selectedCircuitId ?? 'shanghai',
-        ).then(id => {
-          activityIdRef.current = id;
-        });
+        )
+          .then(id => {
+            activityIdRef.current = id;
+          })
+          .catch(() => {
+            // Live Activity 시작 실패는 런 동작에 영향 없음 — 조용히 무시
+          });
       }
     } else {
       const phase = useRunStore.getState().pitPhase;
