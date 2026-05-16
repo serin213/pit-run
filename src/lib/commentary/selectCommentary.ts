@@ -11,7 +11,7 @@ export interface CommentaryInput {
 
   circuitId: string;
 
-  /** null = tire not tracked yet (TODO: wire from run store) */
+  /** Tire used in the run. null = history mode (not tracked) */
   tire: CommentaryTire | null;
 
   /** Overall average pace sec/km */
@@ -20,7 +20,7 @@ export interface CommentaryInput {
   /** Per-sector paces (sec/km) — same array as paceHistory in run store */
   sectorPaces: number[];
 
-  // ── Achievement flags (requires history — TODO: wire from DB) ──────────────
+  // ── Achievement flags (computed from session history in caller) ────────────
   isOverallPB: boolean;
   isCircuitPB: boolean;
 
@@ -35,7 +35,7 @@ export interface CommentaryInput {
   /** Pace threshold to reach next grade (sec/km) */
   nextGradePaceSec: number | null;
 
-  // ── History (TODO: wire from DB/user profile) ──────────────────────────────
+  // ── History (computed from session history + activity dates in caller) ─────
   /** Total races completed including the current one. 0 = unknown */
   totalRaceCount: number;
   /** Days since the previous race. null = first race or unknown */

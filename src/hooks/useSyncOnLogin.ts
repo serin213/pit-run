@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying';
 import { fetchActivityDates } from '../api/activity';
 import { fetchProfile } from '../api/profiles';
+import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
 /**
  * 로그인 성공 시 Supabase 데이터를 로컬 appStore로 동기화.
@@ -21,6 +22,7 @@ export function useSyncOnLogin() {
     }
     if (syncedRef.current) return;
     syncedRef.current = true;
+    flushPendingEvents().catch(() => {});
 
     (async () => {
       try {
