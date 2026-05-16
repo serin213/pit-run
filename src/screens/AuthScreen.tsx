@@ -187,31 +187,17 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
 
         <View style={styles.ctaWrap}>
           {Platform.OS === 'ios' ? (
-            <>
-              <Pressable
-                style={[styles.btn, styles.primaryBtn]}
-                onPress={() => handleSignIn('apple')}
-                disabled={loading}
-              >
-                <AppleLogoSvg height={27} color={COLORS.bg} />
-                <View style={styles.iconGap} />
-                <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
-                  Start with Apple
-                </Text>
-              </Pressable>
-              <View style={{ height: 12 }} />
-              <Pressable
-                style={[styles.btn, styles.secondaryBtn]}
-                onPress={() => handleSignIn('google')}
-                disabled={loading}
-              >
-                <GoogleLogoSvg height={24} />
-                <View style={styles.iconGap} />
-                <Text style={[styles.btnText, styles.lightText]} allowFontScaling={false}>
-                  Start with Google
-                </Text>
-              </Pressable>
-            </>
+            <Pressable
+              style={[styles.btn, styles.primaryBtn]}
+              onPress={() => handleSignIn('apple')}
+              disabled={loading}
+            >
+              <AppleLogoSvg height={27} color={COLORS.bg} />
+              <View style={styles.iconGap} />
+              <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
+                Start with Apple
+              </Text>
+            </Pressable>
           ) : (
             <Pressable
               style={[styles.btn, styles.primaryBtn]}
