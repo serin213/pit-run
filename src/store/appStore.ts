@@ -1,5 +1,6 @@
 import { PALETTE } from '../constants/colors';
 import { create } from 'zustand';
+import type { Program } from '../lib/training/buildProgram';
 import { createMMKV } from 'react-native-mmkv';
 import type { TireType } from '../constants/colors';
 import type { QualifyingResult, UserProfile } from '../types';
@@ -85,6 +86,10 @@ interface AppState {
   /** 현재 진행 중인 레이스의 analytics eventId. 비지속성(휘발). */
   currentRaceEventId: string | null;
   setCurrentRaceEventId: (id: string | null) => void;
+
+  /** 현재 RunningScreen에서 실행 중인 인터벌 프로그램. 비지속성(휘발). */
+  activePlan: Program | null;
+  setActivePlan: (plan: Program | null) => void;
 }
 
 /** persist할 필드만 추출 */
@@ -157,4 +162,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   currentRaceEventId: null,
   setCurrentRaceEventId: (id) => set({ currentRaceEventId: id }),
+
+  activePlan: null,
+  setActivePlan: (plan) => set({ activePlan: plan }),
 }));

@@ -457,13 +457,19 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                 storeSetCircuit(selectedCircuitId!);
                 // race_started 로그: buildProgram으로 프로그램 생성 후 기록
                 if (user?.id && qualifyingResult) {
-                  const circuit = { id: selectedCircuitId!, baseIntervalM: 200, baseReps: 8 };
+                  const circuitDef = CIRCUITS.find((c) => c.id === selectedCircuitId)!;
+                  const circuit = {
+                    id: circuitDef.id,
+                    baseIntervalM: circuitDef.baseIntervalM,
+                    baseReps: circuitDef.baseReps,
+                  };
                   const appUser = {
                     trainingBasePace: qualifyingResult.paceSecPerKm,
                     grade: qualifyingResult.grade,
                     totalSessionCount: 0,
                   };
                   const program = buildProgram(appUser, circuit, selectedTire! as Tire);
+                  useAppStore.getState().setActivePlan(program);
                   logRaceStarted({
                     userId: user.id,
                     grade: qualifyingResult.grade,
