@@ -31,6 +31,7 @@ import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { buildProgram, type Tire } from '../lib/training/buildProgram';
 import { logRaceStarted } from '../lib/analytics/raceEvents';
+import { pickBestMatch } from '../lib/training/bestMatch';
 
 const H_PAD = 20;
 const CARD_GAP = 12;
@@ -119,14 +120,11 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
     [paceSecPerKm],
   );
 
-  // Best Match: two picks (design default Monaco + Albert Park when available)
-  const baseCircuits = useMemo(() => {
-    const monaco = CIRCUITS.find((c) => c.id === 'monaco');
-    const albert = CIRCUITS.find((c) => c.id === 'albert-park');
-    if (monaco && albert) return [monaco, albert];
-    const shuffled = [...CIRCUITS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 2);
-  }, []);
+  // Best Match: 선택한 타이어에 맞는 서킷 2개 (tire null이면 Monaco + Albert Park 기본값)
+  const baseCircuits = useMemo(
+    () => pickBestMatch(selectedTire, CIRCUITS, CIRCUIT_CARD_CONFIG, 2),
+    [selectedTire],
+  );
 
   // Sync circuit selection when returning from AllCircuits.
   // Any circuit returned from AllCircuitsScreen is treated as a "see-all" selection
