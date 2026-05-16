@@ -24,7 +24,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
-import { calcRaceRank } from '../lib/ranking/calcRank';
+import { calcRaceRank, percentileToPNumber } from '../lib/ranking/calcRank';
 import type { Tire as RankTire } from '../lib/ranking/types';
 import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
@@ -613,7 +613,14 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                 <View style={styles.rankRow}>
                   <Text style={[styles.rankText, { color: topTheme.text }]}>P</Text>
                   <View style={{ width: 8 }} />
-                  <RollingPNumber target={raceRank?.gradeRank.pNumber ?? null} color={topTheme.text} />
+                  <RollingPNumber
+                    target={
+                      raceRank && raceRank.globalRank.percentile !== null
+                        ? percentileToPNumber(raceRank.globalRank.percentile)
+                        : null
+                    }
+                    color={topTheme.text}
+                  />
                   {checkerFlagImage && (
                     <>
                       <View style={{ width: 12 }} />

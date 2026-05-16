@@ -143,6 +143,23 @@ export function calcPNumber(
   return Math.max(1, Math.min(P_NUMBER_MAX, pNumber));
 }
 
+/**
+ * 글로벌 랭크 percentile (0~100, 상위 %) → P1~P22 매핑.
+ * 베타 단계에서 등급 풀이 작아 P넘버를 산출할 수 없을 때 글로벌 랭크 기반
+ * 시각화에 사용. 정식 출시 후에도 동일 매핑 유지 가능.
+ *
+ * 예: TOP 5% → P2, TOP 50% → P11, TOP 95% → P21
+ */
+export function percentileToPNumber(percentile: number): number {
+  if (percentile < 0 || percentile > 100) {
+    throw new Error(
+      `Invalid percentile: must be between 0 and 100, got ${percentile}`,
+    );
+  }
+  const p = Math.ceil((percentile / 100) * P_NUMBER_MAX);
+  return Math.max(1, Math.min(P_NUMBER_MAX, p));
+}
+
 /** UNRANKED RankResult 공통 생성 헬퍼 */
 export function buildUnrankedResult(subLabel?: string): RankResult {
   return {
