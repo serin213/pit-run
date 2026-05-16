@@ -1,9 +1,10 @@
 import { COLORS, PALETTE } from '../constants/colors';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,11 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useAppStore } from '../store/appStore';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import { signOut } from '../platform/auth';
+import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
+import FeedbackToast from '../components/FeedbackToast';
 import type { ProfileScreenProps } from '../navigation/types';
+
+const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,6 +46,10 @@ const TROPHY_IMAGES: Record<string, ReturnType<typeof require>> = {
 const APP_VERSION: string = (
   require('../../app.json') as { expo: { version: string } }
 ).expo.version;
+
+const TERMS_URL = 'https://brawny-camp-928.notion.site/Terms-of-Service-359fe2177fce80bf9d3ec3a7ca95dc96';
+const PRIVACY_URL = 'https://brawny-camp-928.notion.site/Privacy-Policy-359fe2177fce80098b73da31906382d5';
+const FEEDBACK_URL = 'https://tally.so/r/Gxqzz2';
 
 // ─── AnimatedToggle ───────────────────────────────────────────────────────────
 
@@ -156,6 +165,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
     }).catch(() => {});
   };
 
+  const [feedbackToastVisible, setFeedbackToastVisible] = useState(false);
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (url.startsWith(FEEDBACK_REDIRECT_SCHEME)) {
+        dismissInAppBrowser();
+        setFeedbackToastVisible(true);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.bg, opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
       <ScrollView
@@ -192,17 +212,32 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             </View>
           </View>
 
-          {/* Terms & Privacy */}
-          <View style={[styles.listRow, { marginTop: 24 }]}>
-            <Text style={styles.listLabel}>Terms &amp; Privacy</Text>
+          {/* Terms of Service */}
+          <Pressable
+            style={[styles.listRow, { marginTop: 24 }]}
+            onPress={() => openInAppBrowser(TERMS_URL)}
+          >
+            <Text style={styles.listLabel}>Terms of Service</Text>
             <ChevronRight />
-          </View>
+          </Pressable>
+
+          {/* Privacy Policy */}
+          <Pressable
+            style={[styles.listRow, { marginTop: 24 }]}
+            onPress={() => openInAppBrowser(PRIVACY_URL)}
+          >
+            <Text style={styles.listLabel}>Privacy Policy</Text>
+            <ChevronRight />
+          </Pressable>
 
           {/* Send Feedback */}
-          <View style={[styles.listRow, { marginTop: 24 }]}>
+          <Pressable
+            style={[styles.listRow, { marginTop: 24 }]}
+            onPress={() => openInAppBrowser(FEEDBACK_URL)}
+          >
             <Text style={styles.listLabel}>Send Feedback</Text>
             <ChevronRight />
-          </View>
+          </Pressable>
 
           {/* Sign Out */}
           <Pressable style={[styles.listRow, { marginTop: 24 }]} onPress={handleSignOut}>
@@ -226,6 +261,12 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           <Rect key={i} x={0} y={i * 6} width={windowW} height={6} fill={COLORS.bg} fillOpacity={i / 7} />
         ))}
       </Svg>
+
+      <FeedbackToast
+        visible={feedbackToastVisible}
+        message="Thank you for your feedback!"
+        onDismiss={() => setFeedbackToastVisible(false)}
+      />
     </Animated.View>
   );
 }

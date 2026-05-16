@@ -17,19 +17,30 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+import { useSafeTop } from '../hooks/useSafeTop';
 import { signIn } from '../platform/auth';
+import { openInAppBrowser } from '../platform/webBrowser';
 import { useAuthStore } from '../store/authStore';
-import LiveActivityPreviewModal from '../components/LiveActivityPreviewModal';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
 type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
 const FLAG_PNG = require('../../assets/race-flag.png');
+const AUTH_IMG = require('../../assets/auth-image.png');
+const AUTH_IMG_W = 1608;
+const AUTH_IMG_H = 1064;
+
+const TERMS_URL = 'https://brawny-camp-928.notion.site/Terms-of-Service-359fe2177fce80bf9d3ec3a7ca95dc96';
+const PRIVACY_URL = 'https://brawny-camp-928.notion.site/Privacy-Policy-359fe2177fce80098b73da31906382d5';
 
 const BTN_H = 54;
 const BTN_RADIUS = 16;
 const H_PAD = 20;
+
+// Match Race tab title Y: py(86) = safeTop + (86 - 23)
+const FIGMA_STATUS = 23;
+const TITLE_FIGMA_Y = 86;
 
 // ─── Inline SVG components ───────────────────────────────────────────────────
 
@@ -68,14 +79,22 @@ function GoogleLogoSvg({ height: h }: { height: number }) {
   );
 }
 
+function CheckSvg() {
+  return (
+    <Svg width={14} height={9} viewBox="0 0 14 9" fill="none">
+      <Path d="M12.1093 0.317685C12.5387 -0.102477 13.2385 -0.106477 13.6722 0.309315C14.1057 0.725491 14.1099 1.40379 13.6809 1.82419L6.88944 8.47094C6.18498 9.16028 5.04039 9.17831 4.31333 8.51139L0.345547 4.87068C-0.0977356 4.464 -0.117104 3.78551 0.302372 3.3558C0.721964 2.92613 1.42197 2.90732 1.86531 3.31395L5.57116 6.71475L12.1093 0.317685Z" fill={PALETTE.red} />
+    </Svg>
+  );
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
+  const safeTop = useSafeTop();
   const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [laPreviewVisible, setLaPreviewVisible] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) navigation.replace('ProfileSetup');
@@ -93,10 +112,17 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
     }
   };
 
-  // Radial gradient: size 1354×1219, top-left at (-84, -542)
+  const openUrl = (url: string) => {
+    openInAppBrowser(url);
+  };
+
+  // Background radial gradient — size 1354×1219, top-left at (-84, -542)
   // → center at (-84 + 677, -542 + 609.5) = (593, 67.5)
   const gCx = 593;
   const gCy = 67.5;
+
+  const headerTop = safeTop + (TITLE_FIGMA_Y - FIGMA_STATUS);
+  const authImgH = (windowW * AUTH_IMG_H) / AUTH_IMG_W;
 
   return (
     <View style={styles.container}>
@@ -124,67 +150,86 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
         <Rect x={0} y={0} width={windowW} height={windowH} fill="url(#bgGrad)" opacity={0.1} />
       </Svg>
 
-      {/* Bottom content — stacks upward from safe bottom */}
-      <View style={[styles.bottomBlock, { paddingBottom: 40 }]}>
-
-        {/* Flag + Text logo + Subtitle */}
+      {/* Header — flag, logo, subtitle (aligned to Race tab title Y) */}
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <Image source={FLAG_PNG} style={styles.flag} resizeMode="contain" />
-        <View style={styles.gap12} />
+        <View style={{ height: 8 }} />
         <TextLogoSvg width={176} />
-        <View style={styles.gap24} />
+        <View style={{ height: 16 }} />
         <Text style={styles.subtitle} allowFontScaling={false}>
-          {'Sign in to start\nyour racing journey'}
+          Lights out. Start running
         </Text>
+      </View>
 
-        <View style={styles.gap72} />
+      {/* Auth image — centered between subtitle and terms, fills device width */}
+      <View style={styles.imageWrap}>
+        <Image
+          source={AUTH_IMG}
+          style={{ width: windowW, height: authImgH }}
+          resizeMode="contain"
+        />
+      </View>
 
-        {/* Buttons */}
-        {Platform.OS === 'ios' ? (
-          <>
-            {/* iOS: Apple primary (white) */}
+      {/* Bottom block — terms, privacy, CTA */}
+      <View style={styles.bottomBlock}>
+        <Pressable style={styles.termsRow} onPress={() => openUrl(TERMS_URL)}>
+          <CheckSvg />
+          <View style={{ width: 10 }} />
+          <Text style={styles.termsText} allowFontScaling={false}>Terms of Service</Text>
+        </Pressable>
+        <View style={{ height: 12 }} />
+        <Pressable style={styles.termsRow} onPress={() => openUrl(PRIVACY_URL)}>
+          <CheckSvg />
+          <View style={{ width: 10 }} />
+          <Text style={styles.termsText} allowFontScaling={false}>Privacy Policy</Text>
+        </Pressable>
+        <View style={{ height: 24 }} />
+
+        <View style={styles.ctaWrap}>
+          {Platform.OS === 'ios' ? (
+            <>
+              <Pressable
+                style={[styles.btn, styles.primaryBtn]}
+                onPress={() => handleSignIn('apple')}
+                disabled={loading}
+              >
+                <AppleLogoSvg height={27} color={COLORS.bg} />
+                <View style={styles.iconGap} />
+                <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
+                  Start with Apple
+                </Text>
+              </Pressable>
+              <View style={{ height: 12 }} />
+              <Pressable
+                style={[styles.btn, styles.secondaryBtn]}
+                onPress={() => handleSignIn('google')}
+                disabled={loading}
+              >
+                <GoogleLogoSvg height={24} />
+                <View style={styles.iconGap} />
+                <Text style={[styles.btnText, styles.lightText]} allowFontScaling={false}>
+                  Start with Google
+                </Text>
+              </Pressable>
+            </>
+          ) : (
             <Pressable
               style={[styles.btn, styles.primaryBtn]}
-              onPress={() => handleSignIn('apple')}
-              disabled={loading}
-            >
-              <AppleLogoSvg height={27} color={COLORS.bg} />
-              <View style={styles.iconGap} />
-              <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
-                Start with Apple
-              </Text>
-            </Pressable>
-            <View style={styles.gap12} />
-            {/* iOS: Google secondary (dark) */}
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
               onPress={() => handleSignIn('google')}
               disabled={loading}
             >
               <GoogleLogoSvg height={24} />
               <View style={styles.iconGap} />
-              <Text style={[styles.btnText, styles.lightText]} allowFontScaling={false}>
+              <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
                 Start with Google
               </Text>
             </Pressable>
-          </>
-        ) : (
-          /* Android: Google primary (white) only */
-          <Pressable
-            style={[styles.btn, styles.primaryBtn]}
-            onPress={() => handleSignIn('google')}
-            disabled={loading}
-          >
-            <GoogleLogoSvg height={24} />
-            <View style={styles.iconGap} />
-            <Text style={[styles.btnText, styles.darkText]} allowFontScaling={false}>
-              Start with Google
-            </Text>
-          </Pressable>
-        )}
+          )}
 
-        {error ? (
-          <Text style={styles.error} allowFontScaling={false}>{error}</Text>
-        ) : null}
+          {error ? (
+            <Text style={styles.error} allowFontScaling={false}>{error}</Text>
+          ) : null}
+        </View>
       </View>
 
       {/* Dev-only: skip auth */}
@@ -196,19 +241,6 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
           <Text style={styles.devSkipText}>DEV: Skip Auth</Text>
         </Pressable>
       )}
-
-      {/* Live Activity preview button */}
-      <Pressable
-        style={styles.laPreviewBtn}
-        onPress={() => setLaPreviewVisible(true)}
-      >
-        <Text style={styles.laPreviewBtnText}>🏎 LA Preview</Text>
-      </Pressable>
-
-      <LiveActivityPreviewModal
-        visible={laPreviewVisible}
-        onClose={() => setLaPreviewVisible(false)}
-      />
     </View>
   );
 }
@@ -217,9 +249,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    justifyContent: 'flex-end',
   },
-  bottomBlock: {
+  header: {
     paddingHorizontal: H_PAD,
   },
   flag: {
@@ -230,8 +261,31 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
-    lineHeight: 26,       // 20 × 1.3
-    letterSpacing: -0.4,  // -2% of 20
+    lineHeight: 26,
+    letterSpacing: -0.4,
+  },
+  imageWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomBlock: {
+    paddingBottom: 40,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 6,
+  },
+  termsText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontFamily: 'Formula1-Regular',
+    fontSize: 17,
+    letterSpacing: 17 * -0.02,
+  },
+  ctaWrap: {
+    paddingHorizontal: H_PAD,
   },
   btn: {
     height: BTN_H,
@@ -260,9 +314,6 @@ const styles = StyleSheet.create({
   iconGap: {
     width: 8,
   },
-  gap12: { height: 12 },
-  gap24: { height: 20 },
-  gap72: { height: 72 },
   error: {
     color: PALETTE.red,
     fontFamily: 'Formula1-Regular',
@@ -283,22 +334,6 @@ const styles = StyleSheet.create({
   },
   devSkipText: {
     color: PALETTE.yellow,
-    fontFamily: 'Formula1-Bold',
-    fontSize: 10,
-  },
-  laPreviewBtn: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    backgroundColor: 'rgba(232,0,45,0.15)',
-    borderWidth: 1,
-    borderColor: PALETTE.red,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  laPreviewBtnText: {
-    color: PALETTE.red,
     fontFamily: 'Formula1-Bold',
     fontSize: 10,
   },
