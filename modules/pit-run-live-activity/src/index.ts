@@ -1,4 +1,4 @@
-import { requireNativeModule, Platform } from 'expo-modules-core';
+import { requireOptionalNativeModule, Platform } from 'expo-modules-core';
 
 interface PitRunLiveActivityNative {
   startActivity(driverName: string, teamColor: string, circuitId: string): Promise<string | null>;
@@ -18,7 +18,11 @@ interface PitRunLiveActivityNative {
   isSupported(): boolean;
 }
 
-// On Android or older iOS, return a no-op module so callers don't need to guard
+// On Android, older iOS, or if native module fails to register, return a no-op
+// so callers don't need to guard. Using `requireOptionalNativeModule` (vs the
+// throwing `requireNativeModule`) prevents the entire JS bundle from dying when
+// the native module isn't ready at module-load time (e.g., New Architecture
+// race conditions where TurboModules haven't initialized yet).
 const noop: PitRunLiveActivityNative = {
   startActivity: async () => null,
   updateActivity: async () => {},
@@ -27,10 +31,12 @@ const noop: PitRunLiveActivityNative = {
   isSupported: () => false,
 };
 
-const Native: PitRunLiveActivityNative =
+const nativeModule =
   Platform.OS === 'ios'
-    ? requireNativeModule<PitRunLiveActivityNative>('PitRunLiveActivity')
-    : noop;
+    ? requireOptionalNativeModule<PitRunLiveActivityNative>('PitRunLiveActivity')
+    : null;
+
+const Native: PitRunLiveActivityNative = nativeModule ?? noop;
 
 export const {
   startActivity,
