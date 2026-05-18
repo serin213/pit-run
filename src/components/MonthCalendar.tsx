@@ -37,7 +37,13 @@ const ARROW_RIGHT_PATH =
 // ─── Helpers (exported for use in parent screens) ─────────────────────────────
 
 export function toISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Local-time ISO. toISOString() returns UTC which causes off-by-one day
+  // in non-UTC timezones (e.g., KST renders today's date as yesterday's ISO
+  // → tomorrow shows as "past" in calendar grids).
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 }
 
 export function getWeekDates(ref: Date): Date[] {

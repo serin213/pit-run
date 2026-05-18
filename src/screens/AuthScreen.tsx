@@ -267,7 +267,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   termsText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: PALETTE.white,
+    opacity: 0.7,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     letterSpacing: 17 * -0.02,

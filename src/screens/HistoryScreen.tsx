@@ -128,21 +128,10 @@ type HistoryRow =
   | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
   | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
-// ─── Fallback demo data ───────────────────────────────────────────────────────
+// ─── Fallback demo data (now empty — real data only) ─────────────────────────
 
-const FALLBACK_QUALIFYING: QHistRow[] = [
-  { iso: '2024-03-25', label: '03.25', paceSec: 405, grade: 'f3' },
-  { iso: '2024-05-26', label: '05.26', paceSec: 392, grade: 'f3' },
-  { iso: '2024-06-30', label: '06.30', paceSec: 383, grade: 'f2', promotedGrade: 'F2' },
-  { iso: '2025-01-01', label: '01.01', paceSec: 355, grade: 'f2' },
-  { iso: '2025-02-02', label: '02.02', paceSec: 326, grade: 'f1_rookie', promotedGrade: 'F1 Rookie' },
-];
-
-const FALLBACK_HISTORY: HistoryRow[] = [
-  { type: 'grand_prix', sortKey: '2023-01-26', dateDisplay: '26.01.23', venue: 'MONACO', distKm: 5.14, elapsedMs: 1800000, circuitId: 'monaco' },
-  { type: 'qualifying', sortKey: '2023-01-20', dateDisplay: '20.01.23', distKm: 4.55, grade: 'f2', paceSec: 355 },
-  { type: 'practice',   sortKey: '2023-01-15', dateDisplay: '15.01.23', distKm: 3.21, elapsedMs: 960000 },
-];
+const FALLBACK_QUALIFYING: QHistRow[] = [];
+const FALLBACK_HISTORY: HistoryRow[] = [];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -495,15 +484,17 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. 등급 트로피 ── */}
-        <Image
-          source={trophySource}
-          style={[styles.trophy, { marginTop: safeTop + 64, marginLeft: 26 }]}
-          resizeMode="contain"
-        />
+        {/* ── 1. 등급 트로피 (퀄리파잉 결과 있을 때만) ── */}
+        {qualifyingResult && (
+          <Image
+            source={trophySource}
+            style={[styles.trophy, { marginTop: safeTop + 64, marginLeft: 26 }]}
+            resizeMode="contain"
+          />
+        )}
 
         {/* ── 2~3. TOTAL + ON TRACK 스탯 ── */}
-        <View style={[styles.statsRow, { marginTop: 32, marginLeft: 24 }]}>
+        <View style={[styles.statsRow, { marginTop: qualifyingResult ? 32 : safeTop + 64, marginLeft: 24 }]}>
           {/* TOTAL */}
           <View style={styles.statGroup}>
             <Text style={styles.statLabel}>TOTAL</Text>

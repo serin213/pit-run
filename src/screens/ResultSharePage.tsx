@@ -9,9 +9,7 @@ import {
   Image,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-// expo-clipboard requires a native rebuild — lazy import to avoid crash before build
-let Clipboard: typeof import('expo-clipboard') | null = null;
-try { Clipboard = require('expo-clipboard'); } catch (_) {}
+import * as Clipboard from 'expo-clipboard';
 import { captureRef } from 'react-native-view-shot';
 import type { ImageSourcePropType } from 'react-native';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
@@ -73,8 +71,10 @@ function CopyBtn({ cardRef }: { cardRef: RefObject<View | null> }) {
         const base64 = await captureRef(cardRef as RefObject<View>, {
           format: 'png', quality: 1, result: 'base64',
         });
-        await Clipboard?.setImageAsync(base64);
-      } catch (_) {}
+        await Clipboard.setImageAsync(base64);
+      } catch (e) {
+        console.warn('[ResultSharePage] clipboard copy failed:', e);
+      }
       timerRef.current = setTimeout(() => setConfirming(false), 3000);
     }
   }, [confirming, cardRef]);

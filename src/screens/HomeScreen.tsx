@@ -33,6 +33,7 @@ import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
+import { CIRCUIT_CARD_CONFIG } from '../config/circuitCardConfig';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
@@ -450,11 +451,23 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
 
-  // 서킷 SVG — 가로 fill, 비율 유지해서 높이 자동 계산
-  const circuitSvgLeft = 45; // 카드 내 좌우 45px 마진
-  const circuitW = cardW - 90; // fill: cardW - (45 × 2)
+  // 서킷 SVG — CIRCUIT_CARD_CONFIG로 visual size 정규화 (AllCircuitsScreen과 동일 패턴).
+  // featured 사이즈가 있으면 그것, 없으면 grid 사이즈를 featured 비율(346/167)로 확대.
+  // Figma 기준 featured 카드 폭 346 대비 home cardW로 scale.
+  const HOME_REF_W = 346;
   const circuitVB = circuit.viewBox ?? { width: 286, height: 185 };
-  const circuitH = Math.round(circuitW * circuitVB.height / circuitVB.width);
+  const _cfg = CIRCUIT_CARD_CONFIG[circuit.id];
+  const _featuredSize = _cfg
+    ? (_cfg.featured ?? { svgW: _cfg.svgW * (346 / 167), svgH: _cfg.svgH * (346 / 167) })
+    : null;
+  const _scaleHome = cardW / HOME_REF_W;
+  const circuitW = _featuredSize
+    ? Math.round(_featuredSize.svgW * _scaleHome)
+    : cardW - 90;
+  const circuitH = _featuredSize
+    ? Math.round(_featuredSize.svgH * _scaleHome)
+    : Math.round((cardW - 90) * circuitVB.height / circuitVB.width);
+  const circuitSvgLeft = Math.round((cardW - circuitW) / 2);
 
   // TireIcon bottom(246+41=287) + 28px gap = 315
   const CIRCUIT_TOP_IN_CARD = 315;

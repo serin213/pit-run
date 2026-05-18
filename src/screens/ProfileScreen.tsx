@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -27,7 +26,6 @@ import { signOut } from '../platform/auth';
 import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
 import FeedbackToast from '../components/FeedbackToast';
 import type { ProfileScreenProps } from '../navigation/types';
-import { calcQualifyingRank } from '../lib/ranking/calcRank';
 
 const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
@@ -35,14 +33,6 @@ const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
 const ARROW_PATH =
   'M1.5 1.5L7.71084 7.26721C8.1369 7.66284 8.1369 8.33716 7.71084 8.73279L1.5 14.5';
-
-const TROPHY_IMAGES: Record<string, ReturnType<typeof require>> = {
-  f1_champion: require('../../assets/qualifying/trophy/f1-champion.png'),
-  f1: require('../../assets/qualifying/trophy/f1.png'),
-  f1_rookie: require('../../assets/qualifying/trophy/f1-rookie.png'),
-  f2: require('../../assets/qualifying/trophy/f2.png'),
-  f3: require('../../assets/qualifying/trophy/f3.png'),
-};
 
 const APP_VERSION: string = (
   require('../../app.json') as { expo: { version: string } }
@@ -152,22 +142,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   );
 
   const profile                 = useAppStore((s) => s.profile);
-  const qualifyingResult        = useAppStore((s) => s.qualifyingResult);
   const notificationsEnabled    = useAppStore((s) => s.notificationsEnabled);
   const setNotificationsEnabled = useAppStore((s) => s.setNotificationsEnabled);
-
-  const trophySource = qualifyingResult
-    ? (TROPHY_IMAGES[qualifyingResult.grade] ?? TROPHY_IMAGES.f3)
-    : TROPHY_IMAGES.f3;
-
-  const globalRankLabel = qualifyingResult
-    ? calcQualifyingRank({
-        userQualifyingPaceSec: qualifyingResult.paceSecPerKm,
-        userGrade: qualifyingResult.grade,
-        totalAppUserCount: 0,
-        userRankInGlobalPool: null,
-      }).globalRank.displayLabel
-    : null;
 
   const handleSignOut = () => {
     signOut().then(() => {
@@ -193,17 +169,11 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. 트로피 + 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
+        {/* ── 1. 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
         <Pressable onPress={() => navigation.navigate('ProfileEdit')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
-            <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
-              <Text style={styles.racerName}>{profile.displayName}</Text>
-              {globalRankLabel && (
-                <Text style={styles.racerRank}>{globalRankLabel}</Text>
-              )}
-            </View>
+          <View style={{ marginTop: safeTop + 61, marginLeft: 20, marginRight: 20 }}>
+            <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
+            <Text style={styles.racerName}>{profile.displayName}</Text>
           </View>
 
           {/* ── 2. 팀 SVG ── */}
@@ -304,15 +274,6 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 4,
-  },
-  racerRank: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.02 * 13,
-    color: PALETTE.white,
-    opacity: 0.6,
-    marginTop: 2,
   },
   listRow: {
     height: 24,

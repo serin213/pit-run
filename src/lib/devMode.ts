@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 const TESTER_EMAILS = [
   'renajang0213@gmail.com',
   'rena0213@naver.com',
+  'zhrv6jvdkt@privaterelay.appleid.com',
 ];
 
 // Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있음.
