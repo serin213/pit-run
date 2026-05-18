@@ -39,3 +39,10 @@ export function remove(key: string): void {
 export function clearAll(): void {
   getStorage().clearAll();
 }
+
+/**
+ * 모든 로컬 저장소 데이터 삭제. 계정 삭제 시 호출.
+ */
+export function clearAllStorage(): void {
+  getStorage().clearAll();
+}

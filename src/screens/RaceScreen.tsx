@@ -24,7 +24,10 @@ import { useTabBarTotalHeight } from '../components/TabBar';
 import type { RaceScreenProps } from '../navigation/types';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
+import { useAppStore } from '../store/appStore';
 import { logModeSelected } from '../lib/analytics/raceEvents';
+import FeedbackToast from '../components/FeedbackToast';
+import AlertIcon from '../components/AlertIcon';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +47,8 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
   const safeBottom = useSafeBottom();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
+  const qualifyingResult = useAppStore((s) => s.qualifyingResult);
+  const [qualifyRequiredToastVisible, setQualifyRequiredToastVisible] = useState(false);
 
   const py = (figmaY: number) => safeTop + (figmaY - FIGMA_STATUS);
 
@@ -128,6 +133,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         style={{ position: 'absolute', left: cardLeft, top: py(452), width: cardW, height: 141 }}
         borderRadius={radius.sm.borderRadius}
         onPress={() => {
+          // 퀄리파잉 미시행 시 진입 차단 — 인터벌 프로그램이 등급 기반이라
+          // 퀄리파잉 없으면 boxbox 즉시 트리거 등 잘못된 동작이 발생함
+          if (!qualifyingResult) {
+            setQualifyRequiredToastVisible(true);
+            return;
+          }
           if (user?.id) logModeSelected({ userId: user.id, mode: 'grand_prix' }).catch(() => {});
           navigation.navigate('Setup');
         }}
@@ -158,7 +169,12 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
         ))}
       </Svg>
 
-
+      <FeedbackToast
+        visible={qualifyRequiredToastVisible}
+        message="Qualify first to start a race."
+        icon={<AlertIcon />}
+        onDismiss={() => setQualifyRequiredToastVisible(false)}
+      />
     </Animated.View>
   );
 }

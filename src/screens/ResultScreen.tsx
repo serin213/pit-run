@@ -737,9 +737,11 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                                 <View style={{ width: 10 }} />
                               </>
                             )}
-                            <Text style={styles.tooltipPace}>
-                              {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
-                            </Text>
+                            <View style={{ opacity: 0.7 }}>
+                              <Text style={styles.tooltipPace}>
+                                {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
+                              </Text>
+                            </View>
                           </View>
                           {/* Tail — same color as bubble */}
                           <Svg width={14} height={10} viewBox="0 0 14 10">
@@ -845,9 +847,11 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                       onPress={() => setSelectedSector(i)}
                       hitSlop={4}
                     >
-                      <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
-                        S{i + 1}
-                      </Text>
+                      <View style={{ opacity: 0.5 }}>
+                        <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
+                          S{i + 1}
+                        </Text>
+                      </View>
                     </Pressable>
                   ))}
                 </View>
@@ -1127,7 +1131,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     fontStyle: 'italic',
     color: PALETTE.white,
-    opacity: 0.7,
   },
 
   // Bar columns + line overlay container
@@ -1163,7 +1166,6 @@ const styles = StyleSheet.create({
   sectorLabel: {
     fontFamily: 'Formula1-Regular',
     fontSize: 14,
-    opacity: 0.5,
   },
 
   // ── CTA ──

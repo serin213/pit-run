@@ -1,6 +1,7 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   Linking,
@@ -25,6 +26,9 @@ import { useTabBarTotalHeight } from '../components/TabBar';
 import { signOut } from '../platform/auth';
 import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
 import FeedbackToast from '../components/FeedbackToast';
+import ConfirmSheet from '../components/ConfirmSheet';
+import { deleteAccount } from '../api/account';
+import { clearAllStorage } from '../platform/storage';
 import type { ProfileScreenProps } from '../navigation/types';
 
 const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
@@ -151,6 +155,22 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
     }).catch(() => {});
   };
 
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteSheet(false);
+    try {
+      await deleteAccount();
+      clearAllStorage();
+      navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    } catch (e) {
+      Alert.alert(
+        'Deletion failed',
+        e instanceof Error ? e.message : 'Please try again later.',
+      );
+    }
+  };
+
   const [feedbackToastVisible, setFeedbackToastVisible] = useState(false);
   useEffect(() => {
     const sub = Linking.addEventListener('url', ({ url }) => {
@@ -228,8 +248,23 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             <ChevronRight opacity={0.3} />
           </Pressable>
 
+          {/* Delete account */}
+          <Pressable
+            style={[styles.listRow, { marginTop: 24 }]}
+            onPress={() => setShowDeleteSheet(true)}
+          >
+            <Text style={[styles.listLabel, { color: 'rgba(255,255,255,0.4)' }]}>Delete account</Text>
+            <ChevronRight opacity={0.3} />
+          </Pressable>
+
           {/* Version */}
           <Text style={[styles.version, { marginTop: 24 }]}>Version {APP_VERSION}</Text>
+
+          {/* Disclaimer */}
+          <Text style={[styles.version, { marginTop: 12 }]}>
+            PIT RUN is not affiliated with Formula 1.{'\n'}
+            F1® is a trademark of Formula One Licensing BV.
+          </Text>
         </View>
       </ScrollView>
 
@@ -250,6 +285,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         message="Thank you for your feedback!"
         onDismiss={() => setFeedbackToastVisible(false)}
       />
+
+      {showDeleteSheet && (
+        <ConfirmSheet
+          title="End your career?"
+          description="This deletes your profile, grade, and all race history. There's no undo."
+          secondaryLabel="Stay"
+          primaryLabel="Delete"
+          onSecondary={() => setShowDeleteSheet(false)}
+          onPrimary={handleConfirmDelete}
+        />
+      )}
     </Animated.View>
   );
 }

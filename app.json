@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "pit-run",
+    "name": "PIT RUN",
     "slug": "pit-run",
     "version": "1.0.0",
     "platforms": [
@@ -26,9 +26,9 @@
         ]
       },
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "달리는 동안 화면이 꺼져도 정확한 거리를 측정합니다.",
-        "NSLocationAlwaysUsageDescription": "화면이 꺼진 상태에서도 러닝 세션을 추적합니다.",
-        "NSLocationWhenInUseUsageDescription": "달리는 동안 정확한 거리를 측정합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "PIT RUN tracks your distance accurately even when the screen is off, so you never lose progress mid-run.",
+        "NSLocationAlwaysUsageDescription": "PIT RUN keeps tracking your run in the background when the screen turns off or another app comes to the front.",
+        "NSLocationWhenInUseUsageDescription": "PIT RUN uses your location to measure distance and pace while you run.",
         "UIBackgroundModes": [
           "location",
           "audio"
@@ -38,7 +38,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.1",
-      "buildNumber": "8"
+      "buildNumber": "9"
     },
     "android": {
       "adaptiveIcon": {
@@ -79,7 +79,8 @@
         }
       ],
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/with-widget-object-version"
     ],
     "extra": {
       "eas": {

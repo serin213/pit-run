@@ -56,35 +56,30 @@ const H_PAD    = 20;
 // ─── Copy button (tap once → confirm, tap twice → clipboard) ─────────────────
 
 function CopyBtn({ cardRef }: { cardRef: RefObject<View | null> }) {
-  const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handlePress = useCallback(async () => {
-    if (!confirming) {
-      // first tap: show double-check for 3 s
-      setConfirming(true);
-      timerRef.current = setTimeout(() => setConfirming(false), 3000);
-    } else {
-      // second tap: copy to clipboard
+    // 단일 탭으로 즉시 복사. 시각 피드백은 체크 아이콘 1.5s.
+    try {
+      const base64 = await captureRef(cardRef as RefObject<View>, {
+        format: 'png', quality: 1, result: 'base64',
+      });
+      await Clipboard.setImageAsync(base64);
+      setCopied(true);
       if (timerRef.current) clearTimeout(timerRef.current);
-      try {
-        const base64 = await captureRef(cardRef as RefObject<View>, {
-          format: 'png', quality: 1, result: 'base64',
-        });
-        await Clipboard.setImageAsync(base64);
-      } catch (e) {
-        console.warn('[ResultSharePage] clipboard copy failed:', e);
-      }
-      timerRef.current = setTimeout(() => setConfirming(false), 3000);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      console.warn('[ResultSharePage] clipboard copy failed:', e);
     }
-  }, [confirming, cardRef]);
+  }, [cardRef]);
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return (
     <Pressable onPress={handlePress} style={styles.copyBtn} hitSlop={10}>
       <Image
-        source={confirming
+        source={copied
           ? require('../../assets/double-check.png')
           : require('../../assets/copy.png')}
         style={{ width: 20, height: 20, opacity: 0.5 }}
@@ -127,43 +122,52 @@ function CardCircuitSvg({ path, viewBox, color, size, strokePx = 5 }: {
 
 function SmallPortraitCard({ distKm, elapsedMs, totalPaceS, circuitName,
   trackPath, viewBox, themeColor, leftAlign }: SharePageProps & { leftAlign?: boolean }) {
-  const ref = useRef<View>(null);
+  const innerRef = useRef<View>(null);
   return (
-    <View ref={ref} collapsable={false} style={{ flex: 1, height: 286, borderRadius: 12 }}>
+    <View style={{ flex: 1, height: 286, borderRadius: 12 }}>
       <GradientCardBorder
         style={{ flex: 1 }}
         innerStyle={leftAlign
-          ? { paddingVertical: 16, paddingHorizontal: 20, alignItems: 'flex-start', justifyContent: 'center' }
-          : { paddingVertical: 16, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' }}
+          ? { paddingVertical: 16, paddingHorizontal: 20 }
+          : { paddingVertical: 16, paddingHorizontal: 12 }}
       >
-        <CopyBtn cardRef={ref} />
-
-        {/* Circuit badge */}
-        <View style={[styles.smallBadge, { backgroundColor: themeColor }]}>
-          <Text style={styles.smallBadgeText} numberOfLines={1}>
-            {circuitName.toUpperCase()} GP
-          </Text>
-        </View>
-
-        {/* Distance */}
-        <Text style={styles.smallDist} numberOfLines={1}>
-          {fmtDist(distKm)}km
-        </Text>
-
-        {/* TIME */}
-        <Text style={[styles.smallLabel, { marginTop: 16 }]}>TIME</Text>
-        <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtTime(elapsedMs)}</Text>
-
-        {/* PACE AVG */}
-        <Text style={[styles.smallLabel, { marginTop: 20 }]}>PACE AVG</Text>
-        <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtPace(totalPaceS)}</Text>
-
-        {/* Circuit SVG */}
-        {trackPath && viewBox && (
-          <View style={{ marginTop: 24, alignItems: 'center' }}>
-            <CardCircuitSvg path={trackPath} viewBox={viewBox} color={PALETTE.white} size={52} strokePx={3} />
+        <View
+          ref={innerRef}
+          collapsable={false}
+          style={{
+            flex: 1,
+            alignItems: leftAlign ? 'flex-start' : 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Circuit badge */}
+          <View style={[styles.smallBadge, { backgroundColor: themeColor }]}>
+            <Text style={styles.smallBadgeText} numberOfLines={1}>
+              {circuitName.toUpperCase()} GP
+            </Text>
           </View>
-        )}
+
+          {/* Distance */}
+          <Text style={styles.smallDist} numberOfLines={1}>
+            {fmtDist(distKm)}km
+          </Text>
+
+          {/* TIME */}
+          <Text style={[styles.smallLabel, { marginTop: 16 }]}>TIME</Text>
+          <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtTime(elapsedMs)}</Text>
+
+          {/* PACE AVG */}
+          <Text style={[styles.smallLabel, { marginTop: 20 }]}>PACE AVG</Text>
+          <Text style={[styles.smallVal, { marginTop: 6 }]}>{fmtPace(totalPaceS)}</Text>
+
+          {/* Circuit SVG */}
+          {trackPath && viewBox && (
+            <View style={{ marginTop: 24, alignItems: 'center' }}>
+              <CardCircuitSvg path={trackPath} viewBox={viewBox} color={PALETTE.white} size={52} strokePx={3} />
+            </View>
+          )}
+        </View>
+        <CopyBtn cardRef={innerRef} />
       </GradientCardBorder>
     </View>
   );
@@ -182,10 +186,9 @@ function FastestLapStickerCard({ fastestPaceS, variant = 'default' }: {
     ? require('../../assets/icons/fastest-lap.png')
     : require('../../assets/icons/fastest-lap-purple.png');
   return (
-    <View ref={ref} collapsable={false}>
+    <View>
       <GradientCardBorder innerStyle={{ flex: 0, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }}>
-        <CopyBtn cardRef={ref} />
-        <View style={[styles.fastestPill, { backgroundColor: pillBg }]}>
+        <View ref={ref} collapsable={false} style={[styles.fastestPill, { backgroundColor: pillBg }]}>
           <Image source={iconSource} style={{ width: undefined, height: 20, aspectRatio: 1 }} resizeMode="contain" />
           <View style={{ width: 6 }} />
           <Text style={[styles.fastestLabelText, { color: textColor }]} numberOfLines={1}>
@@ -196,6 +199,7 @@ function FastestLapStickerCard({ fastestPaceS, variant = 'default' }: {
             {fmtPace(fastestPaceS)}
           </Text>
         </View>
+        <CopyBtn cardRef={ref} />
       </GradientCardBorder>
     </View>
   );
@@ -212,16 +216,16 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
   const pillBg    = variant === 'solid' ? themeColor : themeColor + '4D';
   const textColor = variant === 'solid' ? PALETTE.white : themeTextColor;
   return (
-    <View ref={ref} collapsable={false}>
+    <View>
       <GradientCardBorder innerStyle={{ flex: 0, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }}>
-        <CopyBtn cardRef={ref} />
-        <View style={[styles.circuitPill, { backgroundColor: pillBg }]}>
+        <View ref={ref} collapsable={false} style={[styles.circuitPill, { backgroundColor: pillBg }]}>
           <Text style={[styles.circuitPillText, { color: textColor }]} numberOfLines={1}>
             {`${circuitName.toUpperCase()} GP ${fmtDist(distKm)}km`}
           </Text>
           <View style={{ width: 4 }} />
           <CheckCertificateIcon color={textColor} size={20} />
         </View>
+        <CopyBtn cardRef={ref} />
       </GradientCardBorder>
     </View>
   );
@@ -232,24 +236,26 @@ function CircuitStickerCard({ circuitName, distKm, themeColor, themeTextColor,
 function WideMediumCard({ distKm, elapsedMs, totalPaceS, fastestPaceS }: SharePageProps) {
   const ref = useRef<View>(null);
   return (
-    <View ref={ref} collapsable={false}>
+    <View>
       <GradientCardBorder innerStyle={{ flex: 0, padding: 20 }}>
-        <CopyBtn cardRef={ref} />
-        <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
-        <View style={[styles.medStatRow, { marginTop: 24 }]}>
-          <View style={styles.medStatCol}>
-            <Text style={styles.wideStatLabel}>TIME</Text>
-            <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
-          </View>
-          <View style={styles.medStatCol}>
-            <Text style={styles.wideStatLabel}>PACE AVG</Text>
-            <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
-          </View>
-          <View style={styles.medStatCol}>
-            <Text style={styles.wideStatLabel}>FASTEST</Text>
-            <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+        <View ref={ref} collapsable={false}>
+          <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
+          <View style={[styles.medStatRow, { marginTop: 24 }]}>
+            <View style={styles.medStatCol}>
+              <Text style={styles.wideStatLabel}>TIME</Text>
+              <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
+            </View>
+            <View style={styles.medStatCol}>
+              <Text style={styles.wideStatLabel}>PACE AVG</Text>
+              <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
+            </View>
+            <View style={styles.medStatCol}>
+              <Text style={styles.wideStatLabel}>FASTEST</Text>
+              <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+            </View>
           </View>
         </View>
+        <CopyBtn cardRef={ref} />
       </GradientCardBorder>
     </View>
   );
@@ -262,38 +268,40 @@ function WideLargeCard({ distKm, elapsedMs, totalPaceS, fastestPaceS,
   const ref = useRef<View>(null);
   const circuitPng = CIRCUIT_RESULT_PNG[circuitName.toUpperCase()];
   return (
-    <View ref={ref} collapsable={false}>
+    <View>
       <GradientCardBorder innerStyle={{ flex: 0, paddingTop: 20, paddingBottom: 20, paddingLeft: 20 }}>
-        <CopyBtn cardRef={ref} />
-        <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
+        <View ref={ref} collapsable={false}>
+          <Text style={styles.bigDist}>{fmtDist(distKm)}</Text>
 
-        {/* TIME — full width */}
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.wideStatLabel}>TIME</Text>
-          <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
-        </View>
-
-        {/* PACE AVG + FASTEST (left) / circuit PNG (right, top = PACE AVG value) */}
-        <View style={{ flexDirection: 'row', marginTop: 20, alignItems: 'flex-start' }}>
-          <View>
-            <View>
-              <Text style={styles.wideStatLabel}>PACE AVG</Text>
-              <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
-            </View>
-            <View style={{ marginTop: 20 }}>
-              <Text style={styles.wideStatLabel}>FASTEST</Text>
-              <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
-            </View>
+          {/* TIME — full width */}
+          <View style={{ marginTop: 24 }}>
+            <Text style={styles.wideStatLabel}>TIME</Text>
+            <Text style={styles.wideStatValue}>{fmtTime(elapsedMs)}</Text>
           </View>
 
-          {circuitPng && (
-            <Image
-              source={circuitPng}
-              style={styles.largePngWrap}
-              resizeMode="cover"
-            />
-          )}
+          {/* PACE AVG + FASTEST (left) / circuit PNG (right, top = PACE AVG value) */}
+          <View style={{ flexDirection: 'row', marginTop: 20, alignItems: 'flex-start' }}>
+            <View>
+              <View>
+                <Text style={styles.wideStatLabel}>PACE AVG</Text>
+                <Text style={styles.wideStatValue}>{fmtPace(totalPaceS)}</Text>
+              </View>
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.wideStatLabel}>FASTEST</Text>
+                <Text style={styles.wideStatValue}>{fmtPace(fastestPaceS)}</Text>
+              </View>
+            </View>
+
+            {circuitPng && (
+              <Image
+                source={circuitPng}
+                style={styles.largePngWrap}
+                resizeMode="cover"
+              />
+            )}
+          </View>
         </View>
+        <CopyBtn cardRef={ref} />
       </GradientCardBorder>
     </View>
   );

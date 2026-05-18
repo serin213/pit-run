@@ -26,9 +26,11 @@ interface Props {
   visible: boolean;
   message: string;
   onDismiss: () => void;
+  /** Custom icon node; defaults to CheckCertSvg (feedback success). */
+  icon?: React.ReactNode;
 }
 
-export default function FeedbackToast({ visible, message, onDismiss }: Props) {
+export default function FeedbackToast({ visible, message, onDismiss, icon }: Props) {
   const safeTop = useSafeTop();
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -69,7 +71,7 @@ export default function FeedbackToast({ visible, message, onDismiss }: Props) {
     >
       <BlurView intensity={10} tint="dark" style={styles.blur}>
         <View style={styles.row}>
-          <CheckCertSvg />
+          {icon ?? <CheckCertSvg />}
           <View style={{ width: 8 }} />
           <Text style={styles.text} allowFontScaling={false}>{message}</Text>
         </View>
