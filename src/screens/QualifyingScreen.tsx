@@ -31,6 +31,7 @@ import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { useSupabasePlans } from '../hooks/useSupabasePlans';
+import { useDevMode } from '../lib/devMode';
 import { generateIntervalPlan } from '../core/intervals';
 import { assignGrade } from '../lib/grading/calcGrade';
 import type { QualifyingResult } from '../types';
@@ -74,6 +75,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
+  const { isDevMode } = useDevMode();
   const [trialDistKm, setTrialDistKm] = useState(0);
   const gpsCoordsRef = useRef<LocationCoords | null>(null);
   const gpsSubRef = useRef<LocationSubscription | null>(null);
@@ -382,7 +384,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       </View>
 
       {/* Dev-only: finish button */}
-      {__DEV__ && isQualifying && (
+      {isDevMode && isQualifying && (
         <Pressable style={styles.devFinishBtn} onPress={finishOneKm}>
           <Text style={styles.devFinishTxt}>FINISH 1KM</Text>
         </Pressable>

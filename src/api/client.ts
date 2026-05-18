@@ -5,18 +5,35 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 // MMKV-backed storage adapter for Supabase Auth session persistence.
-// 앱 재시작 시 로그인 유지를 위해 필요.
-const authStorage = createMMKV({ id: 'supabase-auth' });
+// Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있어,
+// 첫 접근까지 초기화 지연 + try/catch로 silent fail 방지.
+let _authStorage: ReturnType<typeof createMMKV> | null = null;
+function getAuthStorage() {
+  if (!_authStorage) _authStorage = createMMKV({ id: 'supabase-auth' });
+  return _authStorage;
+}
 
 const mmkvStorageAdapter = {
   getItem: (key: string): string | null => {
-    return authStorage.getString(key) ?? null;
+    try {
+      return getAuthStorage().getString(key) ?? null;
+    } catch {
+      return null;
+    }
   },
   setItem: (key: string, value: string): void => {
-    authStorage.set(key, value);
+    try {
+      getAuthStorage().set(key, value);
+    } catch {
+      // ignore — session 저장 실패는 다음 로그인 시 재시도
+    }
   },
   removeItem: (key: string): void => {
-    authStorage.remove(key);
+    try {
+      getAuthStorage().remove(key);
+    } catch {
+      // ignore
+    }
   },
 };
 

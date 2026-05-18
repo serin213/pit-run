@@ -11,7 +11,12 @@ export type { QualifyingResult, UserProfile };
 
 // ─── MMKV persistence ───────────────────────────────────────────────────────
 
-const storage = createMMKV({ id: 'app-store' });
+// Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있음.
+let _storage: ReturnType<typeof createMMKV> | null = null;
+function getStorage() {
+  if (!_storage) _storage = createMMKV({ id: 'app-store' });
+  return _storage;
+}
 
 type PersistedState = {
   profile: UserProfile;
@@ -24,7 +29,7 @@ type PersistedState = {
 
 function loadPersisted(): Partial<PersistedState> {
   try {
-    const raw = storage.getString('state');
+    const raw = getStorage().getString('state');
     if (!raw) return {};
     return JSON.parse(raw) as Partial<PersistedState>;
   } catch {
@@ -34,7 +39,7 @@ function loadPersisted(): Partial<PersistedState> {
 
 function persist(state: PersistedState) {
   try {
-    storage.set('state', JSON.stringify(state));
+    getStorage().set('state', JSON.stringify(state));
   } catch {
     // storage write failure — ignore
   }

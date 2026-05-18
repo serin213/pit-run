@@ -21,6 +21,7 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { signIn } from '../platform/auth';
 import { openInAppBrowser } from '../platform/webBrowser';
 import { useAuthStore } from '../store/authStore';
+import { useDevMode } from '../lib/devMode';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -93,6 +94,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const { isAuthenticated } = useAuthStore();
+  const { isDevMode } = useDevMode();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -219,7 +221,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
       </View>
 
       {/* Dev-only: skip auth */}
-      {__DEV__ && (
+      {isDevMode && (
         <Pressable
           style={styles.devSkip}
           onPress={() => navigation.replace('ProfileSetup')}

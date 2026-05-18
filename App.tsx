@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
-import { StatusBar, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StatusBar, Text, View } from 'react-native';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -8,23 +9,48 @@ import { navigationRef, syncTabFromRoute } from './src/navigation/navigationRef'
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { flushPendingEvents } from './src/lib/analytics/raceEvents';
 
+const FONT_LOAD_TIMEOUT_MS = 5000;
+
 export default function App() {
   // 앱 시작 시 이전 세션에서 전송 못 한 analytics 이벤트 flush
   useEffect(() => {
     flushPendingEvents().catch(() => {});
   }, []);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Formula1-Black': require('./assets/fonts/Formula1-Black.ttf'),
     'Formula1-Bold': require('./assets/fonts/Formula1-Bold_web_0.ttf'),
     'Formula1-Regular': require('./assets/fonts/Formula1-Regular_web_0.ttf'),
     'Formula1-Italic': require('./assets/fonts/Formula1_Display-Italic_Italic.ttf'),
   });
 
-  if (!fontsLoaded) {
+  // 5초 안에 폰트 안 로드되면 강제 진행 (시스템 폰트 fallback)
+  const [forceProceed, setForceProceed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setForceProceed(true), FONT_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  const ready = fontsLoaded || forceProceed;
+
+  // React 트리가 마운트 되었으니 native splash 숨김
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [ready]);
+
+  if (!ready) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: '#17171C' }} />
+        <View style={{ flex: 1, backgroundColor: '#17171C', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ color: 'white', fontSize: 18, marginBottom: 16 }}>Loading...</Text>
+          {fontError && (
+            <Text style={{ color: '#FF6B6B', fontSize: 12, textAlign: 'center' }}>
+              Font Error: {String(fontError.message ?? fontError)}
+            </Text>
+          )}
+        </View>
       </SafeAreaProvider>
     );
   }

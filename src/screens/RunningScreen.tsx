@@ -25,6 +25,7 @@ import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
+import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
@@ -51,8 +52,6 @@ const STAT_VALUE_LINE_HEIGHT = 36;
 const CONTROL_BUTTON_SIZE = 76;
 const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
-const SHOW_DEBUG_SECTOR_SWITCH = true;
-const SHOW_DEBUG_CIRCUIT_SWITCH = __DEV__;
 const BOXBOX_ALERT_MS = 4000;
 const IN_PIT_DURATION_MS = 8000;
 const FULL_PUSH_ALERT_MS = 4000;
@@ -67,6 +66,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const profile = storeProfile;
   const { startSession } = useSupabaseSession();
   const { user } = useAuthStore();
+  const { isDevMode } = useDevMode();
   const onStop = useCallback(() => navigation.replace('Result'), [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
@@ -120,7 +120,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const [debugCircuitIdx, setDebugCircuitIdx] = useState(() =>
     Math.max(0, CIRCUITS.findIndex((c) => c.id === circuit?.id)),
   );
-  const activeCircuit = SHOW_DEBUG_CIRCUIT_SWITCH ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
+  const activeCircuit = isDevMode ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
   const autoFinishedRef = useRef(false);
   const handleFinalLap = useCallback(() => {
@@ -412,7 +412,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         />
       </View>
 
-      {SHOW_DEBUG_SECTOR_SWITCH && (
+      {isDevMode && (
         <View style={styles.debugToolsWrap}>
           <Pressable
             onPress={triggerBoxBox}
@@ -433,7 +433,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         </View>
       )}
 
-      {SHOW_DEBUG_CIRCUIT_SWITCH && (
+      {isDevMode && (
         <View style={styles.debugCircuitWrap}>
           <Pressable
             onPress={() => setDebugCircuitIdx((i) => (i - 1 + CIRCUITS.length) % CIRCUITS.length)}
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
   },
   debugToolsWrap: {
     position: 'absolute',
-    bottom: 130,
+    bottom: 170,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   },
   debugCircuitWrap: {
     position: 'absolute',
-    bottom: 120,
+    bottom: 130,
     left: 0,
     right: 0,
     flexDirection: 'row',

@@ -31,7 +31,6 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
-import { useRunStore } from '../store/runStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
@@ -295,7 +294,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const activityDates      = useAppStore((s) => s.activityDates);
   const qualifyingDates    = useAppStore((s) => s.qualifyingDates);
   const qualifyingResult   = useAppStore((s) => s.qualifyingResult);
-  const setQualifyingResult = useAppStore((s) => s.setQualifyingResult);
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
 
   const todayISO = useMemo(() => toISO(new Date()), []);
@@ -346,7 +344,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const [calExpanded, setCalExpanded] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [devTestActive, setDevTestActive] = useState(false);
   const [svgKey, setSvgKey] = useState(0);
   const calHeight = useSharedValue(CAL_H_WEEK);
   const calHeightStyle = useAnimatedStyle(() => ({ height: calHeight.value }));
@@ -400,32 +397,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
     fadeCalContent(() => setMonthOffset(newOffset));
   }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight, fadeCalContent]);
-
-  const toggleDevTest = useCallback(() => {
-    if (devTestActive) {
-      useAppStore.setState({ activityDates: [] });
-      setQualifyingResult(null);
-      setDevTestActive(false);
-    } else {
-      const today = new Date();
-      const dates: string[] = [];
-      [0, 1, 2, 4, 6].forEach((daysAgo) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - daysAgo);
-        dates.push(d.toISOString().slice(0, 10));
-      });
-      useAppStore.setState({ activityDates: dates });
-      setQualifyingResult({
-        warmupMinutes: 5,
-        oneKmMs: 300000,
-        paceSecPerKm: 300,
-        grade: 'f2',
-        nextIntervalHint: '4:50/km',
-        qualifiedAt: Date.now() - 31 * 24 * 60 * 60 * 1000, // 31일 전 → 갱신 카드 표시
-      });
-      setDevTestActive(true);
-    }
-  }, [devTestActive, setQualifyingResult]);
 
   // ── Race time: 퀄리파잉 pace 우선, 없으면 bestEver ────────────────────────
   const paceSec = useMemo(() => {
@@ -756,49 +727,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       )}
 
       </Animated.ScrollView>
-
-
-      {/* ── 데브 버튼 (달린 날 테스트 데이터 토글) ── */}
-      {__DEV__ && (
-        <View style={{ position: 'absolute', top: safeTop + 4, right: 8, flexDirection: 'row', gap: 6, zIndex: 100 }}>
-          {/* 결과 화면 미리보기 */}
-          <Pressable
-            onPress={() => {
-              // 완주 mock 데이터 주입
-              useRunStore.setState({
-                distKm: 5.14,
-                elapsedMs: 29 * 60 * 1000 + 14 * 1000, // 29'14"
-                paceHistory: [345, 330, 320, 358, 340],  // 5 sectors (1km each)
-                paceS: 341,
-              });
-              navigation.navigate('Result');
-            }}
-            style={{
-              backgroundColor: PALETTE.blue,
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>→RESULT</Text>
-          </Pressable>
-
-          {/* 활동 날짜 토글 */}
-          <Pressable
-            onPress={toggleDevTest}
-            style={{
-              backgroundColor: devTestActive ? PALETTE.red : '#444455',
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>
-              {devTestActive ? 'RESET' : 'DEV'}
-            </Text>
-          </Pressable>
-        </View>
-      )}
 
 
       <View
