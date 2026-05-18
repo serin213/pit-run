@@ -6,7 +6,6 @@ import { COLORS } from '../constants/colors';
 import { playSound, preloadSounds } from '../platform/audio';
 import { singleImpact } from '../platform/haptics';
 import {
-  isLiveActivitySupported,
   startLiveActivity,
   endLiveActivity,
   getCurrentActivityId,
@@ -62,13 +61,24 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
 
     // Start Live Activity NOW (while foreground) so it survives if the user
     // locks the screen during the countdown. RunningScreen will reuse this id.
-    if (isLiveActivitySupported()) {
+    // Gate 제거 — noop이라도 안전. 실패 원인을 콘솔에 surfacing해서 diagnose 가능하게.
+    {
       const { profile, selectedCircuitId } = useAppStore.getState();
       startLiveActivity(
         profile.displayName,
         profile.nameTagAccentColor,
         selectedCircuitId ?? 'shanghai',
-      ).catch(() => {});
+      )
+        .then((activityId) => {
+          if (!activityId) {
+            console.warn('[LA] startActivity returned null — native module not loaded or LA disabled in Settings');
+          } else {
+            console.log('[LA] activity started:', activityId);
+          }
+        })
+        .catch((e) => {
+          console.warn('[LA] startActivity error:', e);
+        });
     }
 
     (async () => {

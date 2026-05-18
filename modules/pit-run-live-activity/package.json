@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "ActivityKit Live Activity bridge for Pit Run",
   "main": "src/index.ts",
-  "files": [
-    "src",
-    "ios",
-    "expo-module.config.json"
-  ]
+  "types": "src/index.ts",
+  "private": true
 }

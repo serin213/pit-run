@@ -487,6 +487,10 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     // 홈 이동 + 데이터 저장을 즉시 실행, 시트 닫힘 애니메이션은 독립적으로 실행
     recordActivity();
     addDistance(distKm);
+    // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
+    if (statusLabel === 'FINISH' && circuitId) {
+      useAppStore.getState().recordCircuitRace(circuitId);
+    }
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
     const diff = selectedDiffRef.current;
@@ -642,10 +646,12 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   )}
                 </View>
 
-                {/* Summary text */}
-                <Text style={styles.summaryText}>
-                  {commentary.message}
-                </Text>
+                {/* Summary text — wrap in View opacity to avoid glyph alpha overlap */}
+                <View style={{ opacity: 0.5 }}>
+                  <Text style={styles.summaryText}>
+                    {commentary.message}
+                  </Text>
+                </View>
               </View>
 
               {/* Circuit result image — full width, anchored to bottom */}
@@ -1031,7 +1037,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
     letterSpacing: 24 * -0.01, // -1%
-    color: COLORS.text.secondary,
+    color: PALETTE.white,
     paddingRight: 20,
   },
   circuitWrap: {

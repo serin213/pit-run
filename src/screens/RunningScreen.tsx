@@ -67,7 +67,15 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { startSession } = useSupabaseSession();
   const { user } = useAuthStore();
   const { isDevMode } = useDevMode();
-  const onStop = useCallback(() => navigation.replace('Result'), [navigation]);
+  // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈. 적재(endSession 등) 자체를 건너뜀.
+  const onStop = useCallback(() => {
+    const currentDistKm = useRunStore.getState().distKm;
+    if (currentDistKm < 0.10) {
+      navigation.replace('Home');
+      return;
+    }
+    navigation.replace('Result');
+  }, [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
   // Supabase 세션 시작 (mount 시 1회)

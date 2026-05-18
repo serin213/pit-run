@@ -248,12 +248,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const executeRetire = () => {
-    // Supabase 세션 포기 기록
-    endSession({
-      status: 'abandoned',
-      total_dist_km: effectiveDistKm,
-      total_time_ms: trialElapsedMs,
-    }).catch(() => {});
+    // Retire = 1km 미완주 (1km 도달 시 자동 finish). 결과 적재 안 함:
+    // - endSession 호출 생략 (run_sessions에 abandoned 행 안 남김)
+    // - 분석 이벤트만 기록 (사용자 history와 무관)
     if (user?.id) {
       logQualifyingAbandoned({
         userId: user.id,

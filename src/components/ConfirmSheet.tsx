@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -33,6 +34,8 @@ interface ConfirmSheetProps {
  * 재사용 가능 확인 바텀시트.
  * QualifyingScreen retire / ProfileScreen delete account 둘 다 사용.
  * 외부에서 conditional render로 mount / unmount 제어.
+ *
+ * Modal로 감싸서 항상 TabBar 위에 렌더. dim 영역 탭 → onSecondary 콜백.
  */
 export default function ConfirmSheet({
   title,
@@ -85,64 +88,77 @@ export default function ConfirmSheet({
   };
 
   return (
-    <Animated.View
-      style={[StyleSheet.absoluteFill, styles.overlay, { opacity: overlayOpacity }]}
+    <Modal
+      transparent
+      animationType="none"
+      visible
+      statusBarTranslucent
+      onRequestClose={() => dismiss(onSecondary)}
     >
       <Animated.View
-        style={[
-          styles.card,
-          {
-            borderRadius: modalRadius,
-            transform: [{ translateY: slideAnim }],
-            backgroundColor: 'transparent',
-            overflow: 'hidden',
-          },
-        ]}
+        style={[StyleSheet.absoluteFill, styles.overlay, { opacity: overlayOpacity }]}
       >
-        <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: CARD_FILL }]} />
-
-        <Text
-          style={[styles.title, { paddingHorizontal: innerPad }]}
-          allowFontScaling={false}
+        {/* Dim 탭 → dismiss (secondary callback). Pressable이 카드 영역 아래에만 있도록 absoluteFill */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => dismiss(onSecondary)}
+        />
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              borderRadius: modalRadius,
+              transform: [{ translateY: slideAnim }],
+              backgroundColor: 'transparent',
+              overflow: 'hidden',
+            },
+          ]}
         >
-          {title}
-        </Text>
+          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: CARD_FILL }]} />
 
-        <Text
-          style={[styles.description, { paddingHorizontal: innerPad, marginTop: 24 }]}
-          allowFontScaling={false}
-        >
-          {description}
-        </Text>
-
-        <View style={[styles.btnsRow, { marginTop: 32 }]}>
-          <Pressable
-            onPress={() => dismiss(onSecondary)}
-            style={[styles.btn, styles.secondaryBtn, radius.sm]}
+          <Text
+            style={[styles.title, { paddingHorizontal: innerPad }]}
+            allowFontScaling={false}
           >
-            <Text
-              style={[styles.btnLabel, { color: PALETTE.white }]}
-              allowFontScaling={false}
-            >
-              {secondaryLabel}
-            </Text>
-          </Pressable>
+            {title}
+          </Text>
 
-          <Pressable
-            onPress={() => dismiss(onPrimary)}
-            style={[styles.btn, styles.primaryBtn, radius.sm]}
+          <Text
+            style={[styles.description, { paddingHorizontal: innerPad, marginTop: 24 }]}
+            allowFontScaling={false}
           >
-            <Text
-              style={[styles.btnLabel, { color: ACCENT }]}
-              allowFontScaling={false}
+            {description}
+          </Text>
+
+          <View style={[styles.btnsRow, { marginTop: 32 }]}>
+            <Pressable
+              onPress={() => dismiss(onSecondary)}
+              style={[styles.btn, styles.secondaryBtn, radius.sm]}
             >
-              {primaryLabel}
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[styles.btnLabel, { color: PALETTE.white }]}
+                allowFontScaling={false}
+              >
+                {secondaryLabel}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => dismiss(onPrimary)}
+              style={[styles.btn, styles.primaryBtn, radius.sm]}
+            >
+              <Text
+                style={[styles.btnLabel, { color: ACCENT }]}
+                allowFontScaling={false}
+              >
+                {primaryLabel}
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </Modal>
   );
 }
 

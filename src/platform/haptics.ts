@@ -16,14 +16,29 @@ import {
 } from 'expo-haptics';
 import PitRunHaptics from 'pit-run-haptics';
 
+let _hapticsDiagLogged = false;
 function coreHaptics() {
   if (Platform.OS !== 'ios') return null;
-  if (!PitRunHaptics) return null;
+  if (!PitRunHaptics) {
+    if (!_hapticsDiagLogged) {
+      _hapticsDiagLogged = true;
+      console.warn('[Haptics] PitRunHaptics native module is null — using expo-haptics fallback (no silent-mode bypass)');
+    }
+    return null;
+  }
   try {
     if (typeof PitRunHaptics.isSupported === 'function' && !PitRunHaptics.isSupported()) {
+      if (!_hapticsDiagLogged) {
+        _hapticsDiagLogged = true;
+        console.warn('[Haptics] PitRunHaptics.isSupported() returned false — using expo-haptics fallback');
+      }
       return null;
     }
-  } catch {
+  } catch (e) {
+    if (!_hapticsDiagLogged) {
+      _hapticsDiagLogged = true;
+      console.warn('[Haptics] isSupported check threw:', e);
+    }
     return null;
   }
   return PitRunHaptics;

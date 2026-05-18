@@ -295,7 +295,25 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const activityDates      = useAppStore((s) => s.activityDates);
   const qualifyingDates    = useAppStore((s) => s.qualifyingDates);
   const qualifyingResult   = useAppStore((s) => s.qualifyingResult);
-  const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
+  const lastRaceByCircuit  = useAppStore((s) => s.lastRaceByCircuit);
+  const setSelectedCircuitId = useAppStore((s) => s.setSelectedCircuitId);
+
+  // 추천 서킷: 최근 7일 안에 뛰지 않은 서킷 중 랜덤. 모두 뛴 상태면 전체 서킷 중 랜덤.
+  // useState 초기 lambda로 마운트 시 1회만 결정 (스크롤/리렌더에 안 바뀜).
+  const recommendedCircuit = useMemo(() => {
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const fresh = CIRCUITS.filter((c) => {
+      const last = lastRaceByCircuit[c.id];
+      return !last || (now - last) > SEVEN_DAYS_MS;
+    });
+    const pool = fresh.length > 0 ? fresh : CIRCUITS;
+    return pool[Math.floor(Math.random() * pool.length)];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastRaceByCircuit]);
+
+  // 홈 race 카드는 추천 서킷 사용. 다른 화면 (Setup 등) 은 selectedCircuitId 유지.
+  const circuit = recommendedCircuit ?? (CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0]);
 
   const todayISO = useMemo(() => toISO(new Date()), []);
   const activitySet = useMemo(() => new Set(activityDates), [activityDates]);
@@ -452,15 +470,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
 
   // 서킷 SVG — CIRCUIT_CARD_CONFIG로 visual size 정규화 (AllCircuitsScreen과 동일 패턴).
-  // featured 사이즈가 있으면 그것, 없으면 grid 사이즈를 featured 비율(346/167)로 확대.
-  // Figma 기준 featured 카드 폭 346 대비 home cardW로 scale.
+  // 홈 카드는 트랙을 2배 키워서 표시 (디자인 결정 — 카드가 크니까 트랙도 크게 보여야 함).
   const HOME_REF_W = 346;
+  const HOME_TRACK_SCALE = 2;
   const circuitVB = circuit.viewBox ?? { width: 286, height: 185 };
   const _cfg = CIRCUIT_CARD_CONFIG[circuit.id];
   const _featuredSize = _cfg
     ? (_cfg.featured ?? { svgW: _cfg.svgW * (346 / 167), svgH: _cfg.svgH * (346 / 167) })
     : null;
-  const _scaleHome = cardW / HOME_REF_W;
+  const _scaleHome = (cardW / HOME_REF_W) * HOME_TRACK_SCALE;
   const circuitW = _featuredSize
     ? Math.round(_featuredSize.svgW * _scaleHome)
     : cardW - 90;
@@ -609,10 +627,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             />
           </View>
 
-          {/* START 버튼: 서킷 bottom + 32px gap */}
+          {/* START 버튼: 서킷 bottom + 32px gap. 추천 서킷을 selectedCircuitId로 동기화 후 Countdown */}
           <StartButton
             posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
-            onPress={() => navigation.navigate('Countdown')}
+            onPress={() => {
+              setSelectedCircuitId(circuit.id);
+              navigation.navigate('Countdown');
+            }}
           />
           </GradientCardBorder>
         </Animated.View>

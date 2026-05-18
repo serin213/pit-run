@@ -25,6 +25,8 @@ type PersistedState = {
   totalDistanceKm: number;
   paceRecords: { bestEver: number; todayBest: number };
   notificationsEnabled: boolean;
+  /** circuitId → last raced timestamp (ms). 홈 추천 서킷 로테이션용. */
+  lastRaceByCircuit: Record<string, number>;
 };
 
 function loadPersisted(): Partial<PersistedState> {
@@ -95,6 +97,10 @@ interface AppState {
   /** 현재 RunningScreen에서 실행 중인 인터벌 프로그램. 비지속성(휘발). */
   activePlan: Program | null;
   setActivePlan: (plan: Program | null) => void;
+
+  /** circuitId → 마지막 완주 시각(ms). 홈 추천 서킷 로테이션용. */
+  lastRaceByCircuit: Record<string, number>;
+  recordCircuitRace: (circuitId: string) => void;
 }
 
 /** persist할 필드만 추출 */
@@ -106,6 +112,7 @@ function extractPersisted(state: AppState): PersistedState {
     totalDistanceKm: state.totalDistanceKm,
     paceRecords: state.paceRecords,
     notificationsEnabled: state.notificationsEnabled,
+    lastRaceByCircuit: state.lastRaceByCircuit,
   };
 }
 
@@ -170,4 +177,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   activePlan: null,
   setActivePlan: (plan) => set({ activePlan: plan }),
+
+  lastRaceByCircuit: saved.lastRaceByCircuit ?? {},
+  recordCircuitRace: (circuitId) => {
+    const lastRaceByCircuit = { ...get().lastRaceByCircuit, [circuitId]: Date.now() };
+    set({ lastRaceByCircuit });
+    persist(extractPersisted({ ...get(), lastRaceByCircuit }));
+  },
 }));
