@@ -22,6 +22,7 @@
       "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.security.application-groups": [
+          "group.com.pitrun.apps",
           "group.com.pitrun.apps"
         ]
       },
@@ -31,10 +32,13 @@
         "NSLocationWhenInUseUsageDescription": "달리는 동안 정확한 거리를 측정합니다.",
         "UIBackgroundModes": [
           "location",
+          "audio",
+          "location",
           "audio"
         ],
         "NSSupportsLiveActivities": true,
-        "NSSupportsLiveActivitiesFrequentUpdates": true
+        "NSSupportsLiveActivitiesFrequentUpdates": true,
+        "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.1"
     },
@@ -50,7 +54,15 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -75,6 +87,28 @@
       ],
       "expo-audio",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.pitrun.apps.liveactivity",
+                  "targetName": "PitRunLiveActivity",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.pitrun.apps"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "e0e2b2e6-7c79-44d0-9998-f371a45599e2"
+      }
+    }
   }
 }
