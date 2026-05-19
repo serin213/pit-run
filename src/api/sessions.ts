@@ -79,3 +79,12 @@ export async function completeSession(
   if (error) throw error;
   return data;
 }
+
+/** 세션 삭제 — 조기 종료 / retire 시 호출. RLS DELETE 정책 필요 (0006 마이그레이션). */
+export async function deleteSession(sessionId: string): Promise<void> {
+  const { error } = await supabase
+    .from('run_sessions')
+    .delete()
+    .eq('id', sessionId);
+  if (error) throw error;
+}

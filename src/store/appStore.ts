@@ -83,6 +83,8 @@ interface AppState {
 
   /** 퀄리파잉 세션이 있었던 날짜 목록. 비지속(서버 동기화). */
   qualifyingDates: string[];
+  /** 오늘 날짜를 qualifyingDates에 추가 (퀄리파잉 1km 완주 시 호출). */
+  recordQualifyingDateToday: () => void;
 
   totalDistanceKm: number;
   addDistance: (km: number) => void;
@@ -158,6 +160,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   qualifyingDates: [],
+  recordQualifyingDateToday: () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const iso = `${y}-${m}-${d}`;
+    const current = get().qualifyingDates;
+    if (current.includes(iso)) return;
+    set({ qualifyingDates: [...current, iso] });
+  },
 
   totalDistanceKm: saved.totalDistanceKm ?? 0,
   addDistance: (km) => {

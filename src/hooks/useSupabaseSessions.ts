@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import {
   insertSession,
   completeSession,
+  deleteSession,
   type SessionRow,
   type SessionType,
   type SessionStatus,
@@ -12,6 +13,10 @@ import { useAuthStore } from '../store/authStore';
 /**
  * 러닝 세션을 Supabase에 기록하는 훅.
  * 세션 시작 → 완료/포기 흐름을 관리.
+ *
+ * - startSession: 'started' 상태 행 생성 (activity_dates 업데이트 X)
+ * - endSession: 'completed' 상태로 업데이트 + activity_dates 갱신
+ * - discardSession: 행 자체를 DELETE — 안 뛴 걸로 취급. activity_dates 갱신 안 함.
  */
 export function useSupabaseSession() {
   const { isAuthenticated } = useAuthStore();
@@ -25,8 +30,6 @@ export function useSupabaseSession() {
         const row = await insertSession({ type, circuit_id: circuitId });
         setActiveSession(row);
         sessionIdRef.current = row.id;
-        // 오늘 활동 기록
-        recordActivityToday().catch(() => {});
         return row;
       } catch (e) {
         console.warn('[useSupabaseSession] start error:', e);
@@ -51,6 +54,8 @@ export function useSupabaseSession() {
         const row = await completeSession(id, fields);
         setActiveSession(null);
         sessionIdRef.current = null;
+        // 완주 시점에만 activity_dates 기록 (조기 종료/discard는 미기록)
+        recordActivityToday().catch(() => {});
         return row;
       } catch (e) {
         console.warn('[useSupabaseSession] end error:', e);
@@ -60,5 +65,19 @@ export function useSupabaseSession() {
     [isAuthenticated],
   );
 
-  return { activeSession, startSession, endSession };
+  /** 세션 행을 DB에서 삭제. 안 뛴 걸로 취급 — history에서 즉시 사라짐. */
+  const discardSession = useCallback(async () => {
+    const id = sessionIdRef.current;
+    if (!isAuthenticated || !id) return;
+    try {
+      await deleteSession(id);
+    } catch (e) {
+      console.warn('[useSupabaseSession] discard error:', e);
+    } finally {
+      setActiveSession(null);
+      sessionIdRef.current = null;
+    }
+  }, [isAuthenticated]);
+
+  return { activeSession, startSession, endSession, discardSession };
 }

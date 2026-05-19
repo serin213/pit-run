@@ -69,9 +69,9 @@ type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
 export default function QualifyingScreen({ navigation, route }: QualifyingScreenProps) {
   const skipIntro = route.params?.skipIntro ?? false;
-  const { setQualifyingResult } = useAppStore();
+  const { setQualifyingResult, recordQualifyingDateToday } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
-  const { startSession, endSession } = useSupabaseSession();
+  const { startSession, endSession, discardSession } = useSupabaseSession();
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
@@ -206,6 +206,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       qualifiedAt: Date.now(),
     };
     setQualifyingResult(result);
+    // 캘린더 pill / qual icon 즉시 반영 위해 로컬 qualifyingDates에 오늘 추가
+    recordQualifyingDateToday();
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
     saveResult({
       one_km_ms: oneKmMs,
@@ -248,9 +250,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const executeRetire = () => {
-    // Retire = 1km 미완주 (1km 도달 시 자동 finish). 결과 적재 안 함:
-    // - endSession 호출 생략 (run_sessions에 abandoned 행 안 남김)
+    // Retire = 1km 미완주. 결과 적재 안 함:
+    // - discardSession으로 run_sessions 행을 DB에서 DELETE → history에서 즉시 사라짐
     // - 분석 이벤트만 기록 (사용자 history와 무관)
+    discardSession().catch(() => {});
     if (user?.id) {
       logQualifyingAbandoned({
         userId: user.id,

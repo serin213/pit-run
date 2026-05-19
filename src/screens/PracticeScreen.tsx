@@ -23,7 +23,7 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
 
   const [isPaused, setIsPaused] = useState(false);
   const distKm = usePracticeDistance(isPaused);
-  const { startSession, endSession } = useSupabaseSession();
+  const { startSession, endSession, discardSession } = useSupabaseSession();
   const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
@@ -72,6 +72,12 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
         {isPaused ? (
           <>
             <Pressable onPress={() => {
+              if (distKm < 0.10) {
+                // 0.10km 미만은 DB 행을 삭제하고 result 화면도 안 띄우고 곧바로 Home으로.
+                discardSession().catch(() => {});
+                navigation.replace('Home');
+                return;
+              }
               endSession({
                 status: 'completed',
                 total_dist_km: distKm,

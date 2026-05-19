@@ -64,18 +64,20 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
-  const { startSession } = useSupabaseSession();
+  const { startSession, discardSession } = useSupabaseSession();
   const { user } = useAuthStore();
   const { isDevMode } = useDevMode();
-  // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈. 적재(endSession 등) 자체를 건너뜀.
+  // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈.
+  // run_sessions 행을 DELETE해서 history에서도 즉시 사라지게 (안 뛴 걸로 취급).
   const onStop = useCallback(() => {
     const currentDistKm = useRunStore.getState().distKm;
     if (currentDistKm < 0.10) {
+      discardSession().catch(() => {});
       navigation.replace('Home');
       return;
     }
     navigation.replace('Result');
-  }, [navigation]);
+  }, [navigation, discardSession]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
   // Supabase 세션 시작 (mount 시 1회)

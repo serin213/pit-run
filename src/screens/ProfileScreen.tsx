@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -37,6 +38,14 @@ const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
 const ARROW_PATH =
   'M1.5 1.5L7.71084 7.26721C8.1369 7.66284 8.1369 8.33716 7.71084 8.73279L1.5 14.5';
+
+const TROPHY_IMAGES: Record<string, ReturnType<typeof require>> = {
+  f1_champion: require('../../assets/qualifying/trophy/f1-champion.png'),
+  f1: require('../../assets/qualifying/trophy/f1.png'),
+  f1_rookie: require('../../assets/qualifying/trophy/f1-rookie.png'),
+  f2: require('../../assets/qualifying/trophy/f2.png'),
+  f3: require('../../assets/qualifying/trophy/f3.png'),
+};
 
 const APP_VERSION: string = (
   require('../../app.json') as { expo: { version: string } }
@@ -146,8 +155,13 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   );
 
   const profile                 = useAppStore((s) => s.profile);
+  const qualifyingResult        = useAppStore((s) => s.qualifyingResult);
   const notificationsEnabled    = useAppStore((s) => s.notificationsEnabled);
   const setNotificationsEnabled = useAppStore((s) => s.setNotificationsEnabled);
+
+  const trophySource = qualifyingResult
+    ? (TROPHY_IMAGES[qualifyingResult.grade] ?? null)
+    : null;
 
   const handleSignOut = () => {
     signOut().then(() => {
@@ -189,11 +203,16 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
+        {/* ── 1. 트로피(있을 때만) + 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
         <Pressable onPress={() => navigation.navigate('ProfileEdit')}>
-          <View style={{ marginTop: safeTop + 61, marginLeft: 20, marginRight: 20 }}>
-            <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
-            <Text style={styles.racerName}>{profile.displayName}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
+            {trophySource && (
+              <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
+            )}
+            <View style={{ marginLeft: trophySource ? 12 : 0 }}>
+              <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
+              <Text style={styles.racerName}>{profile.displayName}</Text>
+            </View>
           </View>
 
           {/* ── 2. 팀 SVG ── */}
