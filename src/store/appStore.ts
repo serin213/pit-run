@@ -11,7 +11,12 @@ export type { QualifyingResult, UserProfile };
 
 // ─── MMKV persistence ───────────────────────────────────────────────────────
 
-const storage = createMMKV({ id: 'app-store' });
+// Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있음.
+let _storage: ReturnType<typeof createMMKV> | null = null;
+function getStorage() {
+  if (!_storage) _storage = createMMKV({ id: 'app-store' });
+  return _storage;
+}
 
 type PersistedState = {
   profile: UserProfile;
@@ -20,11 +25,13 @@ type PersistedState = {
   totalDistanceKm: number;
   paceRecords: { bestEver: number; todayBest: number };
   notificationsEnabled: boolean;
+  /** circuitId → last raced timestamp (ms). 홈 추천 서킷 로테이션용. */
+  lastRaceByCircuit: Record<string, number>;
 };
 
 function loadPersisted(): Partial<PersistedState> {
   try {
-    const raw = storage.getString('state');
+    const raw = getStorage().getString('state');
     if (!raw) return {};
     return JSON.parse(raw) as Partial<PersistedState>;
   } catch {
@@ -34,7 +41,7 @@ function loadPersisted(): Partial<PersistedState> {
 
 function persist(state: PersistedState) {
   try {
-    storage.set('state', JSON.stringify(state));
+    getStorage().set('state', JSON.stringify(state));
   } catch {
     // storage write failure — ignore
   }
@@ -76,6 +83,8 @@ interface AppState {
 
   /** 퀄리파잉 세션이 있었던 날짜 목록. 비지속(서버 동기화). */
   qualifyingDates: string[];
+  /** 오늘 날짜를 qualifyingDates에 추가 (퀄리파잉 1km 완주 시 호출). */
+  recordQualifyingDateToday: () => void;
 
   totalDistanceKm: number;
   addDistance: (km: number) => void;
@@ -90,6 +99,10 @@ interface AppState {
   /** 현재 RunningScreen에서 실행 중인 인터벌 프로그램. 비지속성(휘발). */
   activePlan: Program | null;
   setActivePlan: (plan: Program | null) => void;
+
+  /** circuitId → 마지막 완주 시각(ms). 홈 추천 서킷 로테이션용. */
+  lastRaceByCircuit: Record<string, number>;
+  recordCircuitRace: (circuitId: string) => void;
 }
 
 /** persist할 필드만 추출 */
@@ -101,6 +114,7 @@ function extractPersisted(state: AppState): PersistedState {
     totalDistanceKm: state.totalDistanceKm,
     paceRecords: state.paceRecords,
     notificationsEnabled: state.notificationsEnabled,
+    lastRaceByCircuit: state.lastRaceByCircuit,
   };
 }
 
@@ -146,6 +160,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   qualifyingDates: [],
+  recordQualifyingDateToday: () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const iso = `${y}-${m}-${d}`;
+    const current = get().qualifyingDates;
+    if (current.includes(iso)) return;
+    set({ qualifyingDates: [...current, iso] });
+  },
 
   totalDistanceKm: saved.totalDistanceKm ?? 0,
   addDistance: (km) => {
@@ -165,4 +189,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   activePlan: null,
   setActivePlan: (plan) => set({ activePlan: plan }),
+
+  lastRaceByCircuit: saved.lastRaceByCircuit ?? {},
+  recordCircuitRace: (circuitId) => {
+    const lastRaceByCircuit = { ...get().lastRaceByCircuit, [circuitId]: Date.now() };
+    set({ lastRaceByCircuit });
+    persist(extractPersisted({ ...get(), lastRaceByCircuit }));
+  },
 }));

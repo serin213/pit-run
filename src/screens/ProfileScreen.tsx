@@ -1,6 +1,7 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   Image,
@@ -26,8 +27,10 @@ import { useTabBarTotalHeight } from '../components/TabBar';
 import { signOut } from '../platform/auth';
 import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
 import FeedbackToast from '../components/FeedbackToast';
+import ConfirmSheet from '../components/ConfirmSheet';
+import { deleteAccount } from '../api/account';
+import { clearAllStorage } from '../platform/storage';
 import type { ProfileScreenProps } from '../navigation/types';
-import { calcQualifyingRank } from '../lib/ranking/calcRank';
 
 const FEEDBACK_REDIRECT_SCHEME = 'pitrun://feedback-submitted';
 
@@ -157,22 +160,29 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const setNotificationsEnabled = useAppStore((s) => s.setNotificationsEnabled);
 
   const trophySource = qualifyingResult
-    ? (TROPHY_IMAGES[qualifyingResult.grade] ?? TROPHY_IMAGES.f3)
-    : TROPHY_IMAGES.f3;
-
-  const globalRankLabel = qualifyingResult
-    ? calcQualifyingRank({
-        userQualifyingPaceSec: qualifyingResult.paceSecPerKm,
-        userGrade: qualifyingResult.grade,
-        totalAppUserCount: 0,
-        userRankInGlobalPool: null,
-      }).globalRank.displayLabel
+    ? (TROPHY_IMAGES[qualifyingResult.grade] ?? null)
     : null;
 
   const handleSignOut = () => {
     signOut().then(() => {
       navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
     }).catch(() => {});
+  };
+
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteSheet(false);
+    try {
+      await deleteAccount();
+      clearAllStorage();
+      navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    } catch (e) {
+      Alert.alert(
+        'Deletion failed',
+        e instanceof Error ? e.message : 'Please try again later.',
+      );
+    }
   };
 
   const [feedbackToastVisible, setFeedbackToastVisible] = useState(false);
@@ -193,16 +203,15 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. 트로피 + 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
+        {/* ── 1. 트로피(있을 때만) + 레이서 정보 + 팀 SVG (탭 → 프로필 수정) ── */}
         <Pressable onPress={() => navigation.navigate('ProfileEdit')}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: safeTop + 61, marginLeft: 22, marginRight: 20 }}>
-            <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
-            <View style={{ marginLeft: 12 }}>
+            {trophySource && (
+              <Image source={trophySource} style={{ width: 40, height: 43, marginTop: -1 }} resizeMode="contain" />
+            )}
+            <View style={{ marginLeft: trophySource ? 12 : 0 }}>
               <Text style={styles.racerNumber}>#{profile.raceNumber}</Text>
               <Text style={styles.racerName}>{profile.displayName}</Text>
-              {globalRankLabel && (
-                <Text style={styles.racerRank}>{globalRankLabel}</Text>
-              )}
             </View>
           </View>
 
@@ -258,8 +267,23 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             <ChevronRight opacity={0.3} />
           </Pressable>
 
+          {/* Delete account */}
+          <Pressable
+            style={[styles.listRow, { marginTop: 24 }]}
+            onPress={() => setShowDeleteSheet(true)}
+          >
+            <Text style={[styles.listLabel, { color: 'rgba(255,255,255,0.4)' }]}>Delete account</Text>
+            <ChevronRight opacity={0.3} />
+          </Pressable>
+
           {/* Version */}
           <Text style={[styles.version, { marginTop: 24 }]}>Version {APP_VERSION}</Text>
+
+          {/* Disclaimer */}
+          <Text style={[styles.version, { marginTop: 12 }]}>
+            PIT RUN is not affiliated with Formula 1.{'\n'}
+            F1® is a trademark of Formula One Licensing BV.
+          </Text>
         </View>
       </ScrollView>
 
@@ -280,6 +304,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         message="Thank you for your feedback!"
         onDismiss={() => setFeedbackToastVisible(false)}
       />
+
+      {showDeleteSheet && (
+        <ConfirmSheet
+          title="End your career?"
+          description="This deletes your profile, grade, and all race history. There's no undo."
+          secondaryLabel="Stay"
+          primaryLabel="Delete"
+          onSecondary={() => setShowDeleteSheet(false)}
+          onPrimary={handleConfirmDelete}
+        />
+      )}
     </Animated.View>
   );
 }
@@ -304,15 +339,6 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 4,
-  },
-  racerRank: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: -0.02 * 13,
-    color: PALETTE.white,
-    opacity: 0.6,
-    marginTop: 2,
   },
   listRow: {
     height: 24,

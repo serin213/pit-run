@@ -1,10 +1,13 @@
 import ActivityKit
 import Foundation
 
+// IMPORTANT: 네이티브 모듈(modules/pit-run-live-activity/.../PitRunLiveActivityModule.swift)의
+// PitRunAttributes 정의와 **자료형 / 필드명 / 순서까지 정확히 일치**시켜야 함.
+// iOS Live Activity는 ActivityAttributes 타입을 reflection 기반으로 매칭하므로 미세한
+// 차이(typealias vs inline struct, public 수식자 유무)도 매칭 실패의 원인이 될 수 있음.
+// LockNormalView 등에서 사용하던 ContentState.PitRunState 참조도 ContentState로 통일.
 struct PitRunAttributes: ActivityAttributes {
-    public typealias ContentState = PitRunState
-
-    public struct PitRunState: Codable, Hashable {
+    struct ContentState: Codable, Hashable {
         var distKm: Double
         var elapsedMs: Int
         var paceS: Int

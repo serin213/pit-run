@@ -21,6 +21,8 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { signIn } from '../platform/auth';
 import { openInAppBrowser } from '../platform/webBrowser';
 import { useAuthStore } from '../store/authStore';
+import { useDevMode } from '../lib/devMode';
+import { fetchProfile } from '../api/profiles';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -93,11 +95,22 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const { isAuthenticated } = useAuthStore();
+  const { isDevMode } = useDevMode();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) navigation.replace('ProfileSetup');
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const profile = await fetchProfile();
+        const hasProfile = !!profile?.display_name;
+        navigation.replace(hasProfile ? 'Home' : 'ProfileSetup');
+      } catch {
+        // 프로필 조회 실패 시 안전하게 ProfileSetup으로
+        navigation.replace('ProfileSetup');
+      }
+    })();
   }, [isAuthenticated, navigation]);
 
   const handleSignIn = async (provider: 'apple' | 'google') => {
@@ -156,9 +169,11 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
         <View style={{ height: 8 }} />
         <TextLogoSvg width={176} />
         <View style={{ height: 16 }} />
-        <Text style={styles.subtitle} allowFontScaling={false}>
-          Lights out. Start running
-        </Text>
+        <View style={{ opacity: 0.5 }}>
+          <Text style={[styles.subtitle, { color: PALETTE.white }]} allowFontScaling={false}>
+            Lights out. Start running
+          </Text>
+        </View>
       </View>
 
       {/* Auth image — centered between subtitle and terms, fills device width */}
@@ -175,13 +190,17 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
         <Pressable style={styles.termsRow} onPress={() => openUrl(TERMS_URL)}>
           <CheckSvg />
           <View style={{ width: 10 }} />
-          <Text style={styles.termsText} allowFontScaling={false}>Terms of Service</Text>
+          <View style={{ opacity: 0.7 }}>
+            <Text style={styles.termsText} allowFontScaling={false}>Terms of Service</Text>
+          </View>
         </Pressable>
         <View style={{ height: 12 }} />
         <Pressable style={styles.termsRow} onPress={() => openUrl(PRIVACY_URL)}>
           <CheckSvg />
           <View style={{ width: 10 }} />
-          <Text style={styles.termsText} allowFontScaling={false}>Privacy Policy</Text>
+          <View style={{ opacity: 0.7 }}>
+            <Text style={styles.termsText} allowFontScaling={false}>Privacy Policy</Text>
+          </View>
         </Pressable>
         <View style={{ height: 24 }} />
 
@@ -219,7 +238,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
       </View>
 
       {/* Dev-only: skip auth */}
-      {__DEV__ && (
+      {isDevMode && (
         <Pressable
           style={styles.devSkip}
           onPress={() => navigation.replace('ProfileSetup')}
@@ -265,7 +284,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   termsText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: PALETTE.white,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     letterSpacing: 17 * -0.02,

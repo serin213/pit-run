@@ -453,31 +453,37 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                 if (!granted) return;
                 storeSetTire(selectedTire!);
                 storeSetCircuit(selectedCircuitId!);
-                // race_started 로그: buildProgram으로 프로그램 생성 후 기록
-                if (user?.id && qualifyingResult) {
-                  const circuitDef = CIRCUITS.find((c) => c.id === selectedCircuitId)!;
-                  const circuit = {
-                    id: circuitDef.id,
-                    baseIntervalM: circuitDef.baseIntervalM,
-                    baseReps: circuitDef.baseReps,
-                  };
-                  const appUser = {
-                    trainingBasePace: qualifyingResult.paceSecPerKm,
-                    grade: qualifyingResult.grade,
-                    totalSessionCount: 0,
-                  };
-                  const program = buildProgram(appUser, circuit, selectedTire! as Tire);
-                  useAppStore.getState().setActivePlan(program);
-                  logRaceStarted({
-                    userId: user.id,
-                    grade: qualifyingResult.grade,
-                    circuitId: selectedCircuitId!,
-                    tire: selectedTire! as Tire,
-                    cyclePhase: program.cyclePhase,
-                    program,
-                  }).then((eventId) => {
-                    useAppStore.getState().setCurrentRaceEventId(eventId);
-                  }).catch(() => {});
+                // race_started 로그: buildProgram으로 프로그램 생성 후 기록.
+                // 분석/로깅 실패가 navigation을 막으면 안 되므로 try/catch.
+                try {
+                  if (user?.id && qualifyingResult) {
+                    const circuitDef = CIRCUITS.find((c) => c.id === selectedCircuitId)!;
+                    const circuit = {
+                      id: circuitDef.id,
+                      baseIntervalM: circuitDef.baseIntervalM,
+                      baseReps: circuitDef.baseReps,
+                    };
+                    const appUser = {
+                      trainingBasePace: qualifyingResult.paceSecPerKm,
+                      grade: qualifyingResult.grade,
+                      totalSessionCount: 0,
+                    };
+                    const program = buildProgram(appUser, circuit, selectedTire! as Tire);
+                    useAppStore.getState().setActivePlan(program);
+                    logRaceStarted({
+                      userId: user.id,
+                      grade: qualifyingResult.grade,
+                      circuitId: selectedCircuitId!,
+                      tire: selectedTire! as Tire,
+                      cyclePhase: program.cyclePhase,
+                      program,
+                    }).then((eventId) => {
+                      useAppStore.getState().setCurrentRaceEventId(eventId);
+                    }).catch(() => {});
+                  }
+                } catch (e) {
+                  // 분석/프로그램 생성 실패해도 게임은 시작되어야 함
+                  console.warn('[Start] race setup error (non-blocking):', e);
                 }
                 navigation.navigate('Countdown');
               }}

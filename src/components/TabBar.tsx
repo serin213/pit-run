@@ -1,6 +1,7 @@
 import { PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useId, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useDevMode } from '../lib/devMode';
 import { BlurView } from '../platform/blur';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
@@ -56,6 +57,13 @@ export default function TabBar({ activeTab }: Props) {
   const safeBottom = useSafeBottom();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const gradId = useId();
+  const { isTester, toggle: toggleDevMode } = useDevMode();
+
+  const handleProfileLongPress = useCallback(() => {
+    if (!isTester) return;
+    toggleDevMode();
+    Alert.alert('Dev Mode', 'Toggled. UI will update with new state.');
+  }, [isTester, toggleDevMode]);
 
   const tabBarW = windowW - TAB_BAR_SIDE * 2;
   const tabBarBottom = safeBottom + TAB_BAR_BOTTOM_GAP;
@@ -212,7 +220,12 @@ export default function TabBar({ activeTab }: Props) {
       </Pressable>
 
       {/* user */}
-      <Pressable style={{ position: 'absolute', left: uL, top: iconTop }} onPress={() => navigateTo(3)}>
+      <Pressable
+        style={{ position: 'absolute', left: uL, top: iconTop }}
+        onPress={() => navigateTo(3)}
+        onLongPress={handleProfileLongPress}
+        delayLongPress={2000}
+      >
         <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
           <Path d={USER_P1} stroke={strokeColors[3]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
           <Path d={USER_P2} stroke={strokeColors[3]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />

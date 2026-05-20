@@ -25,8 +25,8 @@ import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
+import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
-import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
 import { doubleImpact, successLong } from '../platform/haptics';
@@ -51,8 +51,6 @@ const STAT_VALUE_LINE_HEIGHT = 36;
 const CONTROL_BUTTON_SIZE = 76;
 const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
-const SHOW_DEBUG_SECTOR_SWITCH = true;
-const SHOW_DEBUG_CIRCUIT_SWITCH = __DEV__;
 const BOXBOX_ALERT_MS = 4000;
 const IN_PIT_DURATION_MS = 8000;
 const FULL_PUSH_ALERT_MS = 4000;
@@ -65,16 +63,23 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
-  const { startSession } = useSupabaseSession();
+  // 시작 시점 INSERT 안 함. ResultScreen.handleConfirm에서 distKm >= 0.10일 때만 INSERT.
+  // started_at는 elapsedMs 역산으로 계산하므로 별도 ref 불필요.
+  // → <0.10km로 중단된 레이스는 DB에 row 자체가 안 만들어짐.
   const { user } = useAuthStore();
-  const onStop = useCallback(() => navigation.replace('Result'), [navigation]);
+  const { isDevMode } = useDevMode();
+  // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈.
+  // 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
+  const onStop = useCallback(() => {
+    const currentDistKm = useRunStore.getState().distKm;
+    if (currentDistKm < 0.10) {
+      navigation.replace('Home');
+      return;
+    }
+    navigation.replace('Result');
+  }, [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
-  // Supabase 세션 시작 (mount 시 1회)
-  useEffect(() => {
-    startSession('grand_prix', selectedCircuitId).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const { width: windowW, height: windowH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeTop = useSafeTop();
@@ -120,7 +125,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const [debugCircuitIdx, setDebugCircuitIdx] = useState(() =>
     Math.max(0, CIRCUITS.findIndex((c) => c.id === circuit?.id)),
   );
-  const activeCircuit = SHOW_DEBUG_CIRCUIT_SWITCH ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
+  const activeCircuit = isDevMode ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
   const autoFinishedRef = useRef(false);
   const handleFinalLap = useCallback(() => {
@@ -412,7 +417,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         />
       </View>
 
-      {SHOW_DEBUG_SECTOR_SWITCH && (
+      {isDevMode && (
         <View style={styles.debugToolsWrap}>
           <Pressable
             onPress={triggerBoxBox}
@@ -433,7 +438,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         </View>
       )}
 
-      {SHOW_DEBUG_CIRCUIT_SWITCH && (
+      {isDevMode && (
         <View style={styles.debugCircuitWrap}>
           <Pressable
             onPress={() => setDebugCircuitIdx((i) => (i - 1 + CIRCUITS.length) % CIRCUITS.length)}
@@ -561,7 +566,7 @@ const styles = StyleSheet.create({
   },
   debugToolsWrap: {
     position: 'absolute',
-    bottom: 130,
+    bottom: 170,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -572,7 +577,7 @@ const styles = StyleSheet.create({
   },
   debugCircuitWrap: {
     position: 'absolute',
-    bottom: 120,
+    bottom: 130,
     left: 0,
     right: 0,
     flexDirection: 'row',

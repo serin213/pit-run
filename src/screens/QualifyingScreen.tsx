@@ -1,6 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { BlurView } from '../platform/blur';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
@@ -23,7 +22,7 @@ import Svg, {
 
 import GradientCtaButton from '../components/GradientCtaButton';
 import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
-import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
+import GradientCardBorder from '../components/GradientCardBorder';
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
@@ -31,11 +30,13 @@ import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { useSupabasePlans } from '../hooks/useSupabasePlans';
+import { useDevMode } from '../lib/devMode';
 import { generateIntervalPlan } from '../core/intervals';
 import { assignGrade } from '../lib/grading/calcGrade';
 import type { QualifyingResult } from '../types';
 import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
+import ConfirmSheet from '../components/ConfirmSheet';
 import {
   requestForegroundPermission,
   watchPosition,
@@ -68,12 +69,16 @@ type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
 export default function QualifyingScreen({ navigation, route }: QualifyingScreenProps) {
   const skipIntro = route.params?.skipIntro ?? false;
-  const { setQualifyingResult } = useAppStore();
+  const { setQualifyingResult, recordQualifyingDateToday } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
-  const { startSession, endSession } = useSupabaseSession();
+  const { saveCompletedSession } = useSupabaseSession();
+  // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
+  // Retire는 DB와 무관하게 화면만 닫힘.
+  const qualifyingStartedAtRef = useRef<string | null>(null);
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
+  const { isDevMode } = useDevMode();
   const [trialDistKm, setTrialDistKm] = useState(0);
   const gpsCoordsRef = useRef<LocationCoords | null>(null);
   const gpsSubRef = useRef<LocationSubscription | null>(null);
@@ -177,8 +182,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setTrialStartedAt(null);
     setTrialElapsedMs(0);
     setPhase('warmup');
-    // Supabase 세션 시작 (비동기, 실패해도 진행)
-    startSession('qualifying').catch(() => {});
+    // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
+    qualifyingStartedAtRef.current = new Date().toISOString();
   };
 
   const skipToQualifying = () => {
@@ -204,6 +209,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       qualifiedAt: Date.now(),
     };
     setQualifyingResult(result);
+    // 캘린더 pill / qual icon 즉시 반영 위해 로컬 qualifyingDates에 오늘 추가
+    recordQualifyingDateToday();
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
     saveResult({
       one_km_ms: oneKmMs,
@@ -220,12 +227,16 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         }).catch(() => {});
       })
       .catch(() => {});
-    endSession({
-      status: 'completed',
+    // 1km GPS 완주가 확정된 이 시점에만 run_sessions 행 INSERT.
+    // started_at는 startWarmup 시점에 캡쳐했던 ISO를 그대로 사용 (없으면 now).
+    saveCompletedSession({
+      type: 'qualifying',
+      started_at: qualifyingStartedAtRef.current ?? new Date().toISOString(),
       total_dist_km: 1,
       total_time_ms: oneKmMs,
       avg_pace_sec_per_km: result.paceSecPerKm,
     }).catch(() => {});
+    qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingCompleted({
         userId: user.id,
@@ -246,12 +257,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const executeRetire = () => {
-    // Supabase 세션 포기 기록
-    endSession({
-      status: 'abandoned',
-      total_dist_km: effectiveDistKm,
-      total_time_ms: trialElapsedMs,
-    }).catch(() => {});
+    // Retire = 1km 미완주. 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
+    // history/DB 모두 무관 — 분석 이벤트만 기록.
+    qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingAbandoned({
         userId: user.id,
@@ -382,7 +390,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       </View>
 
       {/* Dev-only: finish button */}
-      {__DEV__ && isQualifying && (
+      {isDevMode && isQualifying && (
         <Pressable style={styles.devFinishBtn} onPress={finishOneKm}>
           <Text style={styles.devFinishTxt}>FINISH 1KM</Text>
         </Pressable>
@@ -390,9 +398,13 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 
       {/* Retire confirm overlay */}
       {showRetireConfirm && (
-        <RetireConfirmOverlay
-          onRetire={executeRetire}
-          onContinue={cancelRetire}
+        <ConfirmSheet
+          title="Are you sure?"
+          description="Your session will not be saved and you'll need to restart qualifying"
+          secondaryLabel="Continue"
+          primaryLabel="Retire"
+          onSecondary={cancelRetire}
+          onPrimary={executeRetire}
         />
       )}
     </View>
@@ -531,101 +543,6 @@ function StepCard({
         </Text>
       </View>
     </GradientCardBorder>
-  );
-}
-
-type RetireConfirmProps = {
-  onRetire: () => void;
-  onContinue: () => void;
-};
-
-function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
-  const modalRadius = 24;
-  const innerPad = 28;
-
-  // Animation: slide up from bottom on mount, slide down on dismiss
-  const slideAnim = useRef(new Animated.Value(400)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(overlayOpacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 22,
-        stiffness: 220,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const dismiss = (callback: () => void) => {
-    Animated.parallel([
-      Animated.timing(overlayOpacity, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 400,
-        duration: 260,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) callback();
-    });
-  };
-
-  return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.retireOverlay, { opacity: overlayOpacity }]}>
-      <Animated.View
-        style={[
-          styles.retireCard,
-          { borderRadius: modalRadius, transform: [{ translateY: slideAnim }], backgroundColor: 'transparent', overflow: 'hidden' },
-        ]}
-      >
-        <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: CARD_FILL }]} />
-        {/* Title — paddingTop:32 은 retireCard에 */}
-        <Text style={[styles.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
-          Are you sure?
-        </Text>
-
-        {/* Description — title↔body: 24 */}
-        <Text style={[styles.retireDescText, { paddingHorizontal: innerPad, marginTop: 24 }]} allowFontScaling={false}>
-          Your session will not be saved and you'll need to restart qualifying
-        </Text>
-
-        {/* Buttons row — body↔buttons: 32 */}
-        <View style={[styles.retireBtnsRow, { marginTop: 32 }]}>
-          {/* Continue (left) */}
-          <Pressable
-            onPress={() => dismiss(onContinue)}
-            style={[styles.retireBtn, styles.retireContinueBtn, radius.sm]}
-          >
-            <Text style={[styles.retireBtnLabel, { color: PALETTE.white }]} allowFontScaling={false}>
-              Continue
-            </Text>
-          </Pressable>
-
-          {/* Retire (right) */}
-          <Pressable
-            onPress={() => dismiss(onRetire)}
-            style={[styles.retireBtn, styles.retireRetireBtn, radius.sm]}
-          >
-            <Text style={[styles.retireBtnLabel, { color: ACCENT }]} allowFontScaling={false}>
-              Retire
-            </Text>
-          </Pressable>
-        </View>
-      </Animated.View>
-    </Animated.View>
   );
 }
 
@@ -792,59 +709,4 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Retire confirm ──
-  retireOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  retireCard: {
-    backgroundColor: '#202028',
-    marginHorizontal: 20,
-    marginBottom: 26,
-    paddingTop: 32,
-    paddingBottom: 20,
-  },
-  retireTitleText: {
-    color: PALETTE.white,
-    fontFamily: 'Formula1-Regular',
-    fontStyle: 'italic',
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.3,
-    includeFontPadding: false,
-  },
-  retireDescText: {
-    color: PALETTE.white,
-    opacity: 0.5,
-    fontFamily: 'Formula1-Regular',
-    fontStyle: 'italic',
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: -0.2,
-    includeFontPadding: false,
-  },
-  retireBtnsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 20,
-  },
-  retireBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  retireContinueBtn: {
-    backgroundColor: '#34343F',
-  },
-  retireRetireBtn: {
-    backgroundColor: 'rgba(224,58,62,0.3)',
-  },
-  retireBtnLabel: {
-    fontFamily: 'Formula1-Bold',
-    fontSize: 22,
-    letterSpacing: -0.22,
-    includeFontPadding: false,
-  },
 });

@@ -572,10 +572,10 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false)
-    PitRunAttributes.PitRunState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
 }
 
 @available(iOS 18.0, *)
@@ -584,7 +584,7 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false)
 }
 
 @available(iOS 18.0, *)
@@ -593,5 +593,5 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.PitRunState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none", prog: 0.60, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none", prog: 0.60, isPaused: false)
 }

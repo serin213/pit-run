@@ -72,6 +72,18 @@ export async function playSound(key: SoundKey): Promise<void> {
   } catch {}
 }
 
+/** Stop a sound mid-playback (e.g., user skipped countdown). */
+export function stopSound(key: SoundKey): void {
+  const p = players[key];
+  if (!p) return;
+  try {
+    p.pause();
+  } catch {}
+  try {
+    p.seekTo(0);
+  } catch {}
+}
+
 /** Release all loaded players. Call on app teardown. */
 export function unloadAllSounds(): void {
   (Object.keys(players) as SoundKey[]).forEach((k) => {

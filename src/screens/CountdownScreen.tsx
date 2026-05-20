@@ -3,10 +3,9 @@ import { Animated, Image, StyleSheet, View, useWindowDimensions } from 'react-na
 import { Asset } from 'expo-asset';
 import TextChevronButton from '../components/TextChevronButton';
 import { COLORS } from '../constants/colors';
-import { playSound, preloadSounds } from '../platform/audio';
+import { playSound, preloadSounds, stopSound } from '../platform/audio';
 import { singleImpact } from '../platform/haptics';
 import {
-  isLiveActivitySupported,
   startLiveActivity,
   endLiveActivity,
   getCurrentActivityId,
@@ -51,6 +50,10 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
     if (finishCalledRef.current) return;
     finishCalledRef.current = true;
     clearAllTimers();
+    // Skip 누른 경우 재생 중인 카운트다운 사운드 즉시 중단.
+    // 햅틱은 scheduleAt 타이머에 들어있어서 clearAllTimers로 미리 발화 안 한 건 차단됨
+    // (이미 발화된 1.5s 진동은 자연 종료까지 ~1초 남음 — 수용 가능).
+    stopSound('countdown');
     onFinish();
   }, [onFinish, clearAllTimers]);
 
@@ -62,7 +65,8 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
 
     // Start Live Activity NOW (while foreground) so it survives if the user
     // locks the screen during the countdown. RunningScreen will reuse this id.
-    if (isLiveActivitySupported()) {
+    // Gate 제거 — noop이라도 안전. 실패 원인을 콘솔에 surfacing해서 diagnose 가능하게.
+    {
       const { profile, selectedCircuitId } = useAppStore.getState();
       if (__DEV__) {
         console.log('[Countdown] LA start (foreground)', {
@@ -76,14 +80,16 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
         profile.nameTagAccentColor,
         selectedCircuitId ?? 'shanghai',
       )
-        .then(id => {
-          if (__DEV__) console.log('[Countdown] LA started, id =', id);
+        .then((activityId) => {
+          if (!activityId) {
+            console.warn('[Countdown] LA startActivity returned null — native module not loaded or LA disabled in Settings');
+          } else if (__DEV__) {
+            console.log('[Countdown] LA started, id =', activityId);
+          }
         })
-        .catch(e => {
+        .catch((e) => {
           console.warn('[Countdown] LA start failed', e);
         });
-    } else if (__DEV__) {
-      console.warn('[Countdown] LA not supported in this environment');
     }
 
     (async () => {

@@ -7,5 +7,6 @@ const FALLBACK_STATUS_H = 59;
 
 export function useSafeTop(): number {
   const insets = useSafeAreaInsets();
-  return insets.top > 0 ? insets.top : FALLBACK_STATUS_H;
+  const raw = insets.top > 0 ? insets.top : FALLBACK_STATUS_H;
+  return Math.round((raw * 2) / 3);
 }

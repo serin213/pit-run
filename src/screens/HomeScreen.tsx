@@ -31,9 +31,9 @@ import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from '../store/appStore';
-import { useRunStore } from '../store/runStore';
 import TireIcon from '../components/TireIcon';
 import CircuitMini from '../components/CircuitMini';
+import { CIRCUIT_CARD_CONFIG } from '../config/circuitCardConfig';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { HomeScreenProps } from '../navigation/types';
@@ -295,8 +295,25 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const activityDates      = useAppStore((s) => s.activityDates);
   const qualifyingDates    = useAppStore((s) => s.qualifyingDates);
   const qualifyingResult   = useAppStore((s) => s.qualifyingResult);
-  const setQualifyingResult = useAppStore((s) => s.setQualifyingResult);
-  const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
+  const lastRaceByCircuit  = useAppStore((s) => s.lastRaceByCircuit);
+  const setSelectedCircuitId = useAppStore((s) => s.setSelectedCircuitId);
+
+  // 추천 서킷: 최근 7일 안에 뛰지 않은 서킷 중 랜덤. 모두 뛴 상태면 전체 서킷 중 랜덤.
+  // useState 초기 lambda로 마운트 시 1회만 결정 (스크롤/리렌더에 안 바뀜).
+  const recommendedCircuit = useMemo(() => {
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const fresh = CIRCUITS.filter((c) => {
+      const last = lastRaceByCircuit[c.id];
+      return !last || (now - last) > SEVEN_DAYS_MS;
+    });
+    const pool = fresh.length > 0 ? fresh : CIRCUITS;
+    return pool[Math.floor(Math.random() * pool.length)];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastRaceByCircuit]);
+
+  // 홈 race 카드는 추천 서킷 사용. 다른 화면 (Setup 등) 은 selectedCircuitId 유지.
+  const circuit = recommendedCircuit ?? (CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0]);
 
   const todayISO = useMemo(() => toISO(new Date()), []);
   const activitySet = useMemo(() => new Set(activityDates), [activityDates]);
@@ -314,7 +331,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       (async () => {
         const sessions = await loadSessions(100);
         if (cancelled) return;
-        const completed = sessions.filter((s) => s.status === 'completed');
+        // 주간/월간 거리는 grand_prix(레이스)만 집계.
+        // 퀄리파잉은 항상 total_dist_km=1로 저장되지만 history 카드에는 거리 대신
+        // 페이스/등급만 표시되므로, 합산에 포함하면 "기록이 다 0km인데 1km로 뜬다"는
+        // 사용자 혼란을 유발. 0.10km 미만은 옛 NULL/짧은 행 방어.
+        const completed = sessions.filter(
+          (s) =>
+            s.status === 'completed' &&
+            s.type === 'grand_prix' &&
+            (s.total_dist_km ?? 0) >= 0.10,
+        );
 
         const now = new Date();
         const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -346,7 +372,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const [calExpanded, setCalExpanded] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [devTestActive, setDevTestActive] = useState(false);
   const [svgKey, setSvgKey] = useState(0);
   const calHeight = useSharedValue(CAL_H_WEEK);
   const calHeightStyle = useAnimatedStyle(() => ({ height: calHeight.value }));
@@ -401,32 +426,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     fadeCalContent(() => setMonthOffset(newOffset));
   }, [monthOffset, calExpanded, calMonthHeight, animateCalHeight, fadeCalContent]);
 
-  const toggleDevTest = useCallback(() => {
-    if (devTestActive) {
-      useAppStore.setState({ activityDates: [] });
-      setQualifyingResult(null);
-      setDevTestActive(false);
-    } else {
-      const today = new Date();
-      const dates: string[] = [];
-      [0, 1, 2, 4, 6].forEach((daysAgo) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - daysAgo);
-        dates.push(d.toISOString().slice(0, 10));
-      });
-      useAppStore.setState({ activityDates: dates });
-      setQualifyingResult({
-        warmupMinutes: 5,
-        oneKmMs: 300000,
-        paceSecPerKm: 300,
-        grade: 'f2',
-        nextIntervalHint: '4:50/km',
-        qualifiedAt: Date.now() - 31 * 24 * 60 * 60 * 1000, // 31일 전 → 갱신 카드 표시
-      });
-      setDevTestActive(true);
-    }
-  }, [devTestActive, setQualifyingResult]);
-
   // ── Race time: 퀄리파잉 pace 우선, 없으면 bestEver ────────────────────────
   const paceSec = useMemo(() => {
     if (qualifyingResult) return qualifyingResult.paceSecPerKm;
@@ -479,11 +478,23 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
 
-  // 서킷 SVG — 가로 fill, 비율 유지해서 높이 자동 계산
-  const circuitSvgLeft = 45; // 카드 내 좌우 45px 마진
-  const circuitW = cardW - 90; // fill: cardW - (45 × 2)
+  // 서킷 SVG — CIRCUIT_CARD_CONFIG로 visual size 정규화 (AllCircuitsScreen과 동일 패턴).
+  // 홈 카드는 트랙을 2배 키워서 표시 (디자인 결정 — 카드가 크니까 트랙도 크게 보여야 함).
+  const HOME_REF_W = 346;
+  const HOME_TRACK_SCALE = 2;
   const circuitVB = circuit.viewBox ?? { width: 286, height: 185 };
-  const circuitH = Math.round(circuitW * circuitVB.height / circuitVB.width);
+  const _cfg = CIRCUIT_CARD_CONFIG[circuit.id];
+  const _featuredSize = _cfg
+    ? (_cfg.featured ?? { svgW: _cfg.svgW * (346 / 167), svgH: _cfg.svgH * (346 / 167) })
+    : null;
+  const _scaleHome = (cardW / HOME_REF_W) * HOME_TRACK_SCALE;
+  const circuitW = _featuredSize
+    ? Math.round(_featuredSize.svgW * _scaleHome)
+    : cardW - 90;
+  const circuitH = _featuredSize
+    ? Math.round(_featuredSize.svgH * _scaleHome)
+    : Math.round((cardW - 90) * circuitVB.height / circuitVB.width);
+  const circuitSvgLeft = Math.round((cardW - circuitW) / 2);
 
   // TireIcon bottom(246+41=287) + 28px gap = 315
   const CIRCUIT_TOP_IN_CARD = 315;
@@ -625,10 +636,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             />
           </View>
 
-          {/* START 버튼: 서킷 bottom + 32px gap */}
+          {/* START 버튼: 서킷 bottom + 32px gap. 추천 서킷을 selectedCircuitId로 동기화 후 Countdown */}
           <StartButton
             posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
-            onPress={() => navigation.navigate('Countdown')}
+            onPress={() => {
+              setSelectedCircuitId(circuit.id);
+              navigation.navigate('Countdown');
+            }}
           />
           </GradientCardBorder>
         </Animated.View>
@@ -756,49 +770,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       )}
 
       </Animated.ScrollView>
-
-
-      {/* ── 데브 버튼 (달린 날 테스트 데이터 토글) ── */}
-      {__DEV__ && (
-        <View style={{ position: 'absolute', top: safeTop + 4, right: 8, flexDirection: 'row', gap: 6, zIndex: 100 }}>
-          {/* 결과 화면 미리보기 */}
-          <Pressable
-            onPress={() => {
-              // 완주 mock 데이터 주입
-              useRunStore.setState({
-                distKm: 5.14,
-                elapsedMs: 29 * 60 * 1000 + 14 * 1000, // 29'14"
-                paceHistory: [345, 330, 320, 358, 340],  // 5 sectors (1km each)
-                paceS: 341,
-              });
-              navigation.navigate('Result');
-            }}
-            style={{
-              backgroundColor: PALETTE.blue,
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>→RESULT</Text>
-          </Pressable>
-
-          {/* 활동 날짜 토글 */}
-          <Pressable
-            onPress={toggleDevTest}
-            style={{
-              backgroundColor: devTestActive ? PALETTE.red : '#444455',
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: 'Formula1-Bold' }}>
-              {devTestActive ? 'RESET' : 'DEV'}
-            </Text>
-          </Pressable>
-        </View>
-      )}
 
 
       <View

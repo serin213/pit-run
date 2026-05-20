@@ -160,7 +160,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     activityDates,
     activePlan,
   } = useAppStore();
-  const { endSession }  = useSupabaseSession();
+  const { saveCompletedSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
   const { sessions, load: loadSessions } = useSessionHistory();
   const [sessionsReady, setSessionsReady] = useState(false);
@@ -484,22 +484,38 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       navigation.goBack();
       return;
     }
-    // 홈 이동 + 데이터 저장을 즉시 실행, 시트 닫힘 애니메이션은 독립적으로 실행
-    recordActivity();
-    addDistance(distKm);
+    // 0.10km 미만은 기록에 안 남김 — DB INSERT / 누적거리 / activity_dates 전부 스킵.
+    // 자동 완주(handleAutoFinish)는 항상 distKm 충분하므로 영향 없음.
+    const isValidRace = distKm >= 0.10;
+
+    if (isValidRace) {
+      recordActivity();
+      addDistance(distKm);
+    }
+    // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
+    if (isValidRace && statusLabel === 'FINISH' && circuitId) {
+      useAppStore.getState().recordCircuitRace(circuitId);
+    }
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
     const diff = selectedDiffRef.current;
-    const saves: Promise<unknown>[] = [
-      endSession({
-        status: 'completed',
-        total_dist_km: distKm,
-        total_time_ms: elapsedMs,
-        avg_pace_sec_per_km: avgPace,
-        best_pace_sec_per_km: bestPace,
-        payload: diff ? { difficulty: diff } : undefined,
-      }),
-    ];
+    // started_at은 elapsedMs로 역산 — 별도 ref 전달 없이도 정확.
+    const startedAtIso = new Date(Date.now() - elapsedMs).toISOString();
+    const saves: Promise<unknown>[] = [];
+    if (isValidRace) {
+      saves.push(
+        saveCompletedSession({
+          type: 'grand_prix',
+          circuit_id: circuitId,
+          started_at: startedAtIso,
+          total_dist_km: distKm,
+          total_time_ms: elapsedMs,
+          avg_pace_sec_per_km: avgPace,
+          best_pace_sec_per_km: bestPace,
+          payload: diff ? { difficulty: diff } : undefined,
+        }),
+      );
+    }
     if (user?.id && currentRaceEventId) {
       // retire 시점까지 실제로 통과한 인터벌 횟수 계산
       const activePlan = useAppStore.getState().activePlan;
@@ -531,7 +547,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     });
   }, [
     isHistoryMode, sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
-    paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
+    paceHistory, saveCompletedSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
+    circuitId, statusLabel,
   ]);
 
   const handleDiffSelect = useCallback((id: string) => {
@@ -642,10 +659,12 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   )}
                 </View>
 
-                {/* Summary text */}
-                <Text style={styles.summaryText}>
-                  {commentary.message}
-                </Text>
+                {/* Summary text — wrap in View opacity to avoid glyph alpha overlap */}
+                <View style={{ opacity: 0.5 }}>
+                  <Text style={styles.summaryText}>
+                    {commentary.message}
+                  </Text>
+                </View>
               </View>
 
               {/* Circuit result image — full width, anchored to bottom */}
@@ -737,9 +756,11 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                                 <View style={{ width: 10 }} />
                               </>
                             )}
-                            <Text style={styles.tooltipPace}>
-                              {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
-                            </Text>
+                            <View style={{ opacity: 0.7 }}>
+                              <Text style={styles.tooltipPace}>
+                                {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
+                              </Text>
+                            </View>
                           </View>
                           {/* Tail — same color as bubble */}
                           <Svg width={14} height={10} viewBox="0 0 14 10">
@@ -845,9 +866,11 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                       onPress={() => setSelectedSector(i)}
                       hitSlop={4}
                     >
-                      <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
-                        S{i + 1}
-                      </Text>
+                      <View style={{ opacity: 0.5 }}>
+                        <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
+                          S{i + 1}
+                        </Text>
+                      </View>
                     </Pressable>
                   ))}
                 </View>
@@ -1027,7 +1050,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
     letterSpacing: 24 * -0.01, // -1%
-    color: COLORS.text.secondary,
+    color: PALETTE.white,
     paddingRight: 20,
   },
   circuitWrap: {
@@ -1127,7 +1150,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     fontStyle: 'italic',
     color: PALETTE.white,
-    opacity: 0.7,
   },
 
   // Bar columns + line overlay container
@@ -1163,7 +1185,6 @@ const styles = StyleSheet.create({
   sectorLabel: {
     fontFamily: 'Formula1-Regular',
     fontSize: 14,
-    opacity: 0.5,
   },
 
   // ── CTA ──

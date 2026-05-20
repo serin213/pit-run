@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import {
   insertSession,
   completeSession,
+  deleteSession,
+  insertCompletedSession,
   type SessionRow,
   type SessionType,
   type SessionStatus,
@@ -12,6 +14,10 @@ import { useAuthStore } from '../store/authStore';
 /**
  * 러닝 세션을 Supabase에 기록하는 훅.
  * 세션 시작 → 완료/포기 흐름을 관리.
+ *
+ * - startSession: 'started' 상태 행 생성 (activity_dates 업데이트 X)
+ * - endSession: 'completed' 상태로 업데이트 + activity_dates 갱신
+ * - discardSession: 행 자체를 DELETE — 안 뛴 걸로 취급. activity_dates 갱신 안 함.
  */
 export function useSupabaseSession() {
   const { isAuthenticated } = useAuthStore();
@@ -25,8 +31,6 @@ export function useSupabaseSession() {
         const row = await insertSession({ type, circuit_id: circuitId });
         setActiveSession(row);
         sessionIdRef.current = row.id;
-        // 오늘 활동 기록
-        recordActivityToday().catch(() => {});
         return row;
       } catch (e) {
         console.warn('[useSupabaseSession] start error:', e);
@@ -51,6 +55,8 @@ export function useSupabaseSession() {
         const row = await completeSession(id, fields);
         setActiveSession(null);
         sessionIdRef.current = null;
+        // 완주 시점에만 activity_dates 기록 (조기 종료/discard는 미기록)
+        recordActivityToday().catch(() => {});
         return row;
       } catch (e) {
         console.warn('[useSupabaseSession] end error:', e);
@@ -60,5 +66,48 @@ export function useSupabaseSession() {
     [isAuthenticated],
   );
 
-  return { activeSession, startSession, endSession };
+  /** 세션 행을 DB에서 삭제. 안 뛴 걸로 취급 — history에서 즉시 사라짐. */
+  const discardSession = useCallback(async () => {
+    const id = sessionIdRef.current;
+    if (!isAuthenticated || !id) return;
+    try {
+      await deleteSession(id);
+    } catch (e) {
+      console.warn('[useSupabaseSession] discard error:', e);
+    } finally {
+      setActiveSession(null);
+      sessionIdRef.current = null;
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * 완주 확정 시점에 행을 직접 INSERT.
+   * startSession/endSession 페어를 쓰지 않으므로 retire/중단 케이스에서
+   * DB에 'started' 잔재가 절대 안 남음. 'completed' + activity_dates 갱신까지 처리.
+   */
+  const saveCompletedSession = useCallback(
+    async (fields: {
+      type: SessionType;
+      circuit_id?: string | null;
+      started_at: string;
+      total_dist_km: number;
+      total_time_ms: number;
+      avg_pace_sec_per_km?: number | null;
+      best_pace_sec_per_km?: number | null;
+      payload?: Record<string, unknown>;
+    }) => {
+      if (!isAuthenticated) return null;
+      try {
+        const row = await insertCompletedSession(fields);
+        recordActivityToday().catch(() => {});
+        return row;
+      } catch (e) {
+        console.warn('[useSupabaseSession] saveCompleted error:', e);
+        return null;
+      }
+    },
+    [isAuthenticated],
+  );
+
+  return { activeSession, startSession, endSession, discardSession, saveCompletedSession };
 }

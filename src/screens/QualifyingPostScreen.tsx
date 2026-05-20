@@ -74,11 +74,6 @@ const CONFETTI_SOURCE = require('../../assets/qualifying/lottie/confetti.json');
 // 렌더 사이즈 = 1200 × 0.246 ≈ 295pt
 const CONFETTI_SIZE = 295;
 
-const GRADE_ORDER: QualifyingGrade[] = ['f3', 'f2', 'f1', 'f1_rookie', 'f1_champion'];
-const GRADE_LABELS_SHORT: Record<QualifyingGrade, string> = {
-  f3: 'F3', f2: 'F2', f1: 'F1', f1_rookie: 'ROOKIE', f1_champion: 'CHAMP',
-};
-
 export default function QualifyingPostScreen({ navigation, route }: QualifyingPostScreenProps) {
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
@@ -88,8 +83,7 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
   const isHistoryMode = !!historyData;
 
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
-  const [devGrade, setDevGrade] = useState<QualifyingGrade | null>(null);
-  const grade = (__DEV__ && devGrade) ? devGrade : (historyData?.grade ?? qualifyingResult?.grade ?? 'f3');
+  const grade = historyData?.grade ?? qualifyingResult?.grade ?? 'f3';
   const ctaTheme = CTA_THEME[grade];
   const gradeImg = GRADE_TEXT_IMAGES[grade];
 
@@ -158,23 +152,6 @@ export default function QualifyingPostScreen({ navigation, route }: QualifyingPo
 
   return (
     <View style={styles.root}>
-      {/* [DEV] 등급 전환 버튼 */}
-      {__DEV__ && (
-        <View style={[styles.devBar, { top: safeTop + 8 }]}>
-          {GRADE_ORDER.map((g) => (
-            <Pressable
-              key={g}
-              onPress={() => setDevGrade(g)}
-              style={[styles.devBtn, grade === g && styles.devBtnActive]}
-            >
-              <Text style={[styles.devBtnText, grade === g && styles.devBtnTextActive]}>
-                {GRADE_LABELS_SHORT[g]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-
       {/* Lottie 트로피 애니메이션 */}
       <View style={[styles.lottieWrap, { marginTop: safeTop + 84 }]}>
         <LottieView
@@ -275,33 +252,6 @@ const styles = StyleSheet.create({
   globe: {
     width: 620,
     height: 643,
-  },
-  devBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    zIndex: 99,
-  },
-  devBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  devBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
-  devBtnText: {
-    fontFamily: 'Formula1-Regular',
-    fontSize: 11,
-    color: COLORS.text.secondary,
-    includeFontPadding: false,
-  },
-  devBtnTextActive: {
-    color: PALETTE.white,
   },
   bottomGradient: {
     position: 'absolute',

@@ -23,13 +23,10 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
 
   const [isPaused, setIsPaused] = useState(false);
   const distKm = usePracticeDistance(isPaused);
-  const { startSession, endSession } = useSupabaseSession();
+  // 시작 시점 INSERT 안 함. stop 시 distKm >= 0.10일 때만 INSERT.
+  const { saveCompletedSession } = useSupabaseSession();
   const startTimeRef = useRef(Date.now());
-
-  useEffect(() => {
-    startSession('practice').catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const startedAtIsoRef = useRef(new Date().toISOString());
 
   const timerFontSize = 120;
   const badgeGroupTop = safeTop + 164;
@@ -72,8 +69,14 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
         {isPaused ? (
           <>
             <Pressable onPress={() => {
-              endSession({
-                status: 'completed',
+              if (distKm < 0.10) {
+                // 0.10km 미만은 시작 시점에 DB 행을 안 만들었으니 삭제할 것도 없음.
+                navigation.replace('Home');
+                return;
+              }
+              saveCompletedSession({
+                type: 'practice',
+                started_at: startedAtIsoRef.current,
                 total_dist_km: distKm,
                 total_time_ms: Date.now() - startTimeRef.current,
               }).catch(() => {});

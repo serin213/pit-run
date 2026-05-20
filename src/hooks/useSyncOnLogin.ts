@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying';
 import { fetchActivityDates } from '../api/activity';
 import { fetchProfile } from '../api/profiles';
+import { fetchSessions } from '../api/sessions';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
 /**
@@ -57,22 +58,29 @@ export function useSyncOnLogin() {
           });
         }
 
-        // 퀄리파잉 날짜 동기화
+        // 퀄리파잉 날짜 동기화 — DB가 source-of-truth.
+        // DB가 비어있어도 (cleanup 직후) 로컬을 비워줘야 stale 잔재가 안 남음.
         const qualRows = await fetchQualifyingHistory();
-        if (qualRows.length > 0) {
-          const qualifyingDates = qualRows.map((r) => r.recorded_at.slice(0, 10));
-          useAppStore.setState({ qualifyingDates });
-        }
+        const qualifyingDates = qualRows.map((r) => r.recorded_at.slice(0, 10));
+        useAppStore.setState({ qualifyingDates });
 
-        // 활동 날짜 동기화
+        // 활동 날짜 동기화 — 동일하게 DB로 덮어씀. MERGE 금지.
+        // (옛 코드: local과 remote를 merge → DB에서 지운 행이 로컬에 stale로 남음)
         const remoteDates = await fetchActivityDates();
-        if (remoteDates.length > 0) {
-          const localDates = useAppStore.getState().activityDates;
-          const merged = [...new Set([...localDates, ...remoteDates])].sort().reverse();
-          if (merged.length > localDates.length) {
-            // Direct set without triggering individual persist for each date
-            useAppStore.setState({ activityDates: merged });
-          }
+        const sortedDates = [...new Set(remoteDates)].sort().reverse();
+        useAppStore.setState({ activityDates: sortedDates });
+
+        // 누적 거리 동기화 — DB의 모든 completed 레이스 거리 합으로 덮어씀.
+        // Zustand 영속값(addDistance로 누적)이 옛 stale 합계로 남는 문제 방어.
+        // qualifying은 제외 (HomeScreen/HistoryScreen 통계와 동일 정책).
+        try {
+          const allSessions = await fetchSessions(500);
+          const totalKm = allSessions
+            .filter((s) => s.status === 'completed' && s.type === 'grand_prix' && (s.total_dist_km ?? 0) >= 0.10)
+            .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+          useAppStore.setState({ totalDistanceKm: totalKm });
+        } catch {
+          // 실패 시 기존 값 유지 — 다음 로그인 시점에 다시 시도
         }
       } catch (e) {
         console.warn('[useSyncOnLogin] sync error:', e);
