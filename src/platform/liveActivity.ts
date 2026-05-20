@@ -31,8 +31,12 @@ export interface LiveActivityState {
 
 let currentActivityId: string | null = null;
 
+const LA_TAG = '[LiveActivity]';
+
 export function isLiveActivitySupported(): boolean {
-  return nativeIsSupported();
+  const supported = nativeIsSupported();
+  if (__DEV__) console.log(`${LA_TAG} isSupported() →`, supported);
+  return supported;
 }
 
 export function getCurrentActivityId(): string | null {
@@ -48,12 +52,20 @@ export async function startLiveActivity(
   teamColor: string,
   circuitId: string,
 ): Promise<string | null> {
-  if (currentActivityId) return currentActivityId;
+  if (currentActivityId) {
+    if (__DEV__) console.log(`${LA_TAG} start: reusing existing id`, currentActivityId);
+    return currentActivityId;
+  }
+  if (__DEV__) {
+    console.log(`${LA_TAG} start: requesting`, { driverName, teamColor, circuitId });
+  }
   try {
     const id = await nativeStart(driverName, teamColor, circuitId);
+    if (__DEV__) console.log(`${LA_TAG} start: native returned id =`, id);
     currentActivityId = id;
     return id;
   } catch (e) {
+    console.warn(`${LA_TAG} start: native threw`, e);
     return null;
   }
 }
@@ -74,12 +86,17 @@ export async function updateLiveActivity(
       state.prog,
       state.isPaused,
     );
-  } catch {}
+  } catch (e) {
+    if (__DEV__) console.warn(`${LA_TAG} update threw`, e);
+  }
 }
 
 export async function endLiveActivity(activityId: string): Promise<void> {
   try {
     await nativeEnd(activityId);
+    if (__DEV__) console.log(`${LA_TAG} end: ok`, activityId);
+  } catch (e) {
+    console.warn(`${LA_TAG} end threw`, e);
   } finally {
     if (currentActivityId === activityId) {
       currentActivityId = null;
@@ -91,6 +108,9 @@ export async function endLiveActivity(activityId: string): Promise<void> {
 export async function endAllLiveActivities(): Promise<void> {
   try {
     await nativeEndAll();
+    if (__DEV__) console.log(`${LA_TAG} endAll: ok`);
+  } catch (e) {
+    console.warn(`${LA_TAG} endAll threw`, e);
   } finally {
     currentActivityId = null;
   }

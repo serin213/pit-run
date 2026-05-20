@@ -64,11 +64,26 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
     // locks the screen during the countdown. RunningScreen will reuse this id.
     if (isLiveActivitySupported()) {
       const { profile, selectedCircuitId } = useAppStore.getState();
+      if (__DEV__) {
+        console.log('[Countdown] LA start (foreground)', {
+          displayName: profile.displayName,
+          teamColor: profile.nameTagAccentColor,
+          circuit: selectedCircuitId ?? 'shanghai',
+        });
+      }
       startLiveActivity(
         profile.displayName,
         profile.nameTagAccentColor,
         selectedCircuitId ?? 'shanghai',
-      ).catch(() => {});
+      )
+        .then(id => {
+          if (__DEV__) console.log('[Countdown] LA started, id =', id);
+        })
+        .catch(e => {
+          console.warn('[Countdown] LA start failed', e);
+        });
+    } else if (__DEV__) {
+      console.warn('[Countdown] LA not supported in this environment');
     }
 
     (async () => {

@@ -31,10 +31,14 @@ public class PitRunLiveActivityModule: Module {
         // startActivity(driverName, teamColor, circuitId) -> activityId | null
         AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
             guard #available(iOS 16.2, *) else {
+                NSLog("[PitRunLA] startActivity: iOS < 16.2, returning nil")
                 promise.resolve(nil as String?)
                 return
             }
-            guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            let authInfo = ActivityAuthorizationInfo()
+            NSLog("[PitRunLA] startActivity: areActivitiesEnabled=\(authInfo.areActivitiesEnabled), frequentPushesEnabled=\(authInfo.frequentPushesEnabled)")
+            guard authInfo.areActivitiesEnabled else {
+                NSLog("[PitRunLA] startActivity: LA disabled in Settings → returning nil (Settings > [App] > Live Activities)")
                 promise.resolve(nil as String?)
                 return
             }
@@ -54,9 +58,11 @@ public class PitRunLiveActivityModule: Module {
                     pushType: nil
                 )
                 self.activities[activity.id] = activity as AnyObject
+                NSLog("[PitRunLA] startActivity: SUCCESS id=\(activity.id)")
                 promise.resolve(activity.id)
             } catch {
-                promise.reject("ERR_START_ACTIVITY", error.localizedDescription)
+                NSLog("[PitRunLA] startActivity: Activity.request THREW: \(error) — localized=\(error.localizedDescription)")
+                promise.reject("ERR_START_ACTIVITY", "\(error)")
             }
         }
 
@@ -131,8 +137,11 @@ public class PitRunLiveActivityModule: Module {
         // isSupported() — iOS 16.1+ 실기기 여부 체크
         Function("isSupported") { () -> Bool in
             if #available(iOS 16.2, *) {
-                return ActivityAuthorizationInfo().areActivitiesEnabled
+                let enabled = ActivityAuthorizationInfo().areActivitiesEnabled
+                NSLog("[PitRunLA] isSupported() → \(enabled)")
+                return enabled
             }
+            NSLog("[PitRunLA] isSupported() → false (iOS < 16.2)")
             return false
         }
     }

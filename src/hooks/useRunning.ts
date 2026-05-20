@@ -50,22 +50,34 @@ export function useRunning(options: UseRunningOptions = {}) {
         clearTimeout(completedTimerRef.current);
         completedTimerRef.current = null;
       }
-      if (!isLiveActivitySupported()) return;
+      if (!isLiveActivitySupported()) {
+        if (__DEV__) console.warn('[useRunning] LA not supported — skipping start');
+        return;
+      }
       const existing = getCurrentActivityId();
       if (existing) {
+        if (__DEV__) console.log('[useRunning] LA reuse existing id', existing);
         activityIdRef.current = existing;
       } else {
         const { profile, selectedCircuitId } = useAppStore.getState();
+        if (__DEV__) {
+          console.log('[useRunning] LA start (no existing id)', {
+            displayName: profile.displayName,
+            teamColor: profile.nameTagAccentColor,
+            circuit: selectedCircuitId ?? 'shanghai',
+          });
+        }
         startLiveActivity(
           profile.displayName,
           profile.nameTagAccentColor,
           selectedCircuitId ?? 'shanghai',
         )
           .then(id => {
+            if (__DEV__) console.log('[useRunning] LA started, id =', id);
             activityIdRef.current = id;
           })
-          .catch(() => {
-            // Live Activity 시작 실패는 런 동작에 영향 없음 — 조용히 무시
+          .catch(e => {
+            console.warn('[useRunning] LA start failed', e);
           });
       }
     } else {
