@@ -71,7 +71,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const skipIntro = route.params?.skipIntro ?? false;
   const { setQualifyingResult, recordQualifyingDateToday } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
-  const { startSession, endSession, discardSession } = useSupabaseSession();
+  const { saveCompletedSession } = useSupabaseSession();
+  // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
+  // Retire는 DB와 무관하게 화면만 닫힘.
+  const qualifyingStartedAtRef = useRef<string | null>(null);
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
@@ -179,8 +182,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setTrialStartedAt(null);
     setTrialElapsedMs(0);
     setPhase('warmup');
-    // Supabase 세션 시작 (비동기, 실패해도 진행)
-    startSession('qualifying').catch(() => {});
+    // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
+    qualifyingStartedAtRef.current = new Date().toISOString();
   };
 
   const skipToQualifying = () => {
@@ -224,12 +227,16 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         }).catch(() => {});
       })
       .catch(() => {});
-    endSession({
-      status: 'completed',
+    // 1km GPS 완주가 확정된 이 시점에만 run_sessions 행 INSERT.
+    // started_at는 startWarmup 시점에 캡쳐했던 ISO를 그대로 사용 (없으면 now).
+    saveCompletedSession({
+      type: 'qualifying',
+      started_at: qualifyingStartedAtRef.current ?? new Date().toISOString(),
       total_dist_km: 1,
       total_time_ms: oneKmMs,
       avg_pace_sec_per_km: result.paceSecPerKm,
     }).catch(() => {});
+    qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingCompleted({
         userId: user.id,
@@ -250,10 +257,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const executeRetire = () => {
-    // Retire = 1km 미완주. 결과 적재 안 함:
-    // - discardSession으로 run_sessions 행을 DB에서 DELETE → history에서 즉시 사라짐
-    // - 분석 이벤트만 기록 (사용자 history와 무관)
-    discardSession().catch(() => {});
+    // Retire = 1km 미완주. 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
+    // history/DB 모두 무관 — 분석 이벤트만 기록.
+    qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingAbandoned({
         userId: user.id,

@@ -197,7 +197,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   const qualifyingResult = useAppStore((s) => s.qualifyingResult);
 
   // ─── Derived values ───────────────────────────────────────────────────────
-  const distKmDisplay = totalDistanceKm > 0 ? totalDistanceKm : 23.14;
+  // 데이터 없으면 0 표시. 옛 디자인 미리보기 더미값(23.14) 제거.
+  const distKmDisplay = totalDistanceKm;
   const onTrackDays = activityDates.length;
 
   const todayISO = useMemo(() => toISO(new Date()), []);
@@ -227,7 +228,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Supabase 데이터 fetch ────────────────────────────────────────────────
   const [qualifyingData, setQualifyingData] = useState<QHistRow[]>(FALLBACK_QUALIFYING);
   const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
-  const [thisMonthDistKm, setThisMonthDistKm] = useState(32.2);
+  // 초기값 0 — 옛 디자인 더미(32.2) 제거. fetch 결과로 덮어씀.
+  const [thisMonthDistKm, setThisMonthDistKm] = useState(0);
 
   const slideAnim = useRef(new Animated.Value(24)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -257,7 +259,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         ]);
 
         // ─── Qualifying trend chart data ───────────────────────────────────
-        if (qualRows.length > 0) {
+        {
           const sorted = [...qualRows].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
           let prevGrade: QualifyingGrade | null = null;
           const mapped: QHistRow[] = sorted.map((r) => {
@@ -277,7 +279,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             };
           });
           setQualifyingData(mapped);
-          setSelectedIdx(mapped.length - 1);
+          if (mapped.length > 0) setSelectedIdx(mapped.length - 1);
         }
 
         // ─── Session history data ──────────────────────────────────────────
@@ -291,20 +293,36 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         const now = new Date();
         const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        // 월간 거리: HomeScreen과 일관되게 grand_prix(레이스)만 집계.
+        // 퀄리파잉은 항상 1km로 저장되지만 카드에서 거리로 노출되지 않으므로 제외.
         const monthDist = sessions
-          .filter((s) => s.status === 'completed' && s.started_at.slice(0, 7) === thisMonth)
+          .filter((s) =>
+            s.status === 'completed' &&
+            s.type === 'grand_prix' &&
+            s.started_at.slice(0, 7) === thisMonth &&
+            (s.total_dist_km ?? 0) >= 0.10,
+          )
           .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
-        if (monthDist > 0) setThisMonthDistKm(monthDist);
+        // 0이어도 setState — 이번 달 첫 진입 / 마지막 행을 SQL로 지운 직후 stale 0 표시 방지
+        setThisMonthDistKm(monthDist);
 
-        const completed = sessions.filter((s) => s.status === 'completed');
-        if (completed.length > 0) {
+        // 0.10km 미만 / NULL 거리 / 1초 이내는 history에서 숨김.
+        // DB cleanup이 NULL 행을 못 지우는 경우 + 옛 데이터 잔존 케이스 둘 다 방어.
+        // 퀄리파잉은 항상 1km로 저장되므로 이 필터의 영향 받지 않음.
+        const completed = sessions.filter((s) => {
+          if (s.status !== 'completed') return false;
+          const dist = s.total_dist_km ?? 0;
+          const timeMs = s.total_time_ms ?? 0;
+          return dist >= 0.10 && timeMs >= 1000;
+        });
+        {
           const mapped: HistoryRow[] = completed.map((s) => {
             const d = new Date(s.started_at);
             const dd = String(d.getDate()).padStart(2, '0');
             const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const yy = String(d.getFullYear()).slice(2);
+            const yyyy = String(d.getFullYear());
             const sortKey = s.started_at.slice(0, 10);
-            const dateDisplay = `${dd}.${mm}.${yy}`;
+            const dateDisplay = `${yyyy}.${mm}.${dd}`;
             const distKm = s.total_dist_km ?? 0;
             const elapsedMs = s.total_time_ms ?? 0;
 
@@ -736,8 +754,10 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
           />
         </Animated.View>
 
-        {/* ── 8. History 섹션 타이틀 ── */}
-        <Text style={[styles.sectionTitle, { marginTop: 48, marginLeft: 24 }]}>History</Text>
+        {/* ── 8. History 섹션 타이틀 (행 1개 이상일 때만) ── */}
+        {historySorted.length > 0 && (
+          <Text style={[styles.sectionTitle, { marginTop: 48, marginLeft: 24 }]}>History</Text>
+        )}
 
         {/* ── 9. 레이스 카드 ── */}
         <View style={{ marginHorizontal: SIDE_PAD, marginTop: 12, gap: 12 }}>

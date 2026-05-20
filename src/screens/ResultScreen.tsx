@@ -160,7 +160,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     activityDates,
     activePlan,
   } = useAppStore();
-  const { endSession }  = useSupabaseSession();
+  const { saveCompletedSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
   const { sessions, load: loadSessions } = useSessionHistory();
   const [sessionsReady, setSessionsReady] = useState(false);
@@ -484,26 +484,38 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       navigation.goBack();
       return;
     }
-    // 홈 이동 + 데이터 저장을 즉시 실행, 시트 닫힘 애니메이션은 독립적으로 실행
-    recordActivity();
-    addDistance(distKm);
+    // 0.10km 미만은 기록에 안 남김 — DB INSERT / 누적거리 / activity_dates 전부 스킵.
+    // 자동 완주(handleAutoFinish)는 항상 distKm 충분하므로 영향 없음.
+    const isValidRace = distKm >= 0.10;
+
+    if (isValidRace) {
+      recordActivity();
+      addDistance(distKm);
+    }
     // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
-    if (statusLabel === 'FINISH' && circuitId) {
+    if (isValidRace && statusLabel === 'FINISH' && circuitId) {
       useAppStore.getState().recordCircuitRace(circuitId);
     }
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
     const diff = selectedDiffRef.current;
-    const saves: Promise<unknown>[] = [
-      endSession({
-        status: 'completed',
-        total_dist_km: distKm,
-        total_time_ms: elapsedMs,
-        avg_pace_sec_per_km: avgPace,
-        best_pace_sec_per_km: bestPace,
-        payload: diff ? { difficulty: diff } : undefined,
-      }),
-    ];
+    // started_at은 elapsedMs로 역산 — 별도 ref 전달 없이도 정확.
+    const startedAtIso = new Date(Date.now() - elapsedMs).toISOString();
+    const saves: Promise<unknown>[] = [];
+    if (isValidRace) {
+      saves.push(
+        saveCompletedSession({
+          type: 'grand_prix',
+          circuit_id: circuitId,
+          started_at: startedAtIso,
+          total_dist_km: distKm,
+          total_time_ms: elapsedMs,
+          avg_pace_sec_per_km: avgPace,
+          best_pace_sec_per_km: bestPace,
+          payload: diff ? { difficulty: diff } : undefined,
+        }),
+      );
+    }
     if (user?.id && currentRaceEventId) {
       // retire 시점까지 실제로 통과한 인터벌 횟수 계산
       const activePlan = useAppStore.getState().activePlan;
@@ -535,7 +547,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     });
   }, [
     isHistoryMode, sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
-    paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
+    paceHistory, saveCompletedSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
+    circuitId, statusLabel,
   ]);
 
   const handleDiffSelect = useCallback((id: string) => {

@@ -86,9 +86,15 @@ export function findRunGroups(
   let i = 0;
   while (i < cells.length) {
     const d = cells[i];
-    if (d && activitySet.has(getISO(d))) {
+    // d !== null로 명시 체크 — d가 0 (week의 월요일 인덱스)인 경우 falsy 버그 방지
+    if (d !== null && d !== undefined && activitySet.has(getISO(d))) {
       let j = i;
-      while (j < cells.length && cells[j] && activitySet.has(getISO(cells[j]!))) j++;
+      while (
+        j < cells.length &&
+        cells[j] !== null &&
+        cells[j] !== undefined &&
+        activitySet.has(getISO(cells[j]!))
+      ) j++;
       groups.push({ start: i, end: j - 1 });
       i = j;
     } else {

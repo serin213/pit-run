@@ -3,7 +3,11 @@ require 'json'
 package = JSON.parse(File.read(File.join(__dir__, '..', 'package.json')))
 
 Pod::Spec.new do |s|
-  s.name           = 'PitRunLiveActivity'
+  # IMPORTANT: 위젯 extension 타겟 이름(targets/pit-run-live-activity/expo-target.config.js의
+  # name: "PitRunLiveActivity")과 절대 같으면 안 됨. 같으면 Xcode 프로젝트에서 두 타겟이
+  # 충돌하여 native 모듈이 main app에 silently 누락됨 (Console.app에서 PitRunLA NSLog가
+  # 하나도 안 찍히는 증상). 그래서 일부러 *Bridge로 다른 이름 사용.
+  s.name           = 'PitRunLiveActivityBridge'
   s.version        = package['version']
   s.summary        = package['description']
   s.description    = package['description']

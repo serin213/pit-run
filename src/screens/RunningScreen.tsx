@@ -27,7 +27,6 @@ import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
-import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
 import { doubleImpact, successLong } from '../platform/haptics';
@@ -64,27 +63,23 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
-  const { startSession, discardSession } = useSupabaseSession();
+  // 시작 시점 INSERT 안 함. ResultScreen.handleConfirm에서 distKm >= 0.10일 때만 INSERT.
+  // started_at는 elapsedMs 역산으로 계산하므로 별도 ref 불필요.
+  // → <0.10km로 중단된 레이스는 DB에 row 자체가 안 만들어짐.
   const { user } = useAuthStore();
   const { isDevMode } = useDevMode();
   // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈.
-  // run_sessions 행을 DELETE해서 history에서도 즉시 사라지게 (안 뛴 걸로 취급).
+  // 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
   const onStop = useCallback(() => {
     const currentDistKm = useRunStore.getState().distKm;
     if (currentDistKm < 0.10) {
-      discardSession().catch(() => {});
       navigation.replace('Home');
       return;
     }
     navigation.replace('Result');
-  }, [navigation, discardSession]);
+  }, [navigation]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
-  // Supabase 세션 시작 (mount 시 1회)
-  useEffect(() => {
-    startSession('grand_prix', selectedCircuitId).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const { width: windowW, height: windowH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeTop = useSafeTop();

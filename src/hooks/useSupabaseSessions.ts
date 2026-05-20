@@ -3,6 +3,7 @@ import {
   insertSession,
   completeSession,
   deleteSession,
+  insertCompletedSession,
   type SessionRow,
   type SessionType,
   type SessionStatus,
@@ -79,5 +80,34 @@ export function useSupabaseSession() {
     }
   }, [isAuthenticated]);
 
-  return { activeSession, startSession, endSession, discardSession };
+  /**
+   * 완주 확정 시점에 행을 직접 INSERT.
+   * startSession/endSession 페어를 쓰지 않으므로 retire/중단 케이스에서
+   * DB에 'started' 잔재가 절대 안 남음. 'completed' + activity_dates 갱신까지 처리.
+   */
+  const saveCompletedSession = useCallback(
+    async (fields: {
+      type: SessionType;
+      circuit_id?: string | null;
+      started_at: string;
+      total_dist_km: number;
+      total_time_ms: number;
+      avg_pace_sec_per_km?: number | null;
+      best_pace_sec_per_km?: number | null;
+      payload?: Record<string, unknown>;
+    }) => {
+      if (!isAuthenticated) return null;
+      try {
+        const row = await insertCompletedSession(fields);
+        recordActivityToday().catch(() => {});
+        return row;
+      } catch (e) {
+        console.warn('[useSupabaseSession] saveCompleted error:', e);
+        return null;
+      }
+    },
+    [isAuthenticated],
+  );
+
+  return { activeSession, startSession, endSession, discardSession, saveCompletedSession };
 }

@@ -26,15 +26,23 @@ public class PitRunLiveActivityModule: Module {
     private var activities: [String: AnyObject] = [:]
 
     public func definition() -> ModuleDefinition {
+        // 모듈 자체가 로드/초기화되는 시점에 1회 찍힘. Console.app에서 이 줄도 없다면
+        // 네이티브 모듈 autolinking이 깨진 상태 (podspec / 빌드 설정 문제).
+        NSLog("[PitRunLA] Module definition() called — module is loaded")
         Name("PitRunLiveActivity")
 
         // startActivity(driverName, teamColor, circuitId) -> activityId | null
         AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
+            NSLog("[PitRunLA] startActivity called: driver=%@ team=%@ circuit=%@", driverName, teamColor, circuitId)
             guard #available(iOS 16.2, *) else {
+                NSLog("[PitRunLA] iOS < 16.2 — returning null")
                 promise.resolve(nil as String?)
                 return
             }
-            guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            let enabled = ActivityAuthorizationInfo().areActivitiesEnabled
+            NSLog("[PitRunLA] areActivitiesEnabled=%@", enabled ? "YES" : "NO")
+            guard enabled else {
+                NSLog("[PitRunLA] LA disabled in Settings — returning null")
                 promise.resolve(nil as String?)
                 return
             }
@@ -54,8 +62,10 @@ public class PitRunLiveActivityModule: Module {
                     pushType: nil
                 )
                 self.activities[activity.id] = activity as AnyObject
+                NSLog("[PitRunLA] activity REQUESTED OK: id=%@", activity.id)
                 promise.resolve(activity.id)
             } catch {
+                NSLog("[PitRunLA] activity REQUEST FAILED: %@", error.localizedDescription)
                 promise.reject("ERR_START_ACTIVITY", error.localizedDescription)
             }
         }
@@ -91,6 +101,7 @@ public class PitRunLiveActivityModule: Module {
 
             Task {
                 await activity.update(content)
+                NSLog("[PitRunLA] update OK: id=%@ dist=%.2f phase=%@", activityId, distKm, pitPhase)
                 promise.resolve(nil as String?)
             }
         }

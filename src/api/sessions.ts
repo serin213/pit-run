@@ -88,3 +88,42 @@ export async function deleteSession(sessionId: string): Promise<void> {
     .eq('id', sessionId);
   if (error) throw error;
 }
+
+/**
+ * 완료된 세션을 한 번에 INSERT.
+ * 'started' 행을 먼저 만들었다가 UPDATE하는 패턴 대신, 완주가 확정된 시점에만 행 생성.
+ * → retire / 중단 케이스에서 DB에 noise 행이 절대 남지 않음.
+ */
+export async function insertCompletedSession(fields: {
+  type: SessionType;
+  circuit_id?: string | null;
+  started_at: string;
+  total_dist_km: number;
+  total_time_ms: number;
+  avg_pace_sec_per_km?: number | null;
+  best_pace_sec_per_km?: number | null;
+  payload?: Record<string, unknown>;
+}): Promise<SessionRow> {
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('run_sessions')
+    .insert({
+      user_id: userId,
+      type: fields.type,
+      circuit_id: fields.circuit_id ?? null,
+      started_at: fields.started_at,
+      ended_at: new Date().toISOString(),
+      status: 'completed' as SessionStatus,
+      total_dist_km: fields.total_dist_km,
+      total_time_ms: fields.total_time_ms,
+      avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
+      best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
+      payload: fields.payload ?? {},
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
