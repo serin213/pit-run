@@ -665,9 +665,16 @@ struct PitRunLiveActivity: Widget {
                     .scaledToFit()
                     .frame(width: 24, height: 24)
             } compactTrailing: {
-                Text(String(format: "%.2f", state.distKm))
-                    .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
-                    .foregroundStyle(Color.white)
+                // qualifying: n'nn" 시간. race: distKm.
+                if isQualifying {
+                    Text(formatQualTime(state.elapsedMs))
+                        .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
+                        .foregroundStyle(Color.white)
+                } else {
+                    Text(String(format: "%.2f", state.distKm))
+                        .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
+                        .foregroundStyle(Color.white)
+                }
             } minimal: {
                 Image("race-flag")
                     .renderingMode(.original)

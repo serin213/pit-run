@@ -124,9 +124,13 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     return () => clearInterval(timer);
   }, [phase, trialStartedAt]);
 
-  // GPS 추적: qualifying 단계에서만 활성화
+  // GPS 추적: qualifying 단계에서만 활성화.
+  // dep를 boolean(isGpsActive)으로 추출 — phase 'qualifying' ↔ 'retireConfirm'
+  // 토글 시 effect cleanup으로 subscription이 끊겼다 재시작되며 GPS warmup 동안
+  // 측정 누락되는 버그 방어. 두 phase 모두 true로 매핑되어 동일 subscription 유지.
+  const isGpsActive = phase === 'qualifying' || phase === 'retireConfirm';
   useEffect(() => {
-    if (phase !== 'qualifying' && phase !== 'retireConfirm') {
+    if (!isGpsActive) {
       gpsSubRef.current?.remove();
       gpsSubRef.current = null;
       gpsCoordsRef.current = null;
@@ -138,10 +142,15 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       if (!granted) return;
 
       gpsSubRef.current = await watchPosition((coords) => {
-        if (coords.accuracy != null && coords.accuracy > 20) return;
+        // accuracy 20→50: 도시 환경 GPS는 정상적으로 30~50m 떴다 떨어졌다 함.
+        // 20m 임계값이면 너무 많은 update가 filter됨 → 거리 누락 + 일부 환경에서
+        // 일정 시간 후 측정 멈춤 현상.
+        if (coords.accuracy != null && coords.accuracy > 50) return;
         if (gpsCoordsRef.current) {
           const dist = haversineKm(gpsCoordsRef.current, coords);
-          if (dist >= 0.002 && dist <= 0.15) {
+          // min delta 0.002→0.0005 (0.5m): 느린 걸음/조깅도 누적 가능하게.
+          // max 0.15는 outlier filter — 유지.
+          if (dist >= 0.0005 && dist <= 0.15) {
             setTrialDistKm((prev) => prev + dist);
           }
         }
@@ -153,7 +162,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       gpsSubRef.current?.remove();
       gpsSubRef.current = null;
     };
-  }, [phase]);
+  }, [isGpsActive]);
 
   // Auto-complete when GPS distance reaches 1km
   useEffect(() => {
@@ -181,11 +190,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 
   const effectiveDistKm = __DEV__ ? simDistKm : trialDistKm;
 
-  // Live Activity (qualifying 모드) 시작/업데이트/종료.
-  // - 시작: phase 'qualifying' 처음 진입 + LA가 아직 없을 때.
-  // - 업데이트: trialElapsedMs 변할 때 1초 throttle (Activity Kit 권고).
-  // - 종료: executeRetire / finishOneKm 에서 명시적으로 호출.
-  const laUpdateThrottleRef = useRef(0);
+  // Live Activity (qualifying 모드) 시작.
+  // phase 'qualifying' 처음 진입 시 + LA가 아직 없을 때만 호출.
   useEffect(() => {
     if (phase !== 'qualifying') return;
     if (getCurrentActivityId()) return;
@@ -198,25 +204,39 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
+  // Live Activity 주기적 업데이트.
+  // 이전: useEffect deps [trialElapsedMs, effectiveDistKm, phase] + Date.now() throttle.
+  // 100ms 마다 setTrialElapsedMs → effect re-run → throttle로 99%가 skip되는 패턴이라
+  // React 18 concurrent rendering에서 effect 배치/스킵 시 update 자체가 fire되지 않는
+  // 케이스 발생 (LA 시간/progress 0 stuck 증상).
+  //
+  // 현재: setInterval 1초로 명시적 fire + ref로 최신 값 접근 (closure stale 방어).
+  // effect lifecycle은 isGpsActive에만 의존, dep 노이즈 최소화.
+  const trialStatsRef = useRef({ elapsedMs: 0, distKm: 0 });
   useEffect(() => {
-    if (phase !== 'qualifying' && phase !== 'retireConfirm') return;
-    const id = getCurrentActivityId();
-    if (!id) return;
-    const now = Date.now();
-    if (now - laUpdateThrottleRef.current < 1000) return;
-    laUpdateThrottleRef.current = now;
-    updateLiveActivity(id, {
-      distKm: 0,
-      elapsedMs: Math.round(trialElapsedMs),
-      paceS: 0,
-      sector: 'yellow',
-      tire: 'soft',
-      pitPhase: 'none',
-      prog: Math.max(0, Math.min(1, effectiveDistKm)),
-      isPaused: false,
-      mode: 'qualifying',
-    });
-  }, [trialElapsedMs, effectiveDistKm, phase]);
+    trialStatsRef.current = { elapsedMs: trialElapsedMs, distKm: effectiveDistKm };
+  }, [trialElapsedMs, effectiveDistKm]);
+
+  useEffect(() => {
+    if (!isGpsActive) return;
+    const interval = setInterval(() => {
+      const id = getCurrentActivityId();
+      if (!id) return;
+      const { elapsedMs, distKm } = trialStatsRef.current;
+      updateLiveActivity(id, {
+        distKm: 0,
+        elapsedMs: Math.round(elapsedMs),
+        paceS: 0,
+        sector: 'yellow',
+        tire: 'soft',
+        pitPhase: 'none',
+        prog: Math.max(0, Math.min(1, distKm)),
+        isPaused: false,
+        mode: 'qualifying',
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isGpsActive]);
 
   const startWarmup = async () => {
     const granted = await ensurePermission();
