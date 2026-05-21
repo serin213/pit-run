@@ -22,7 +22,6 @@
       "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.pitrun.apps",
           "group.com.pitrun.apps"
         ]
       },
@@ -32,8 +31,6 @@
         "NSLocationWhenInUseUsageDescription": "PIT RUN uses your location to measure distance and pace while you run.",
         "UIBackgroundModes": [
           "location",
-          "audio",
-          "location",
           "audio"
         ],
         "NSSupportsLiveActivities": true,
@@ -41,7 +38,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.1",
-      "buildNumber": "16"
+      "buildNumber": "21"
     },
     "android": {
       "adaptiveIcon": {
