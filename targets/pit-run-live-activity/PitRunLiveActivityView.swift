@@ -600,9 +600,9 @@ struct PitRunLiveActivity: Widget {
             let leftBtn: String
             let rightBtn: String
             if isQualifying {
-                // 별도 asset: targets/.../Assets.xcassets/{play,pause,stop}-qualifying.imageset
-                leftBtn  = isPaused ? "play-qualifying" : "pause-qualifying"
-                rightBtn = "stop-qualifying"
+                // 별도 asset: targets/.../Assets.xcassets/{play,pause,stop}-red.imageset
+                leftBtn  = isPaused ? "play-red" : "pause-red"
+                rightBtn = "stop-red"
             } else if pitMode {
                 leftBtn  = isPaused ? "inpit-play" : "inpit-pause"
                 rightBtn = "inpit-stop"
