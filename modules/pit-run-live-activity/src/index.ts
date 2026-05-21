@@ -18,7 +18,9 @@ interface PitRunLiveActivityNative {
   isSupported(): boolean;
 }
 
-const MODULE_NAME = 'PitRunLiveActivity';
+// IMPORTANT: 'PitRunLiveActivity'는 widget extension target name과 동일해서
+// EAS prebuild 시 autolinking이 silent fail. Swift Name()도 *Bridge로 등록.
+const MODULE_NAME = 'PitRunLiveActivityBridge';
 
 // Lazy lookup on EVERY call — defends against New Arch / TurboModule race where
 // the native module isn't registered yet at JS bundle load time. The previous
