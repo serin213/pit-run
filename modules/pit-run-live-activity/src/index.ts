@@ -18,30 +18,92 @@ interface PitRunLiveActivityNative {
   isSupported(): boolean;
 }
 
-// On Android, older iOS, or if native module fails to register, return a no-op
-// so callers don't need to guard. Using `requireOptionalNativeModule` (vs the
-// throwing `requireNativeModule`) prevents the entire JS bundle from dying when
-// the native module isn't ready at module-load time (e.g., New Architecture
-// race conditions where TurboModules haven't initialized yet).
-const noop: PitRunLiveActivityNative = {
-  startActivity: async () => null,
-  updateActivity: async () => {},
-  endActivity: async () => {},
-  endAllActivities: async () => {},
-  isSupported: () => false,
-};
+const MODULE_NAME = 'PitRunLiveActivity';
 
-const nativeModule =
-  Platform.OS === 'ios'
-    ? requireOptionalNativeModule<PitRunLiveActivityNative>('PitRunLiveActivity')
-    : null;
+// Lazy lookup on EVERY call — defends against New Arch / TurboModule race where
+// the native module isn't registered yet at JS bundle load time. The previous
+// implementation captured the lookup once at module load → if that initial
+// lookup returned null, the app was permanently stuck on the noop fallback.
+function getNativeModule(): PitRunLiveActivityNative | null {
+  if (Platform.OS !== 'ios') return null;
+  const mod = requireOptionalNativeModule<PitRunLiveActivityNative>(MODULE_NAME);
+  if (!mod) {
+    console.error(
+      `[PitRunLA-DIAG] requireOptionalNativeModule('${MODULE_NAME}') returned null. ` +
+      `Module is NOT registered at this call time.`
+    );
+  }
+  return mod;
+}
 
-const Native: PitRunLiveActivityNative = nativeModule ?? noop;
+export function isSupported(): boolean {
+  const mod = getNativeModule();
+  if (!mod) {
+    console.error('[PitRunLA-DIAG] isSupported: module missing, returning false');
+    return false;
+  }
+  const result = mod.isSupported();
+  console.warn(`[PitRunLA-DIAG] isSupported() → ${result}`);
+  return result;
+}
 
-export const {
-  startActivity,
-  updateActivity,
-  endActivity,
-  endAllActivities,
-  isSupported,
-} = Native;
+export async function startActivity(
+  driverName: string,
+  teamColor: string,
+  circuitId: string
+): Promise<string | null> {
+  const mod = getNativeModule();
+  if (!mod) {
+    console.error('[PitRunLA-DIAG] startActivity: module missing, returning null');
+    return null;
+  }
+  console.warn('[PitRunLA-DIAG] startActivity: calling native', { driverName, teamColor, circuitId });
+  try {
+    const id = await mod.startActivity(driverName, teamColor, circuitId);
+    console.warn(`[PitRunLA-DIAG] startActivity: native returned id=${id}`);
+    return id;
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] startActivity: native THREW', String(e));
+    throw e;
+  }
+}
+
+export async function updateActivity(
+  activityId: string,
+  distKm: number,
+  elapsedMs: number,
+  paceS: number,
+  sector: string,
+  tire: string,
+  pitPhase: string,
+  prog: number,
+  isPaused: boolean
+): Promise<void> {
+  const mod = getNativeModule();
+  if (!mod) return;
+  try {
+    await mod.updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused);
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
+  }
+}
+
+export async function endActivity(activityId: string): Promise<void> {
+  const mod = getNativeModule();
+  if (!mod) return;
+  try {
+    await mod.endActivity(activityId);
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] endActivity threw', String(e));
+  }
+}
+
+export async function endAllActivities(): Promise<void> {
+  const mod = getNativeModule();
+  if (!mod) return;
+  try {
+    await mod.endAllActivities();
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] endAllActivities threw', String(e));
+  }
+}
