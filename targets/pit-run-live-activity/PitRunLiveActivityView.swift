@@ -591,14 +591,19 @@ struct PitRunLiveActivity: Widget {
             let teamClr = Color(hex: context.attributes.teamColor)
             let pitMode = state.pitPhase == "inPit"
             let isPaused = state.isPaused
-            // qualifying 모드: sector/pit 무시하고 빨강 고정. race 모드: 기존 sector/inPit 기반.
-            let accentColor: Color = state.mode == "qualifying"
-                ? QUALIFYING_RED
+            let isQualifying = state.mode == "qualifying"
+            // qualifying: 텍스트 흰색 고정. race: 기존 sector/inPit 기반 테마.
+            let accentColor: Color = isQualifying
+                ? Color.white
                 : themeColor(sector: state.sector, inPit: pitMode)
 
             let leftBtn: String
             let rightBtn: String
-            if pitMode {
+            if isQualifying {
+                // 별도 asset: targets/.../Assets.xcassets/{play,pause,stop}-qualifying.imageset
+                leftBtn  = isPaused ? "play-qualifying" : "pause-qualifying"
+                rightBtn = "stop-qualifying"
+            } else if pitMode {
                 leftBtn  = isPaused ? "inpit-play" : "inpit-pause"
                 rightBtn = "inpit-stop"
             } else {
@@ -624,19 +629,31 @@ struct PitRunLiveActivity: Widget {
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    HStack(alignment: .lastTextBaseline, spacing: 2) {
-                        Text(String(format: "%.2f", state.distKm))
+                    if isQualifying {
+                        // Qualifying: 경과 시간만 단일 텍스트. LockQualifyingView의
+                        // 큰 시간 표시와 동일 포맷 (n'nn"). distKm은 무의미해서 안 보임.
+                        Text(formatQualTime(state.elapsedMs))
                             .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
                             .foregroundStyle(accentColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
-                        Text("km")
-                            .font(.custom("Formula1-Display-Regular", size: 18))
-                            .foregroundStyle(accentColor)
-                            .lineLimit(1)
+                            .padding(.trailing, 12)
+                            .frame(maxHeight: .infinity, alignment: .center)
+                    } else {
+                        HStack(alignment: .lastTextBaseline, spacing: 2) {
+                            Text(String(format: "%.2f", state.distKm))
+                                .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
+                                .foregroundStyle(accentColor)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Text("km")
+                                .font(.custom("Formula1-Display-Regular", size: 18))
+                                .foregroundStyle(accentColor)
+                                .lineLimit(1)
+                        }
+                        .padding(.trailing, 12)
+                        .frame(maxHeight: .infinity, alignment: .center)
                     }
-                    .padding(.trailing, 12)
-                    .frame(maxHeight: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     EmptyView()
