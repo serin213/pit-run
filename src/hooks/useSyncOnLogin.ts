@@ -46,9 +46,14 @@ export function useSyncOnLogin() {
           }
         }
 
-        // 퀄리파잉 동기화
+        // 퀄리파잉 동기화 — DB가 source-of-truth.
+        // 이전엔 `&& !state.qualifyingResult` 가드로 "로컬에 있으면 안 덮어씀" 정책이라,
+        // DB에서 cleanup된 경우(다른 디바이스 삭제 / SQL 마이그레이션 등) 로컬에
+        // stale qualifyingResult가 영구히 남아 마이페이지/히스토리에 등급 트로피가
+        // 표시되고 RaceScreen의 `if (!qualifyingResult)` 가드를 우회하는 버그.
+        // qualifyingDates와 동일하게 DB 결과를 무조건 반영 — 비어있으면 로컬도 null.
         const qualifying = await fetchLatestQualifying();
-        if (qualifying && !useAppStore.getState().qualifyingResult) {
+        if (qualifying) {
           useAppStore.getState().setQualifyingResult({
             warmupMinutes: qualifying.warmup_minutes,
             oneKmMs: qualifying.one_km_ms,
@@ -56,6 +61,8 @@ export function useSyncOnLogin() {
             grade: qualifying.grade,
             nextIntervalHint: '', // 서버에서는 hint 미저장, 로컬 재생성 필요 시 core 사용
           });
+        } else {
+          useAppStore.getState().setQualifyingResult(null);
         }
 
         // 퀄리파잉 날짜 동기화 — DB가 source-of-truth.
