@@ -14,8 +14,10 @@ struct PitRunAttributes: ActivityAttributes {
         var sector: String    // "yellow" | "purple" | "green"
         var tire: String      // "soft" | "medium" | "hard"
         var pitPhase: String  // "none" | "boxbox" | "inPit" | "fullPush" | "completed"
-        var prog: Double      // 0.0 – 1.0, circuit lap progress
+        var prog: Double      // 0.0 – 1.0, circuit lap progress (또는 qualifying 진행도 0~1)
         var isPaused: Bool
+        // "race" | "qualifying" — UI 분기 (lock screen 전용 layout, expanded color)
+        var mode: String
     }
 
     var driverName: String

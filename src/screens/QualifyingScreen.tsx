@@ -49,6 +49,12 @@ import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
 import { successLong } from '../platform/haptics';
+import {
+  startLiveActivity,
+  updateLiveActivity,
+  endAllLiveActivities,
+  getCurrentActivityId,
+} from '../platform/liveActivity';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -69,7 +75,7 @@ type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
 export default function QualifyingScreen({ navigation, route }: QualifyingScreenProps) {
   const skipIntro = route.params?.skipIntro ?? false;
-  const { setQualifyingResult, recordQualifyingDateToday } = useAppStore();
+  const { setQualifyingResult, recordQualifyingDateToday, profile } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { saveCompletedSession } = useSupabaseSession();
   // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
@@ -175,6 +181,43 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 
   const effectiveDistKm = __DEV__ ? simDistKm : trialDistKm;
 
+  // Live Activity (qualifying 모드) 시작/업데이트/종료.
+  // - 시작: phase 'qualifying' 처음 진입 + LA가 아직 없을 때.
+  // - 업데이트: trialElapsedMs 변할 때 1초 throttle (Activity Kit 권고).
+  // - 종료: executeRetire / finishOneKm 에서 명시적으로 호출.
+  const laUpdateThrottleRef = useRef(0);
+  useEffect(() => {
+    if (phase !== 'qualifying') return;
+    if (getCurrentActivityId()) return;
+    startLiveActivity(
+      profile.displayName,
+      '#E03A3E',
+      'qualifying',
+      'qualifying',
+    ).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'qualifying' && phase !== 'retireConfirm') return;
+    const id = getCurrentActivityId();
+    if (!id) return;
+    const now = Date.now();
+    if (now - laUpdateThrottleRef.current < 1000) return;
+    laUpdateThrottleRef.current = now;
+    updateLiveActivity(id, {
+      distKm: 0,
+      elapsedMs: Math.round(trialElapsedMs),
+      paceS: 0,
+      sector: 'yellow',
+      tire: 'soft',
+      pitPhase: 'none',
+      prog: Math.max(0, Math.min(1, effectiveDistKm)),
+      isPaused: false,
+      mode: 'qualifying',
+    });
+  }, [trialElapsedMs, effectiveDistKm, phase]);
+
   const startWarmup = async () => {
     const granted = await ensurePermission();
     if (!granted) return;
@@ -259,6 +302,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const executeRetire = () => {
     // Retire = 1km 미완주. 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
     // history/DB 모두 무관 — 분석 이벤트만 기록.
+    // Live Activity는 navigation.goBack()으로 빠지면 QualifyingPostScreen으로
+    // 안 가므로 여기서 직접 종료. (Post에는 자동완주 케이스에서만 도달.)
+    endAllLiveActivities().catch(() => {});
     qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingAbandoned({

@@ -18,6 +18,8 @@ import {
   isSupported as nativeIsSupported,
 } from 'pit-run-live-activity';
 
+export type LiveActivityMode = 'race' | 'qualifying';
+
 export interface LiveActivityState {
   distKm: number;
   elapsedMs: number;
@@ -27,6 +29,9 @@ export interface LiveActivityState {
   pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
   prog: number;
   isPaused: boolean;
+  // qualifying 모드: prog는 1km 진행도 (0~1), distKm/sector/pitPhase는 placeholder.
+  // race 모드: 전체 race 진행도 + 일반 race state.
+  mode: LiveActivityMode;
 }
 
 let currentActivityId: string | null = null;
@@ -51,16 +56,17 @@ export async function startLiveActivity(
   driverName: string,
   teamColor: string,
   circuitId: string,
+  mode: LiveActivityMode = 'race',
 ): Promise<string | null> {
   if (currentActivityId) {
     if (__DEV__) console.log(`${LA_TAG} start: reusing existing id`, currentActivityId);
     return currentActivityId;
   }
   if (__DEV__) {
-    console.log(`${LA_TAG} start: requesting`, { driverName, teamColor, circuitId });
+    console.log(`${LA_TAG} start: requesting`, { driverName, teamColor, circuitId, mode });
   }
   try {
-    const id = await nativeStart(driverName, teamColor, circuitId);
+    const id = await nativeStart(driverName, teamColor, circuitId, mode);
     if (__DEV__) console.log(`${LA_TAG} start: native returned id =`, id);
     currentActivityId = id;
     return id;
@@ -85,6 +91,7 @@ export async function updateLiveActivity(
       state.pitPhase,
       state.prog,
       state.isPaused,
+      state.mode,
     );
   } catch (e) {
     if (__DEV__) console.warn(`${LA_TAG} update threw`, e);

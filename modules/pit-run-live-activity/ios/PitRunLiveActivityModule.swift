@@ -14,6 +14,9 @@ struct PitRunAttributes: ActivityAttributes {
         var pitPhase: String  // "none" | "boxbox" | "inPit" | "fullPush" | "completed"
         var prog: Double      // 0.0 – 1.0
         var isPaused: Bool
+        // "race" | "qualifying" — 반드시 targets/.../PitRunAttributes.swift의
+        // ContentState와 순서/이름/타입 동일.
+        var mode: String
     }
     var driverName: String
     var teamColor: String
@@ -39,9 +42,10 @@ public class PitRunLiveActivityModule: Module {
             NSLog("[PitRunLA] Module OnCreate called — module is loaded and registered")
         }
 
-        // startActivity(driverName, teamColor, circuitId) -> activityId | null
-        AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
-            NSLog("[PitRunLA] startActivity called: driver=%@ team=%@ circuit=%@", driverName, teamColor, circuitId)
+        // startActivity(driverName, teamColor, circuitId, mode) -> activityId | null
+        // mode: "race" | "qualifying" — Lock screen / expanded color 분기.
+        AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, mode: String, promise: Promise) in
+            NSLog("[PitRunLA] startActivity called: driver=%@ team=%@ circuit=%@ mode=%@", driverName, teamColor, circuitId, mode)
             guard #available(iOS 16.2, *) else {
                 NSLog("[PitRunLA] iOS < 16.2 — returning null")
                 promise.resolve(nil as String?)
@@ -58,7 +62,8 @@ public class PitRunLiveActivityModule: Module {
             let initialState = PitRunAttributes.ContentState(
                 distKm: 0, elapsedMs: 0, paceS: 0,
                 sector: "yellow", tire: "soft", pitPhase: "none",
-                prog: 0, isPaused: false
+                prog: 0, isPaused: false,
+                mode: mode
             )
             let content = ActivityContent(state: initialState, staleDate: nil)
             let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
@@ -78,7 +83,7 @@ public class PitRunLiveActivityModule: Module {
             }
         }
 
-        // updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused)
+        // updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused, mode)
         AsyncFunction("updateActivity") { (
             activityId: String,
             distKm: Double,
@@ -89,6 +94,7 @@ public class PitRunLiveActivityModule: Module {
             pitPhase: String,
             prog: Double,
             isPaused: Bool,
+            mode: String,
             promise: Promise
         ) in
             guard #available(iOS 16.2, *) else {
@@ -103,7 +109,8 @@ public class PitRunLiveActivityModule: Module {
             let newState = PitRunAttributes.ContentState(
                 distKm: distKm, elapsedMs: elapsedMs, paceS: paceS,
                 sector: sector, tire: tire, pitPhase: pitPhase,
-                prog: prog, isPaused: isPaused
+                prog: prog, isPaused: isPaused,
+                mode: mode
             )
             let content = ActivityContent(state: newState, staleDate: nil)
 

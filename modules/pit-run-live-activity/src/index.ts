@@ -1,7 +1,8 @@
 import { requireOptionalNativeModule, Platform } from 'expo-modules-core';
 
 interface PitRunLiveActivityNative {
-  startActivity(driverName: string, teamColor: string, circuitId: string): Promise<string | null>;
+  // mode: "race" | "qualifying" — Lock screen / expanded color 분기.
+  startActivity(driverName: string, teamColor: string, circuitId: string, mode: string): Promise<string | null>;
   updateActivity(
     activityId: string,
     distKm: number,
@@ -11,7 +12,8 @@ interface PitRunLiveActivityNative {
     tire: string,
     pitPhase: string,
     prog: number,
-    isPaused: boolean
+    isPaused: boolean,
+    mode: string
   ): Promise<void>;
   endActivity(activityId: string): Promise<void>;
   endAllActivities(): Promise<void>;
@@ -52,16 +54,17 @@ export function isSupported(): boolean {
 export async function startActivity(
   driverName: string,
   teamColor: string,
-  circuitId: string
+  circuitId: string,
+  mode: string
 ): Promise<string | null> {
   const mod = getNativeModule();
   if (!mod) {
     console.error('[PitRunLA-DIAG] startActivity: module missing, returning null');
     return null;
   }
-  console.warn('[PitRunLA-DIAG] startActivity: calling native', { driverName, teamColor, circuitId });
+  console.warn('[PitRunLA-DIAG] startActivity: calling native', { driverName, teamColor, circuitId, mode });
   try {
-    const id = await mod.startActivity(driverName, teamColor, circuitId);
+    const id = await mod.startActivity(driverName, teamColor, circuitId, mode);
     console.warn(`[PitRunLA-DIAG] startActivity: native returned id=${id}`);
     return id;
   } catch (e) {
@@ -79,12 +82,13 @@ export async function updateActivity(
   tire: string,
   pitPhase: string,
   prog: number,
-  isPaused: boolean
+  isPaused: boolean,
+  mode: string
 ): Promise<void> {
   const mod = getNativeModule();
   if (!mod) return;
   try {
-    await mod.updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused);
+    await mod.updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused, mode);
   } catch (e) {
     console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
   }

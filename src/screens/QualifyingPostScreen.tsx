@@ -13,6 +13,7 @@ import { LinearGradient } from '../platform/gradient';
 import LottieView, { type AnimationObject } from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
+import { endAllLiveActivities } from '../platform/liveActivity';
 import { calcQualifyingRank } from '../lib/ranking/calcRank';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
@@ -75,6 +76,12 @@ const CONFETTI_SOURCE = require('../../assets/qualifying/lottie/confetti.json');
 const CONFETTI_SIZE = 295;
 
 export default function QualifyingPostScreen({ navigation, route }: QualifyingPostScreenProps) {
+  // 1km 자동완주로 도달했을 때 잠금화면의 qualifying Live Activity 즉시 종료.
+  // ResultScreen과 동일 패턴 — Race 의 ResultScreen.useEffect 미러.
+  React.useEffect(() => {
+    endAllLiveActivities().catch(() => {});
+  }, []);
+
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();
   const safeBottom = useSafeBottom();

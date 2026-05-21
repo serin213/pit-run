@@ -116,6 +116,7 @@ export function useRunning(options: UseRunningOptions = {}) {
       pitPhase,
       prog,
       isPaused,
+      mode: 'race',
     });
   }, [pitPhase]);
 
@@ -153,6 +154,7 @@ export function useRunning(options: UseRunningOptions = {}) {
             pitPhase: phase,
             prog,
             isPaused,
+            mode: 'race',
           });
         }
       }

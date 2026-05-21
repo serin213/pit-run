@@ -462,7 +462,76 @@ private struct LockWaveView: View {
     }
 }
 
+// MARK: - Qualifying Mode (Lock screen UI)
+
+// elapsedMs → "n'nn\"" (분은 0 패딩 없음, 초 2자리 0 패딩). 예: 4'37"
+private func formatQualTime(_ ms: Int) -> String {
+    let total = max(0, ms / 1000)
+    let m = total / 60
+    let s = total % 60
+    return "\(m)'\(String(format: "%02d", s))\""
+}
+
+// QualifyingScreen.tsx의 barTrack / barFillWrap 시각 사양과 1:1.
+// height 12, cornerRadius 6 pill. Track 흰색 10%, Fill 빨강→핑크 horizontal gradient.
+private struct QualifyingProgressBar: View {
+    let prog: Double  // 0.0 – 1.0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.white.opacity(0.1))
+                let clamped = max(0, min(1, prog))
+                LinearGradient(
+                    colors: [Color(hex: "#E03A3E"), Color(hex: "#E03A8A")],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: geo.size.width * CGFloat(clamped))
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+        }
+        .frame(height: 12)
+    }
+}
+
+private struct LockQualifyingView: View {
+    let prog: Double
+    let elapsedMs: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // LockNormalView의 서킷명과 동일 속성 (Formula1-Bold 15pt).
+            Text("Qualifying")
+                .font(.custom("Formula1-Display-Bold", size: 15))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+
+            Color.clear.frame(height: 20)
+
+            // 시간: LockNormalView의 큰 숫자(distance)와 동일 속성 (Formula1-Bold 30pt).
+            Text(formatQualTime(elapsedMs))
+                .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+
+            Color.clear.frame(height: 12)
+
+            QualifyingProgressBar(prog: prog)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 30)
+    }
+}
+
 // MARK: - Live Activity View
+
+// Qualifying 모드의 accent (sector 컬러 대체용).
+private let QUALIFYING_RED = Color(hex: "#E03A3E")
 
 struct PitRunLiveActivityView: View {
     let context: ActivityViewContext<PitRunAttributes>
@@ -473,33 +542,39 @@ struct PitRunLiveActivityView: View {
 
         ZStack {
             BG_COLOR
-            switch state.pitPhase {
-            case "boxbox":
-                LockWaveView(teamColor: teamClr, line1: "\u{201C}BOX BOX", line2: " RECOVERY TIME\u{201D}")
-            case "fullPush":
-                LockWaveView(teamColor: teamClr, line1: "\u{201C}FULL PUSH\u{201D}", line2: nil)
-            case "completed":
-                Link(destination: URL(string: "pitrun://result")!) {
-                    LockWaveView(teamColor: teamClr, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
+            // mode 분기를 pitPhase 분기보다 먼저: qualifying 모드는 pit/box/완주 같은
+            // race-only 상태가 없으므로 단일 LockQualifyingView로 끝.
+            if state.mode == "qualifying" {
+                LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)
+            } else {
+                switch state.pitPhase {
+                case "boxbox":
+                    LockWaveView(teamColor: teamClr, line1: "\u{201C}BOX BOX", line2: " RECOVERY TIME\u{201D}")
+                case "fullPush":
+                    LockWaveView(teamColor: teamClr, line1: "\u{201C}FULL PUSH\u{201D}", line2: nil)
+                case "completed":
+                    Link(destination: URL(string: "pitrun://result")!) {
+                        LockWaveView(teamColor: teamClr, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
+                    }
+                case "inPit":
+                    LockNormalView(
+                        circuitId: context.attributes.circuitId,
+                        prog: state.prog,
+                        sector: state.sector,
+                        distKm: state.distKm,
+                        paceS: state.paceS,
+                        inPit: true
+                    )
+                default:
+                    LockNormalView(
+                        circuitId: context.attributes.circuitId,
+                        prog: state.prog,
+                        sector: state.sector,
+                        distKm: state.distKm,
+                        paceS: state.paceS,
+                        inPit: false
+                    )
                 }
-            case "inPit":
-                LockNormalView(
-                    circuitId: context.attributes.circuitId,
-                    prog: state.prog,
-                    sector: state.sector,
-                    distKm: state.distKm,
-                    paceS: state.paceS,
-                    inPit: true
-                )
-            default:
-                LockNormalView(
-                    circuitId: context.attributes.circuitId,
-                    prog: state.prog,
-                    sector: state.sector,
-                    distKm: state.distKm,
-                    paceS: state.paceS,
-                    inPit: false
-                )
             }
         }
     }
@@ -516,7 +591,10 @@ struct PitRunLiveActivity: Widget {
             let teamClr = Color(hex: context.attributes.teamColor)
             let pitMode = state.pitPhase == "inPit"
             let isPaused = state.isPaused
-            let accentColor = themeColor(sector: state.sector, inPit: pitMode)
+            // qualifying 모드: sector/pit 무시하고 빨강 고정. race 모드: 기존 sector/inPit 기반.
+            let accentColor: Color = state.mode == "qualifying"
+                ? QUALIFYING_RED
+                : themeColor(sector: state.sector, inPit: pitMode)
 
             let leftBtn: String
             let rightBtn: String
@@ -591,10 +669,11 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false)
-    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false)
-    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false)
-    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 336, sector: "purple", tire: "soft",   pitPhase: "none",     prog: 0.64, isPaused: false, mode: "race")
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "inPit",    prog: 0.64, isPaused: false, mode: "race")
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 0,   sector: "yellow", tire: "medium", pitPhase: "boxbox",   prog: 0.64, isPaused: false, mode: "race")
+    PitRunAttributes.ContentState(distKm: 2.14, elapsedMs: 720_000, paceS: 342, sector: "green",  tire: "hard",   pitPhase: "fullPush", prog: 0.64, isPaused: false, mode: "race")
+    PitRunAttributes.ContentState(distKm: 0,    elapsedMs: 277_000, paceS: 0,   sector: "yellow", tire: "soft",   pitPhase: "none",     prog: 0.62, isPaused: false, mode: "qualifying")
 }
 
 @available(iOS 18.0, *)
@@ -603,7 +682,7 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.ContentState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 5.22, elapsedMs: 1_800_000, paceS: 315, sector: "green", tire: "soft", pitPhase: "none", prog: 0.42, isPaused: false, mode: "race")
 }
 
 @available(iOS 18.0, *)
@@ -612,5 +691,5 @@ struct PitRunLiveActivity: Widget {
 )) {
     PitRunLiveActivity()
 } contentStates: {
-    PitRunAttributes.ContentState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none", prog: 0.60, isPaused: false)
+    PitRunAttributes.ContentState(distKm: 3.55, elapsedMs: 1_120_000, paceS: 315, sector: "purple", tire: "medium", pitPhase: "none", prog: 0.60, isPaused: false, mode: "race")
 }
