@@ -1,0 +1,46 @@
+# .easignore가 있으면 EAS는 .gitignore 대신 이 파일만 본다.
+# .gitignore 내용을 그대로 복사하고, EAS 업로드에서만 제외할 항목을 아래에 추가.
+
+# ===== mirrored from .gitignore =====
+
+node_modules/
+
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+.metro-health-check*
+
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+.DS_Store
+*.pem
+
+.env
+.env*.local
+
+/credentials.json
+/secrets/
+
+*.tsbuildinfo
+
+/ios
+/android
+
+# ===== EAS-only =====
+
+# Claude Code 워크트리 — git index에 gitlink(160000)로 박혀 있어 EAS가
+# "filename casing inconsistent" 라고 잘못된 에러를 띄움. 빌드와 무관한
+# 메타데이터/체크아웃 사본이므로 업로드에서 완전히 제외.
+.claude/
