@@ -245,11 +245,13 @@ private struct CircuitMapView: View {
             }
 
             // Dot at runner's current position (= endFrac)
+            // 헝가로링처럼 viewBox 비율이 정사각형에 가까운 서킷에서 트랙이 작게
+            // 그려질 때 dot이 트랙의 큰 부분을 가리는 문제 → halo 16→12, 안쪽 8→6.
             if showDot {
                 let dot = tx(ptAtFrac(segs, Double(endFrac)))
-                ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 8, y: dot.y - 8, width: 16, height: 16)),
+                ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 6, y: dot.y - 6, width: 12, height: 12)),
                          with: .color(lineColor.opacity(0.5)))
-                ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 4, y: dot.y - 4, width: 8, height: 8)),
+                ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 3, y: dot.y - 3, width: 6, height: 6)),
                          with: .color(lineColor))
             }
         }
@@ -312,7 +314,9 @@ private struct LockNormalView: View {
                         .foregroundStyle(Color.white)
                         .lineLimit(1)
                 }
-                Color.clear.frame(height: 20)
+                // gap 20→12: CircuitView 가용 height 확보 (헝가로링처럼 정사각형
+                // 비율인 서킷이 너무 작게 그려지는 문제 완화).
+                Color.clear.frame(height: 12)
                 CircuitMapView(
                     circuitId: circuitId,
                     prog: prog,
@@ -324,7 +328,8 @@ private struct LockNormalView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.leading, 24)
             .padding(.top, 20)
-            .padding(.bottom, 30)
+            // bottom padding 30→16: 트랙 영역 14pt 추가 확보.
+            .padding(.bottom, 16)
 
             // 오른쪽: DISTANCE + PACE (PACE 값 하단 고정, 가장 넓은 텍스트 기준 왼쪽 정렬)
             VStack(alignment: .leading, spacing: 0) {

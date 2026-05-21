@@ -131,10 +131,17 @@ function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
 
 export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // Dismiss the lock-screen Live Activity the moment the result is on screen.
-  // useRunning has a 10s fallback in case the user never reaches this screen.
+  // 두 가지 안전망 같이 사용:
+  //   1. currentActivityId가 살아있으면 그걸로 종료 시도
+  //   2. endAllLiveActivities()로 트랙된 모든 ActivityKit activity 강제 종료
+  // 이전엔 (1)만 했는데, useRunning에서 ref만 null로 만들고 module variable이
+  // stale 상태일 때 / activities dict의 키 mismatch 등 edge case에서 LA가 잠금화면에
+  // 남는 증상 발생. endAllLiveActivities는 native에서 Activity<*>.activities를 순회해
+  // dismissalPolicy: .immediate로 종료하므로 robust.
   React.useEffect(() => {
     const id = getCurrentActivityId();
     if (id) endLiveActivity(id).catch(() => {});
+    endAllLiveActivities().catch(() => {});
   }, []);
   const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
