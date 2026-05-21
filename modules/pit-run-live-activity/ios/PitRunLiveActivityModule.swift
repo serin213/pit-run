@@ -26,15 +26,18 @@ public class PitRunLiveActivityModule: Module {
     private var activities: [String: AnyObject] = [:]
 
     public func definition() -> ModuleDefinition {
-        // 모듈 자체가 로드/초기화되는 시점에 1회 찍힘. Console.app에서 이 줄도 없다면
-        // 네이티브 모듈 autolinking이 깨진 상태 (podspec / 빌드 설정 문제).
-        NSLog("[PitRunLA] Module definition() called — module is loaded")
         // IMPORTANT: 'PitRunLiveActivity'는 widget extension target name
         // (targets/pit-run-live-activity/expo-target.config.js)과 동일해서
-        // EAS prebuild 시 Expo modules autolinking이 silent fail함.
-        // 그래서 *Bridge로 다르게 등록. JS 쪽 MODULE_NAME도 동일하게 맞춰야 함
-        // (modules/pit-run-live-activity/src/index.ts).
+        // JS↔Native 식별자 충돌 회피용으로 *Bridge로 다르게 등록.
+        // JS 쪽 MODULE_NAME도 동일하게 맞춰야 함 (modules/.../src/index.ts).
         Name("PitRunLiveActivityBridge")
+
+        // 모듈 인스턴스화 시점에 1회 찍힘. Console.app에서 이 줄도 없다면
+        // 네이티브 모듈 autolinking이 깨진 상태 (podspec / 빌드 설정 문제).
+        // definition() 메서드는 AnyDefinition만 받으므로 NSLog는 OnCreate 블록 안.
+        OnCreate {
+            NSLog("[PitRunLA] Module OnCreate called — module is loaded and registered")
+        }
 
         // startActivity(driverName, teamColor, circuitId) -> activityId | null
         AsyncFunction("startActivity") { (driverName: String, teamColor: String, circuitId: String, promise: Promise) in
