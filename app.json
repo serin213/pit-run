@@ -80,7 +80,15 @@
       ],
       "expo-audio",
       "expo-web-browser",
-      "./plugins/with-widget-object-version"
+      "./plugins/with-widget-object-version",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.1"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

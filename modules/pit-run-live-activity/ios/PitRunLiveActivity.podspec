@@ -19,13 +19,11 @@ Pod::Spec.new do |s|
   s.license        = 'MIT'
   s.author         = { 'serin213' => 'serin213@github' }
   s.homepage       = 'https://github.com/serin213/pit-run'
-  # IMPORTANT: 반드시 Podfile의 iOS deployment target과 같거나 낮아야 함.
+  # iOS 16.1+ 전용 (ActivityKit). Podfile도 반드시 16.1로 맞춰야 함
+  # (app.json plugins의 expo-build-properties로 ios.deploymentTarget="16.1" 설정).
   # podspec platform > Podfile platform이면 expo-modules-autolinking이
-  # "doesn't support iOS platform"으로 판정해서 모듈을 ExpoModulesProvider에
-  # 등록하지 않음 (production에서 requireOptionalNativeModule null 반환 원인).
-  # ActivityKit 코드는 Swift @available(iOS 16.2)로 runtime 가드되어 있어
-  # deployment target을 낮춰도 안전.
-  s.platforms      = { :ios => '15.1' }
+  # "doesn't support iOS platform"으로 판정해서 모듈을 silent drop함.
+  s.platforms      = { :ios => '16.1' }
   s.swift_version  = '5.9'
   s.source         = { git: 'https://github.com/serin213/pit-run' }
   s.static_framework = true
