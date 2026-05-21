@@ -39,11 +39,16 @@ import { radius } from '../constants/radius';
 import ConfirmSheet from '../components/ConfirmSheet';
 import {
   requestForegroundPermission,
-  watchPosition,
+  requestBackgroundPermission,
   haversineKm,
   type LocationCoords,
-  type LocationSubscription,
 } from '../platform/location';
+import {
+  startBackgroundLocationTask,
+  stopBackgroundLocationTask,
+  getLatestBackgroundCoords,
+  clearBackgroundCoords,
+} from '../platform/locationTask';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
@@ -86,8 +91,11 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const { user } = useAuthStore();
   const { isDevMode } = useDevMode();
   const [trialDistKm, setTrialDistKm] = useState(0);
+  // Background task polling 패턴 (useGPS와 동일). foreground subscription을
+  // 쓰면 화면 잠금 / 다른 앱 이동 시 GPS 끊김. LA를 잠금화면에서 보면서 뛰는
+  // 시나리오 위해 background task로 통일.
   const gpsCoordsRef = useRef<LocationCoords | null>(null);
-  const gpsSubRef = useRef<LocationSubscription | null>(null);
+  const gpsLastTimestampRef = useRef<number>(0);
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
 
@@ -127,40 +135,68 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // GPS 추적: qualifying 단계에서만 활성화.
   // dep를 boolean(isGpsActive)으로 추출 — phase 'qualifying' ↔ 'retireConfirm'
   // 토글 시 effect cleanup으로 subscription이 끊겼다 재시작되며 GPS warmup 동안
-  // 측정 누락되는 버그 방어. 두 phase 모두 true로 매핑되어 동일 subscription 유지.
+  // 측정 누락되는 버그 방어. 두 phase 모두 true로 매핑되어 동일 task 유지.
+  //
+  // useGPS와 동일하게 background location task 사용 — TaskManager가 별도 native
+  // thread에서 위치 수집 → MMKV bridge → JS polling. foreground subscription과 달리
+  // 화면 잠금 / 다른 앱 / Live Activity 보면서 뛰는 시나리오에서 끊기지 않음.
   const isGpsActive = phase === 'qualifying' || phase === 'retireConfirm';
   useEffect(() => {
-    if (!isGpsActive) {
-      gpsSubRef.current?.remove();
-      gpsSubRef.current = null;
-      gpsCoordsRef.current = null;
-      return;
-    }
+    if (!isGpsActive) return;
+
+    let cancelled = false;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
-      const granted = await requestForegroundPermission();
-      if (!granted) return;
+      const fgGranted = await requestForegroundPermission();
+      if (!fgGranted || cancelled) return;
+      // background는 best-effort. always 권한 못 받아도 foreground 동안엔 동작.
+      await requestBackgroundPermission().catch(() => {});
 
-      gpsSubRef.current = await watchPosition((coords) => {
-        // accuracy 20→50: 도시 환경 GPS는 정상적으로 30~50m 떴다 떨어졌다 함.
-        // 20m 임계값이면 너무 많은 update가 filter됨 → 거리 누락 + 일부 환경에서
-        // 일정 시간 후 측정 멈춤 현상.
+      clearBackgroundCoords();
+      gpsLastTimestampRef.current = 0;
+      gpsCoordsRef.current = null;
+
+      await startBackgroundLocationTask();
+      if (cancelled) {
+        await stopBackgroundLocationTask();
+        return;
+      }
+
+      pollInterval = setInterval(() => {
+        const bg = getLatestBackgroundCoords();
+        if (!bg || bg.timestamp <= gpsLastTimestampRef.current) return;
+        gpsLastTimestampRef.current = bg.timestamp;
+
+        const coords: LocationCoords = {
+          latitude: bg.latitude,
+          longitude: bg.longitude,
+          altitude: bg.altitude,
+          accuracy: bg.accuracy,
+          speed: bg.speed,
+        };
+
+        // accuracy 50m 임계값 (도시 환경 정상 범위). useGPS는 20m라 더 엄격하지만
+        // qualifying은 짧은 1km에 측정 누락이 진행 차단으로 이어지므로 더 관대.
         if (coords.accuracy != null && coords.accuracy > 50) return;
+
         if (gpsCoordsRef.current) {
           const dist = haversineKm(gpsCoordsRef.current, coords);
-          // min delta 0.002→0.0005 (0.5m): 느린 걸음/조깅도 누적 가능하게.
-          // max 0.15는 outlier filter — 유지.
+          // 0.5m ~ 150m 범위. min 0.5m: 느린 걸음 누적. max 150m: outlier filter.
           if (dist >= 0.0005 && dist <= 0.15) {
             setTrialDistKm((prev) => prev + dist);
           }
         }
         gpsCoordsRef.current = coords;
-      });
+      }, 1000);
     })();
 
     return () => {
-      gpsSubRef.current?.remove();
-      gpsSubRef.current = null;
+      cancelled = true;
+      if (pollInterval) clearInterval(pollInterval);
+      stopBackgroundLocationTask();
+      gpsCoordsRef.current = null;
+      gpsLastTimestampRef.current = 0;
     };
   }, [isGpsActive]);
 
