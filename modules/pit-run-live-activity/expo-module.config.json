@@ -1,1 +1,7 @@
-{"platforms":["apple"],"apple":{"modules":["PitRunLiveActivityModule"]}}
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["PitRunLiveActivityModule"],
+    "swiftModuleName": "PitRunLiveActivityNative"
+  }
+}

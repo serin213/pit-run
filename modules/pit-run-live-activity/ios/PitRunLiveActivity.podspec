@@ -13,6 +13,12 @@ Pod::Spec.new do |s|
   # 빌드 타겟이고 이건 CocoaPods framework라 빌드 단위가 달라 충돌하지 않음.
   # JS↔Native 식별자 충돌 회피는 Swift Name("PitRunLiveActivityBridge")로 분리.
   s.name           = 'PitRunLiveActivity'
+  # Widget extension target과 같은 이름이라 Swift module 충돌 (DerivedData에 두
+  # PitRunLiveActivity 산출물이 겹쳐 ExpoModulesProvider가 잘못된 .swiftmodule
+  # 을 import — 'Cannot find PitRunLiveActivityModule in scope' 증상).
+  # podspec name은 autolinking 매칭용으로 유지하고, 실제 Swift module 이름만
+  # 다르게 분리. expo-module.config.json의 swiftModuleName과 일치시켜야 함.
+  s.module_name    = 'PitRunLiveActivityNative'
   s.version        = package['version']
   s.summary        = package['description']
   s.description    = package['description']
