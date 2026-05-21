@@ -30,6 +30,7 @@ import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
 import { doubleImpact, successLong } from '../platform/haptics';
+import { endAllLiveActivities } from '../platform/liveActivity';
 
 const FW = 402;
 const FH = 874;
@@ -70,7 +71,13 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const { isDevMode } = useDevMode();
   // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈.
   // 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
+  //
+  // LA 종료: STOP은 항상 endAllLiveActivities를 먼저 호출. Result 분기에서도
+  // 호출하는 게 idempotent해서 안전하고, <0.10km로 Home으로 직행하는 경로에서는
+  // 여기서 안 끊으면 잠금화면 LA가 영구히 남는 버그 fix.
+  // 자동완주(handleAutoFinish)는 건드리지 않음 — ResultScreen 진입 시 종료.
   const onStop = useCallback(() => {
+    endAllLiveActivities().catch(() => {});
     const currentDistKm = useRunStore.getState().distKm;
     if (currentDistKm < 0.10) {
       navigation.replace('Home');
