@@ -38,7 +38,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.1",
-      "buildNumber": "28"
+      "buildNumber": "29"
     },
     "android": {
       "adaptiveIcon": {

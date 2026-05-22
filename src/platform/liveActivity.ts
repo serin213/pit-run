@@ -18,7 +18,7 @@ import {
   isSupported as nativeIsSupported,
 } from 'pit-run-live-activity';
 
-export type LiveActivityMode = 'race' | 'qualifying';
+export type LiveActivityMode = 'race' | 'qualifying' | 'warmup';
 
 export interface LiveActivityState {
   distKm: number;
@@ -29,8 +29,10 @@ export interface LiveActivityState {
   pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
   prog: number;
   isPaused: boolean;
-  // qualifying 모드: prog는 1km 진행도 (0~1), distKm/sector/pitPhase는 placeholder.
-  // race 모드: 전체 race 진행도 + 일반 race state.
+  // race: prog는 race 진행도, distKm/sector/pitPhase는 정상 race state.
+  // qualifying: prog는 1km 진행도 (0~1), elapsedMs는 경과 시간, distKm 미사용.
+  // warmup: elapsedMs는 "남은 ms" (카운트다운), prog 미사용.
+  // attributes schema는 동일 — elapsedMs 의미만 mode별로 재해석.
   mode: LiveActivityMode;
 }
 

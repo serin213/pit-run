@@ -528,6 +528,34 @@ private struct LockQualifyingView: View {
     }
 }
 
+// Warmup mode: elapsedMs는 카운트다운 ms (남은 시간). LockQualifyingView에서
+// progress bar만 제거한 형태.
+private struct LockWarmupView: View {
+    let elapsedMs: Int  // 남은 시간 (warmup countdown)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Warm-up")
+                .font(.custom("Formula1-Display-Bold", size: 15))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+
+            Color.clear.frame(height: 20)
+
+            // 카운트다운 시간 — formatQualTime는 단순 ms→"m'ss\"" 포맷이라
+            // warmup의 "남은 시간"도 동일 함수로 정상 표시.
+            Text(formatQualTime(elapsedMs))
+                .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 30)
+    }
+}
+
 // MARK: - Live Activity View
 
 // Qualifying 모드의 accent (sector 컬러 대체용).
@@ -542,9 +570,12 @@ struct PitRunLiveActivityView: View {
 
         ZStack {
             BG_COLOR
-            // mode 분기를 pitPhase 분기보다 먼저: qualifying 모드는 pit/box/완주 같은
-            // race-only 상태가 없으므로 단일 LockQualifyingView로 끝.
-            if state.mode == "qualifying" {
+            // mode 분기를 pitPhase 분기보다 먼저: warmup/qualifying 모드는 pit/box/완주
+            // 같은 race-only 상태가 없으므로 각각 전용 view 표시. race(default)만
+            // 기존 pitPhase 분기 사용.
+            if state.mode == "warmup" {
+                LockWarmupView(elapsedMs: state.elapsedMs)
+            } else if state.mode == "qualifying" {
                 LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)
             } else {
                 switch state.pitPhase {
@@ -591,15 +622,16 @@ struct PitRunLiveActivity: Widget {
             let teamClr = Color(hex: context.attributes.teamColor)
             let pitMode = state.pitPhase == "inPit"
             let isPaused = state.isPaused
-            let isQualifying = state.mode == "qualifying"
-            // qualifying: 텍스트 흰색 고정. race: 기존 sector/inPit 기반 테마.
-            let accentColor: Color = isQualifying
+            // warmup과 qualifying은 동일한 red 테마 사용 (텍스트 흰색 + 빨강 버튼).
+            // 표시 데이터도 동일하게 elapsedMs (warmup은 카운트다운, qualifying은 경과).
+            let isRedTheme = state.mode == "warmup" || state.mode == "qualifying"
+            let accentColor: Color = isRedTheme
                 ? Color.white
                 : themeColor(sector: state.sector, inPit: pitMode)
 
             let leftBtn: String
             let rightBtn: String
-            if isQualifying {
+            if isRedTheme {
                 // 별도 asset: targets/.../Assets.xcassets/{play,pause,stop}-red.imageset
                 leftBtn  = isPaused ? "play-red" : "pause-red"
                 rightBtn = "stop-red"
@@ -629,9 +661,9 @@ struct PitRunLiveActivity: Widget {
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    if isQualifying {
-                        // Qualifying: 경과 시간만 단일 텍스트. LockQualifyingView의
-                        // 큰 시간 표시와 동일 포맷 (n'nn"). distKm은 무의미해서 안 보임.
+                    if isRedTheme {
+                        // warmup/qualifying: 시간만 단일 텍스트. warmup은 카운트다운,
+                        // qualifying은 경과 시간. distKm은 둘 다 무의미.
                         Text(formatQualTime(state.elapsedMs))
                             .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
                             .foregroundStyle(accentColor)
@@ -665,8 +697,9 @@ struct PitRunLiveActivity: Widget {
                     .scaledToFit()
                     .frame(width: 24, height: 24)
             } compactTrailing: {
-                // qualifying: n'nn" 시간. race: distKm.
-                if isQualifying {
+                // warmup/qualifying: n'nn" 시간 (warmup=카운트다운, qualifying=경과).
+                // race: distKm.
+                if isRedTheme {
                     Text(formatQualTime(state.elapsedMs))
                         .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
                         .foregroundStyle(Color.white)

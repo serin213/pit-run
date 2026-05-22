@@ -53,7 +53,7 @@ import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
-import { successLong } from '../platform/haptics';
+import { successLong, singleImpact } from '../platform/haptics';
 import {
   startLiveActivity,
   updateLiveActivity,
@@ -104,20 +104,33 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const [trialStartedAt, setTrialStartedAt] = useState<number | null>(null);
   const [trialElapsedMs, setTrialElapsedMs] = useState(0);
 
-  // Warmup countdown
+  // Warmup countdown.
+  // 종료 5초 전(prev → 6일 때 새 값 5)에 'countdown' 사운드 1회 재생 (6초짜리 5,4,3,2,1,go).
+  // 매초 (prev → 5,4,3,2,1) singleImpact 햅틱.
+  // 0 도달 시 (qualifying 전환 시점) successLong 햅틱.
+  // skipToQualifying은 이 effect를 거치지 않으므로 사운드/햅틱 트리거 안 됨.
   useEffect(() => {
     if (phase !== 'warmup') return;
     const timer = setInterval(() => {
       setWarmupLeftSec((prev) => {
+        const next = prev - 1;
+        if (prev === 6) {
+          // 정확히 5초 남은 시점 → CountdownScreen과 동일 6초 사운드 시작
+          playSound('countdown');
+        }
+        if (next >= 1 && next <= 5) {
+          singleImpact();
+        }
         if (prev <= 1) {
           clearInterval(timer);
+          successLong();
           const now = Date.now();
           setTrialStartedAt(now);
           setTrialElapsedMs(0);
           setPhase('qualifying');
           return 0;
         }
-        return prev - 1;
+        return next;
       });
     }, 1000);
     return () => clearInterval(timer);
@@ -226,53 +239,89 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 
   const effectiveDistKm = __DEV__ ? simDistKm : trialDistKm;
 
-  // Live Activity (qualifying 모드) 시작.
-  // phase 'qualifying' 처음 진입 시 + LA가 아직 없을 때만 호출.
-  useEffect(() => {
-    if (phase !== 'qualifying') return;
-    if (getCurrentActivityId()) return;
-    startLiveActivity(
-      profile.displayName,
-      '#E03A3E',
-      'qualifying',
-      'qualifying',
-    ).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
-
-  // Live Activity 주기적 업데이트.
-  // 이전: useEffect deps [trialElapsedMs, effectiveDistKm, phase] + Date.now() throttle.
-  // 100ms 마다 setTrialElapsedMs → effect re-run → throttle로 99%가 skip되는 패턴이라
-  // React 18 concurrent rendering에서 effect 배치/스킵 시 update 자체가 fire되지 않는
-  // 케이스 발생 (LA 시간/progress 0 stuck 증상).
+  // Live Activity는 startWarmup에서 mode='warmup'으로 시작. 이후 phase가
+  // 'qualifying'으로 전환되면 같은 LA를 update만 호출하여 mode='qualifying'으로
+  // 즉시 전환 (1초 interval 기다리지 않게 명시적으로 fire).
   //
-  // 현재: setInterval 1초로 명시적 fire + ref로 최신 값 접근 (closure stale 방어).
-  // effect lifecycle은 isGpsActive에만 의존, dep 노이즈 최소화.
+  // LA update interval (1초)의 mode 결정은 phase 기반:
+  //   - warmup     → mode 'warmup',     elapsedMs = warmupLeftSec*1000 (카운트다운)
+  //   - qualifying → mode 'qualifying', elapsedMs = trialElapsedMs (경과)
+  //   - retireConfirm → mode 'qualifying' (qualifying view 유지)
+  //
+  // closure stale 방어 위해 trial 데이터와 warmupLeftSec 둘 다 ref에 보관.
   const trialStatsRef = useRef({ elapsedMs: 0, distKm: 0 });
+  const warmupLeftSecRef = useRef(RECOMMENDED_WARMUP_MINUTES * 60);
+  const phaseRef = useRef<Phase>(phase);
   useEffect(() => {
     trialStatsRef.current = { elapsedMs: trialElapsedMs, distKm: effectiveDistKm };
   }, [trialElapsedMs, effectiveDistKm]);
-
   useEffect(() => {
-    if (!isGpsActive) return;
-    const interval = setInterval(() => {
+    warmupLeftSecRef.current = warmupLeftSec;
+  }, [warmupLeftSec]);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  // warmup → qualifying 전환 시 LA mode를 즉시 update (interval 1초 기다리지 않게).
+  const prevPhaseRef = useRef<Phase>(phase);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (prev === 'warmup' && phase === 'qualifying') {
       const id = getCurrentActivityId();
       if (!id) return;
-      const { elapsedMs, distKm } = trialStatsRef.current;
       updateLiveActivity(id, {
         distKm: 0,
-        elapsedMs: Math.round(elapsedMs),
+        elapsedMs: 0,
         paceS: 0,
         sector: 'yellow',
         tire: 'soft',
         pitPhase: 'none',
-        prog: Math.max(0, Math.min(1, distKm)),
+        prog: 0,
         isPaused: false,
         mode: 'qualifying',
       });
+    }
+  }, [phase]);
+
+  // LA 주기적 업데이트. phase가 warmup/qualifying/retireConfirm일 때 활성.
+  const isLaActive = phase === 'warmup' || phase === 'qualifying' || phase === 'retireConfirm';
+  useEffect(() => {
+    if (!isLaActive) return;
+    const interval = setInterval(() => {
+      const id = getCurrentActivityId();
+      if (!id) return;
+      const p = phaseRef.current;
+      if (p === 'warmup') {
+        // warmup: elapsedMs = 남은 시간 ms
+        updateLiveActivity(id, {
+          distKm: 0,
+          elapsedMs: Math.max(0, warmupLeftSecRef.current * 1000),
+          paceS: 0,
+          sector: 'yellow',
+          tire: 'soft',
+          pitPhase: 'none',
+          prog: 0,
+          isPaused: false,
+          mode: 'warmup',
+        });
+      } else if (p === 'qualifying' || p === 'retireConfirm') {
+        const { elapsedMs, distKm } = trialStatsRef.current;
+        updateLiveActivity(id, {
+          distKm: 0,
+          elapsedMs: Math.round(elapsedMs),
+          paceS: 0,
+          sector: 'yellow',
+          tire: 'soft',
+          pitPhase: 'none',
+          prog: Math.max(0, Math.min(1, distKm)),
+          isPaused: false,
+          mode: 'qualifying',
+        });
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [isGpsActive]);
+  }, [isLaActive]);
 
   const startWarmup = async () => {
     const granted = await ensurePermission();
@@ -283,6 +332,16 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setPhase('warmup');
     // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
     qualifyingStartedAtRef.current = new Date().toISOString();
+    // LA를 warmup 시점부터 시작. mode 'warmup' (잠금화면에 "Warm-up" + 카운트다운 시간).
+    // qualifying 전환 시 같은 LA를 update해서 mode만 변경 (재시작 X).
+    if (!getCurrentActivityId()) {
+      startLiveActivity(
+        profile.displayName,
+        '#E03A3E',
+        'qualifying', // circuitId는 placeholder. mode가 화면 분기 결정.
+        'warmup',
+      ).catch(() => {});
+    }
   };
 
   const skipToQualifying = () => {
@@ -291,6 +350,22 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setTrialStartedAt(now);
     setTrialElapsedMs(0);
     setPhase('qualifying');
+    // warmup 카운트다운을 건너뛰는 케이스 — phase transition effect도 이걸로 trigger되지만,
+    // 명시적으로 즉시 mode='qualifying'로 업데이트해서 LA 화면 즉시 전환.
+    const id = getCurrentActivityId();
+    if (id) {
+      updateLiveActivity(id, {
+        distKm: 0,
+        elapsedMs: 0,
+        paceS: 0,
+        sector: 'yellow',
+        tire: 'soft',
+        pitPhase: 'none',
+        prog: 0,
+        isPaused: false,
+        mode: 'qualifying',
+      });
+    }
   };
 
   const finishOneKm = () => {
