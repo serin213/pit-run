@@ -105,6 +105,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     paceS,
     sector,
     prog,
+    isRunning,
     isPaused,
     boxBoxActive,
     pitPhase,
@@ -150,7 +151,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     navigation.replace('Result');
   }, [navigation, setPitPhase, setBoxBoxActive, stopRun]);
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
-  useGPS(true);
+  useGPS(isRunning && !isPaused, (d) => useRunStore.getState().addGpsDistance(d));
 
   useEffect(() => {
     startRun();

@@ -13,18 +13,35 @@ import {
   clearBackgroundCoords,
 } from '../platform/locationTask';
 
-const MIN_ACCURACY_M = 20;
+// Apple 공식 워크아웃 라우트 예제도 50m. 이전 20m는 도시 환경에서 너무 엄격.
+const MIN_ACCURACY_M = 50;
 const MIN_DELTA_KM = 0.002;
 const MAX_DELTA_KM = 0.15;
 const POLL_INTERVAL_MS = 1000;
 
-export function useGPS(enabled: boolean) {
+/**
+ * Background location task 기반 GPS 측정.
+ *
+ * RunningScreen과 QualifyingScreen 양쪽에서 사용. 두 화면이 누적 대상이 다르므로
+ * (RunningScreen은 useRunStore의 grand prix 거리, QualifyingScreen은 local
+ * trialDistKm) onDistance 콜백을 받아 호출부가 누적 방식 결정.
+ *
+ * enabled false → task 중지. true → 권한 요청 + task 시작 + 1초마다 polling.
+ */
+export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) {
   const prevCoordsRef = useRef<LocationCoords | null>(null);
   const lastTimestampRef = useRef<number>(0);
-  const { isRunning, isPaused, setGpsEnabled } = useRunStore();
+  // onDistance를 ref로 잡아 effect가 deps 변화로 재시작되지 않게.
+  const onDistanceRef = useRef(onDistance);
+  onDistanceRef.current = onDistance;
+  const { setGpsEnabled } = useRunStore();
 
   useEffect(() => {
-    if (!enabled || !isRunning || isPaused) return;
+    if (!enabled) {
+      prevCoordsRef.current = null;
+      lastTimestampRef.current = 0;
+      return;
+    }
 
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
@@ -33,11 +50,12 @@ export function useGPS(enabled: boolean) {
       const foregroundGranted = await requestForegroundPermission();
       if (!foregroundGranted || cancelled) return;
 
-      // Background permission: best-effort (Android requires separate grant)
+      // Background permission: best-effort (always 권한 못 받아도 foreground 동안엔 동작)
       await requestBackgroundPermission().catch(() => {});
 
       clearBackgroundCoords();
       lastTimestampRef.current = 0;
+      prevCoordsRef.current = null;
       setGpsEnabled(true);
 
       await startBackgroundLocationTask();
@@ -65,7 +83,7 @@ export function useGPS(enabled: boolean) {
         if (prevCoordsRef.current) {
           const dist = haversineKm(prevCoordsRef.current, coords);
           if (dist >= MIN_DELTA_KM && dist <= MAX_DELTA_KM) {
-            useRunStore.getState().addGpsDistance(dist);
+            onDistanceRef.current(dist);
           }
         }
         prevCoordsRef.current = coords;
@@ -76,13 +94,7 @@ export function useGPS(enabled: boolean) {
       cancelled = true;
       if (pollInterval) clearInterval(pollInterval);
       stopBackgroundLocationTask();
+      setGpsEnabled(false);
     };
-  }, [enabled, isRunning, isPaused, setGpsEnabled]);
-
-  useEffect(() => {
-    if (!isRunning) {
-      prevCoordsRef.current = null;
-      lastTimestampRef.current = 0;
-    }
-  }, [isRunning]);
+  }, [enabled, setGpsEnabled]);
 }
