@@ -185,6 +185,21 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     phaseRef.current = phase;
   }, [phase]);
 
+  // phase가 'warmup'으로 바뀌면 LA 시작 — 빌드 28의 검증된 useEffect 패턴.
+  // startWarmup 함수 안에서 직접 호출하던 빌드 30 방식은 release 빌드에서
+  // module instantiation이 일어나지 않아 LA가 안 뜸. effect 기반으로 복원.
+  useEffect(() => {
+    if (phase !== 'warmup') return;
+    if (getCurrentActivityId()) return;
+    startLiveActivity(
+      profile.displayName,
+      '#E03A3E',
+      'qualifying',
+      'warmup',
+    ).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // warmup → qualifying 전환 시 LA mode를 즉시 update (interval 1초 기다리지 않게).
   const prevPhaseRef = useRef<Phase>(phase);
   useEffect(() => {
@@ -255,16 +270,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setPhase('warmup');
     // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
     qualifyingStartedAtRef.current = new Date().toISOString();
-    // LA를 warmup 시점부터 시작. mode 'warmup' (잠금화면에 "Warm-up" + 카운트다운 시간).
-    // qualifying 전환 시 같은 LA를 update해서 mode만 변경 (재시작 X).
-    if (!getCurrentActivityId()) {
-      startLiveActivity(
-        profile.displayName,
-        '#E03A3E',
-        'qualifying', // circuitId는 placeholder. mode가 화면 분기 결정.
-        'warmup',
-      ).catch(() => {});
-    }
+    // LA 시작은 별도 useEffect (phase deps)가 처리 — 빌드 28의 검증된 패턴.
   };
 
   const skipToQualifying = () => {
