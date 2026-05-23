@@ -58,16 +58,6 @@ export async function startActivity(
   circuitId: string,
   mode: string
 ): Promise<string | null> {
-  // 진단: JS가 여기까지 도달했음을 native NSLog로 보장.
-  // isSupported는 native에 NSLog 박혀있어서 release에서도 보임 — JS↔native
-  // 브릿지의 어느 단계에서 끊기는지 노출됨 (release에선 console.warn이 invisible).
-  try {
-    const probeMod = getNativeModule();
-    if (probeMod) {
-      probeMod.isSupported(); // native NSLog "isSupported() → ..." 찍힘
-    }
-  } catch {}
-
   const mod = getNativeModule();
   if (!mod) {
     console.error('[PitRunLA-DIAG] startActivity: module missing, returning null');

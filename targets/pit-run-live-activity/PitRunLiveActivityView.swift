@@ -352,19 +352,11 @@ private struct LockNormalView: View {
                     .foregroundStyle(Color.white.opacity(0.4))
                     .tracking(0.3)
                 Color.clear.frame(height: 4)
-                Group {
-                    if #available(iOS 17.0, *) {
-                        Text(String(format: "%.2f", distKm))
-                            .contentTransition(.identity)
-                    } else {
-                        Text(String(format: "%.2f", distKm))
-                    }
-                }
-                .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .offset(x: -1)
-                .animation(nil, value: distKm)
+                Text(String(format: "%.2f", distKm))
+                    .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
+                    .foregroundStyle(color)
+                    .lineLimit(1)
+                    .offset(x: -1)
                 Color.clear.frame(height: 16)
                 Spacer(minLength: 0)
                 Text("PACE")
@@ -681,18 +673,11 @@ struct PitRunLiveActivity: Widget {
                             .frame(maxHeight: .infinity, alignment: .center)
                     } else {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Group {
-                                if #available(iOS 17.0, *) {
-                                    Text(String(format: "%.2f", state.distKm))
-                                        .contentTransition(.identity)
-                                } else {
-                                    Text(String(format: "%.2f", state.distKm))
-                                }
-                            }
-                            .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
-                            .foregroundStyle(accentColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            Text(String(format: "%.2f", state.distKm))
+                                .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
+                                .foregroundStyle(accentColor)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                             Text("km")
                                 .font(.custom("Formula1-Display-Regular", size: 18))
                                 .foregroundStyle(accentColor)
@@ -700,7 +685,6 @@ struct PitRunLiveActivity: Widget {
                         }
                         .padding(.trailing, 12)
                         .frame(maxHeight: .infinity, alignment: .center)
-                        .animation(nil, value: state.distKm)
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
@@ -720,17 +704,9 @@ struct PitRunLiveActivity: Widget {
                         .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
                         .foregroundStyle(Color.white)
                 } else {
-                    Group {
-                        if #available(iOS 17.0, *) {
-                            Text(String(format: "%.2f", state.distKm))
-                                .contentTransition(.identity)
-                        } else {
-                            Text(String(format: "%.2f", state.distKm))
-                        }
-                    }
-                    .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
-                    .foregroundStyle(Color.white)
-                    .animation(nil, value: state.distKm)
+                    Text(String(format: "%.2f", state.distKm))
+                        .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
+                        .foregroundStyle(Color.white)
                 }
             } minimal: {
                 Image("race-flag")
