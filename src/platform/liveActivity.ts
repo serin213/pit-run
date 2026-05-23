@@ -83,18 +83,17 @@ export async function updateLiveActivity(
   state: LiveActivityState,
 ): Promise<void> {
   try {
-    await nativeUpdate(
-      activityId,
-      state.distKm,
-      state.elapsedMs,
-      state.paceS,
-      state.sector,
-      state.tire,
-      state.pitPhase,
-      state.prog,
-      state.isPaused,
-      state.mode,
-    );
+    await nativeUpdate(activityId, {
+      distKm: state.distKm,
+      elapsedMs: state.elapsedMs,
+      paceS: state.paceS,
+      sector: state.sector,
+      tire: state.tire,
+      pitPhase: state.pitPhase,
+      prog: state.prog,
+      isPaused: state.isPaused,
+      mode: state.mode,
+    });
   } catch (e) {
     if (__DEV__) console.warn(`${LA_TAG} update threw`, e);
   }

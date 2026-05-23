@@ -1,20 +1,21 @@
 import { requireOptionalNativeModule, Platform } from 'expo-modules-core';
 
 interface PitRunLiveActivityNative {
-  // mode: "race" | "qualifying" — Lock screen / expanded color 분기.
+  // mode: "race" | "qualifying" | "warmup" — Lock screen / expanded color 분기.
   startActivity(driverName: string, teamColor: string, circuitId: string, mode: string): Promise<string | null>;
-  updateActivity(
-    activityId: string,
-    distKm: number,
-    elapsedMs: number,
-    paceS: number,
-    sector: string,
-    tire: string,
-    pitPhase: string,
-    prog: number,
-    isPaused: boolean,
-    mode: string
-  ): Promise<void>;
+  // updateActivity는 state를 dict로 받음 (expo-modules-core의 AsyncFunction
+  // 매개변수 개수 상한 초과로 인한 native binding 깨짐 회피).
+  updateActivity(activityId: string, state: {
+    distKm: number;
+    elapsedMs: number;
+    paceS: number;
+    sector: string;
+    tire: string;
+    pitPhase: string;
+    prog: number;
+    isPaused: boolean;
+    mode: string;
+  }): Promise<void>;
   endActivity(activityId: string): Promise<void>;
   endAllActivities(): Promise<void>;
   isSupported(): boolean;
@@ -85,20 +86,22 @@ export async function startActivity(
 
 export async function updateActivity(
   activityId: string,
-  distKm: number,
-  elapsedMs: number,
-  paceS: number,
-  sector: string,
-  tire: string,
-  pitPhase: string,
-  prog: number,
-  isPaused: boolean,
-  mode: string
+  state: {
+    distKm: number;
+    elapsedMs: number;
+    paceS: number;
+    sector: string;
+    tire: string;
+    pitPhase: string;
+    prog: number;
+    isPaused: boolean;
+    mode: string;
+  }
 ): Promise<void> {
   const mod = getNativeModule();
   if (!mod) return;
   try {
-    await mod.updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused, mode);
+    await mod.updateActivity(activityId, state);
   } catch (e) {
     console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
   }

@@ -83,18 +83,15 @@ public class PitRunLiveActivityModule: Module {
             }
         }
 
-        // updateActivity(activityId, distKm, elapsedMs, paceS, sector, tire, pitPhase, prog, isPaused, mode)
+        // updateActivity(activityId, state: dict)
+        // 이전엔 10개 individual 매개변수였는데 expo-modules-core의 AsyncFunction
+        // 매개변수 개수 상한을 초과해 native binding이 깨지는 케이스 발생
+        // ("Native function expects 10 arguments, but received 11" 매초 throw).
+        // state 9개 필드를 dictionary 한 개로 묶어 매개변수 3개 (activityId, state,
+        // promise)로 축소.
         AsyncFunction("updateActivity") { (
             activityId: String,
-            distKm: Double,
-            elapsedMs: Int,
-            paceS: Int,
-            sector: String,
-            tire: String,
-            pitPhase: String,
-            prog: Double,
-            isPaused: Bool,
-            mode: String,
+            state: [String: Any],
             promise: Promise
         ) in
             guard #available(iOS 16.2, *) else {
@@ -107,16 +104,22 @@ public class PitRunLiveActivityModule: Module {
             }
 
             let newState = PitRunAttributes.ContentState(
-                distKm: distKm, elapsedMs: elapsedMs, paceS: paceS,
-                sector: sector, tire: tire, pitPhase: pitPhase,
-                prog: prog, isPaused: isPaused,
-                mode: mode
+                distKm:    state["distKm"]    as? Double ?? 0,
+                elapsedMs: state["elapsedMs"] as? Int    ?? 0,
+                paceS:     state["paceS"]     as? Int    ?? 0,
+                sector:    state["sector"]    as? String ?? "yellow",
+                tire:      state["tire"]      as? String ?? "soft",
+                pitPhase:  state["pitPhase"]  as? String ?? "none",
+                prog:      state["prog"]      as? Double ?? 0,
+                isPaused:  state["isPaused"]  as? Bool   ?? false,
+                mode:      state["mode"]      as? String ?? "race"
             )
             let content = ActivityContent(state: newState, staleDate: nil)
 
             Task {
                 await activity.update(content)
-                NSLog("[PitRunLA] update OK: id=%@ dist=%.2f phase=%@", activityId, distKm, pitPhase)
+                NSLog("[PitRunLA] update OK: id=%@ dist=%.2f phase=%@",
+                      activityId, newState.distKm, newState.pitPhase)
                 promise.resolve(nil as String?)
             }
         }
