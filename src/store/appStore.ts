@@ -14,7 +14,15 @@ export type { QualifyingResult, UserProfile };
 // Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있음.
 let _storage: ReturnType<typeof createMMKV> | null = null;
 function getStorage() {
-  if (!_storage) _storage = createMMKV({ id: 'app-store' });
+  if (!_storage) {
+    try {
+      _storage = createMMKV({ id: 'app-store' });
+      console.warn('[PROFILE-DIAG] createMMKV OK');
+    } catch (e) {
+      console.warn('[PROFILE-DIAG] createMMKV THREW:', String(e));
+      throw e;
+    }
+  }
   return _storage;
 }
 
@@ -32,9 +40,15 @@ type PersistedState = {
 function loadPersisted(): Partial<PersistedState> {
   try {
     const raw = getStorage().getString('state');
-    if (!raw) return {};
-    return JSON.parse(raw) as Partial<PersistedState>;
-  } catch {
+    if (!raw) {
+      console.warn('[PROFILE-DIAG] loadPersisted: getString("state") returned null/undefined');
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Partial<PersistedState>;
+    console.warn('[PROFILE-DIAG] loadPersisted OK. profile=', JSON.stringify(parsed.profile));
+    return parsed;
+  } catch (e) {
+    console.warn('[PROFILE-DIAG] loadPersisted THREW:', String(e));
     return {};
   }
 }
@@ -42,8 +56,9 @@ function loadPersisted(): Partial<PersistedState> {
 function persist(state: PersistedState) {
   try {
     getStorage().set('state', JSON.stringify(state));
-  } catch {
-    // storage write failure — ignore
+    console.warn('[PROFILE-DIAG] persist OK. profile.displayName=', state.profile.displayName);
+  } catch (e) {
+    console.warn('[PROFILE-DIAG] persist THREW:', String(e));
   }
 }
 

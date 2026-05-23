@@ -84,6 +84,11 @@ export default function RootNavigator() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* splashVisible 동안엔 Stack.Navigator 자체를 마운트하지 않음.
+          이전엔 isLoading=true 상태에서 initialRouteName이 'Auth'로 결정되면서
+          splash 뒤에 AuthScreen이 미리 mount되고, splash fade out 후 잠깐 보였다가
+          Home/ProfileSetup으로 redirect되는 깜빡임 발생. */}
+      {!splashVisible && (
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
@@ -134,6 +139,7 @@ export default function RootNavigator() {
           options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
         />
       </Stack.Navigator>
+      )}
       {showTabBar && <TabBar activeTab={activeTab} />}
       {splashVisible && (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: splashOpacity }]}>
