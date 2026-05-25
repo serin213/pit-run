@@ -26,10 +26,17 @@ export type BackgroundCoords = {
 };
 
 export function defineBackgroundLocationTask(): void {
+  console.log('[GPS-DIAG] defineBackgroundLocationTask called');
   TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
-    if (error) return;
+    if (error) {
+      console.warn('[GPS-DIAG] task fired with error:', error);
+      return;
+    }
     const { locations } = data as { locations: Location.LocationObject[] };
-    if (!locations?.length) return;
+    if (!locations?.length) {
+      console.warn('[GPS-DIAG] task fired with no locations');
+      return;
+    }
     const loc = locations[locations.length - 1];
     const coords: BackgroundCoords = {
       latitude: loc.coords.latitude,
@@ -39,29 +46,41 @@ export function defineBackgroundLocationTask(): void {
       speed: loc.coords.speed,
       timestamp: loc.timestamp,
     };
+    console.log('[GPS-DIAG] task wrote coords ts=' + loc.timestamp + ' acc=' + loc.coords.accuracy);
     setString(STORAGE_KEY, JSON.stringify(coords));
   });
 }
 
 export async function startBackgroundLocationTask(): Promise<void> {
   const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
-  if (!isRegistered) return;
+  console.log('[GPS-DIAG] startBackgroundLocationTask isRegistered=' + isRegistered);
+  if (!isRegistered) {
+    console.warn('[GPS-DIAG] task not registered — defineBackgroundLocationTask did not run before this call');
+    return;
+  }
 
   const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+  console.log('[GPS-DIAG] startBackgroundLocationTask isStarted=' + isStarted);
   if (isStarted) return;
 
-  await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-    accuracy: Location.Accuracy.BestForNavigation,
-    timeInterval: 1000,
-    distanceInterval: 1,
-    foregroundService: {
-      notificationTitle: 'Pit Run',
-      notificationBody: '러닝 세션이 진행 중입니다',
-      notificationColor: COLORS.bg,
-    },
-    pausesUpdatesAutomatically: false,
-    showsBackgroundLocationIndicator: true,
-  });
+  try {
+    await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
+      distanceInterval: 1,
+      foregroundService: {
+        notificationTitle: 'Pit Run',
+        notificationBody: '러닝 세션이 진행 중입니다',
+        notificationColor: COLORS.bg,
+      },
+      pausesUpdatesAutomatically: false,
+      showsBackgroundLocationIndicator: true,
+    });
+    console.log('[GPS-DIAG] startLocationUpdatesAsync resolved OK');
+  } catch (e) {
+    console.warn('[GPS-DIAG] startLocationUpdatesAsync threw:', e);
+    throw e;
+  }
 }
 
 export async function stopBackgroundLocationTask(): Promise<void> {

@@ -37,6 +37,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
   const { setGpsEnabled } = useRunStore();
 
   useEffect(() => {
+    console.log('[GPS-DIAG] useGPS effect enabled=' + enabled);
     if (!enabled) {
       prevCoordsRef.current = null;
       lastTimestampRef.current = 0;
@@ -45,13 +46,20 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
 
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
+    let pollTickCount = 0;
+    let pollNullCount = 0;
+    let pollAccSkipCount = 0;
+    let pollDistSkipCount = 0;
+    let pollAcceptCount = 0;
 
     (async () => {
       const foregroundGranted = await requestForegroundPermission();
+      console.log('[GPS-DIAG] foreground permission granted=' + foregroundGranted);
       if (!foregroundGranted || cancelled) return;
 
       // Background permission: best-effort (always 권한 못 받아도 foreground 동안엔 동작)
-      await requestBackgroundPermission().catch(() => {});
+      const bgGranted = await requestBackgroundPermission().catch(() => false);
+      console.log('[GPS-DIAG] background permission granted=' + bgGranted);
 
       clearBackgroundCoords();
       lastTimestampRef.current = 0;
@@ -65,8 +73,16 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       }
 
       pollInterval = setInterval(() => {
+        pollTickCount++;
         const bg = getLatestBackgroundCoords();
-        if (!bg || bg.timestamp <= lastTimestampRef.current) return;
+        if (!bg) {
+          pollNullCount++;
+          if (pollTickCount % 5 === 0) {
+            console.log('[GPS-DIAG] poll tick=' + pollTickCount + ' null=' + pollNullCount + ' acc-skip=' + pollAccSkipCount + ' dist-skip=' + pollDistSkipCount + ' accept=' + pollAcceptCount);
+          }
+          return;
+        }
+        if (bg.timestamp <= lastTimestampRef.current) return;
 
         lastTimestampRef.current = bg.timestamp;
 
@@ -78,19 +94,31 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
           speed: bg.speed,
         };
 
-        if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) return;
+        if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) {
+          pollAccSkipCount++;
+          console.log('[GPS-DIAG] poll skip accuracy=' + coords.accuracy);
+          return;
+        }
 
         if (prevCoordsRef.current) {
           const dist = haversineKm(prevCoordsRef.current, coords);
           if (dist >= MIN_DELTA_KM && dist <= MAX_DELTA_KM) {
+            pollAcceptCount++;
+            console.log('[GPS-DIAG] poll accept dist=' + dist.toFixed(5) + ' acc=' + coords.accuracy);
             onDistanceRef.current(dist);
+          } else {
+            pollDistSkipCount++;
+            console.log('[GPS-DIAG] poll dist-skip dist=' + dist.toFixed(5));
           }
+        } else {
+          console.log('[GPS-DIAG] poll first coord (prev=null, skip)');
         }
         prevCoordsRef.current = coords;
       }, POLL_INTERVAL_MS);
     })();
 
     return () => {
+      console.log('[GPS-DIAG] useGPS cleanup ticks=' + pollTickCount + ' null=' + pollNullCount + ' acc-skip=' + pollAccSkipCount + ' dist-skip=' + pollDistSkipCount + ' accept=' + pollAcceptCount);
       cancelled = true;
       if (pollInterval) clearInterval(pollInterval);
       stopBackgroundLocationTask();
