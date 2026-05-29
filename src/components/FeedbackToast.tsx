@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import { useSafeTop } from '../hooks/useSafeTop';
 
 const TOAST_DURATION = 2500;
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    letterSpacing: 17 * -0.02,
+    letterSpacing: LETTER_SPACING.display(17),
     includeFontPadding: false,
   },
 });

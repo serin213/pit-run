@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
   },
   imageWrap: {
     flex: 1,
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    letterSpacing: 17 * -0.02,
+    letterSpacing: LETTER_SPACING.display(17),
   },
   ctaWrap: {
     paddingHorizontal: H_PAD,
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   btnText: {
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
   },
   darkText: {
     color: COLORS.bg,

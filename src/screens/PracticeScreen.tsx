@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     includeFontPadding: false,
   },
   timerText: {
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: PALETTE.white,
     fontFamily: 'Formula1-Black',
-    letterSpacing: 5,
+    letterSpacing: LETTER_SPACING.caption(100),
     includeFontPadding: false,
     fontVariant: ['tabular-nums'],
   },

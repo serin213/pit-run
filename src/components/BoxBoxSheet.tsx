@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius } from '../constants/radius';
 import { PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import { CARD_FILL } from './GradientCardBorder';
 
 interface Props {
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Italic',
     fontSize: 30,
     lineHeight: 36,
-    letterSpacing: -0.3,
+    letterSpacing: LETTER_SPACING.display(30),
     includeFontPadding: false,
   },
 });

@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     fontSize: 38,
     fontFamily: 'Formula1-Black',
     color: PALETTE.white,
-    letterSpacing: 1.5,
+    letterSpacing: LETTER_SPACING.caption(30),
     textAlign: 'center',
   },
   subtitle: {

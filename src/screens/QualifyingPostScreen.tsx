@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -76,8 +77,9 @@ const CONFETTI_SOURCE = require('../../assets/qualifying/lottie/confetti.json');
 const CONFETTI_SIZE = 295;
 
 export default function QualifyingPostScreen({ navigation, route }: QualifyingPostScreenProps) {
-  // 1km 자동완주로 도달했을 때 잠금화면의 qualifying Live Activity 즉시 종료.
-  // ResultScreen과 동일 패턴 — Race 의 ResultScreen.useEffect 미러.
+  // 결과 화면 진입 즉시 LA 종료 — race ResultScreen과 동일 패턴.
+  // finishOneKm에서 LA를 'completed'로 update해두긴 했지만, well done LA를
+  // 결과 화면 보는 동안까지 유지하지 않음 (사용자 명세).
   React.useEffect(() => {
     endAllLiveActivities().catch(() => {});
   }, []);
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
     color: COLORS.text.secondary,
     includeFontPadding: false,
   },

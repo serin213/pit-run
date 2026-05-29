@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 100,
     lineHeight: 100,
-    letterSpacing: 5,
+    letterSpacing: LETTER_SPACING.caption(100),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 30,
     lineHeight: 30,
-    letterSpacing: -0.6,
+    letterSpacing: LETTER_SPACING.display(30),
     color: PALETTE.white,
     marginLeft: 8,
     marginBottom: 4,
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Italic',
     fontSize: 24,
     lineHeight: 31,
-    letterSpacing: -0.24,
+    letterSpacing: LETTER_SPACING.display(24),
     color: 'rgba(255,255,255,0.7)',
     includeFontPadding: false,
   },

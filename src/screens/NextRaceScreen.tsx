@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useMemo } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import TopSafeSpacer from '../components/TopSafeSpacer';
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 43,
     color: PALETTE.white,
-    letterSpacing: 1.8,
+    letterSpacing: LETTER_SPACING.caption(36),
     includeFontPadding: false,
     marginLeft: 4,
   },
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 30,
     lineHeight: 36,
-    letterSpacing: -0.6,
+    letterSpacing: LETTER_SPACING.display(30),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,

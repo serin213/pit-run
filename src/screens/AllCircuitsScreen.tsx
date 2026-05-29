@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import TopSafeSpacer from '../components/TopSafeSpacer';
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 43,
     color: PALETTE.white,
-    letterSpacing: 1.8,
+    letterSpacing: LETTER_SPACING.caption(36),
     includeFontPadding: false,
     marginBottom: 24,
     marginLeft: -4,

@@ -4,6 +4,7 @@
  */
 
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import { radius } from '../constants/radius';
 import React, { useCallback, useId, useRef, useState } from 'react';
 import {
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     lineHeight: 43,
-    letterSpacing: 36 * 0.05,
+    letterSpacing: LETTER_SPACING.caption(36),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20,
-    letterSpacing: 17 * -0.02,
+    letterSpacing: LETTER_SPACING.display(17),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,

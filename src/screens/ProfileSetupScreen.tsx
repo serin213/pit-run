@@ -12,6 +12,7 @@ import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 import { useProfileValidation } from '../hooks/useProfileValidation';
 import { COLORS, PALETTE, PREVIEW_DEFAULT_COLOR } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 
 const TEAM_COLORS = [PALETTE.pink, PALETTE.red, PALETTE.orange, PALETTE.yellow, PALETTE.green, PALETTE.teal, PALETTE.blue, PALETTE.purple, PALETTE.white] as const;
 const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     lineHeight: 43,
     fontFamily: 'Formula1-Bold',
     color: PALETTE.white,
-    letterSpacing: -0.36,
+    letterSpacing: LETTER_SPACING.display(36),
     includeFontPadding: false,
     marginLeft: 4,
   },

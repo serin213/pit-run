@@ -23,6 +23,7 @@ import type { ProfileEditScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useProfileValidation } from '../hooks/useProfileValidation';
 import { COLORS, PALETTE, PREVIEW_DEFAULT_COLOR } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import { radius } from '../constants/radius';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 36,
     lineHeight: 43,
-    letterSpacing: 36 * 0.05,
+    letterSpacing: LETTER_SPACING.caption(36),
     color: PALETTE.white,
     includeFontPadding: false,
     marginLeft: 4,
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
-    letterSpacing: 20 * -0.01,
+    letterSpacing: LETTER_SPACING.display(20),
     includeFontPadding: false,
   },
   previewBoxOuter: {

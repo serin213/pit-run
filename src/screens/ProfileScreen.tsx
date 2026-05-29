@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    letterSpacing: -0.02 * 13,
+    letterSpacing: LETTER_SPACING.display(13),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,
-    letterSpacing: -0.02 * 24,
+    letterSpacing: LETTER_SPACING.display(24),
     color: PALETTE.white,
     includeFontPadding: false,
     marginTop: 4,
