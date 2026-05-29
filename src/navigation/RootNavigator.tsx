@@ -26,6 +26,7 @@ import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
 import SplashScreen from '../screens/SplashScreen';
+import { endAllLiveActivities } from '../platform/liveActivity';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -58,6 +59,13 @@ export default function RootNavigator() {
     initialize();
     return () => cleanup();
   }, [initialize, cleanup]);
+
+  // 앱 시작 시 잔여 Live Activity 정리.
+  // 레이스 도중 앱이 강제 종료(스와이프)되면 cleanup 코드가 실행되지 않아
+  // 잠금화면 LA가 계속 남는 문제를 다음 실행 시점에 처리.
+  useEffect(() => {
+    endAllLiveActivities().catch(() => {});
+  }, []);
 
   // 최소 1000ms 스플래시 노출
   useEffect(() => {

@@ -158,7 +158,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
   // isPaused는 GPS 조건에서 제외 — 화면 잠금 시 isPaused가 순간 true로 흔들려도
   // background task가 종료되지 않도록. pause 중 거리 누적 차단은 addGpsDistance에서 처리.
-  useGPS(isRunning, (d, dtSec) => useRunStore.getState().addGpsDistance(d, dtSec));
+  useGPS(isRunning, (d) => useRunStore.getState().addGpsDistance(d));
 
   useEffect(() => {
     startRun();

@@ -55,9 +55,8 @@ interface RunState {
   stopRun: () => void;
   resetRun: () => void;
   tick: (dtMs: number) => void;
-  /** GPS 실측 거리 추가 (km). tick()의 시뮬레이션 거리 대신 사용.
-   * dtSec: 이전 GPS 호출과의 경과 시간(초). 제공 시 속도 < 0.5 m/s는 누적 제외. */
-  addGpsDistance: (km: number, dtSec?: number) => void;
+  /** GPS 실측 거리 추가 (km). background task에서 필터링된 누적값 delta. */
+  addGpsDistance: (km: number) => void;
   setGpsEnabled: (enabled: boolean) => void;
   setSector: (sector: SectorColor) => void;
   setTire: (tire: TireType) => void;
@@ -169,11 +168,11 @@ export const useRunStore = create<RunState>((set, get) => ({
     });
   },
 
-  addGpsDistance: (km: number, dtSec?: number) => {
+  addGpsDistance: (km: number) => {
     const { isPaused, distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog } = get();
+    // 속도 필터는 background task(locationTask.ts)에서 이미 적용됨.
+    // isPaused 시 누적 차단 — background task는 계속 누적하지만 foreground는 무시.
     if (km <= 0 || isPaused) return;
-    // 속도 < 0.5 m/s 이면 정지/노이즈 상태로 간주하여 거리 누적 제외
-    if (dtSec !== undefined && dtSec > 0 && (km * 1000) / dtSec < 0.5) return;
 
     const newDist = distKm + km;
     const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
