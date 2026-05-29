@@ -10,12 +10,21 @@ import {
   endLiveActivity,
   getCurrentActivityId,
 } from '../platform/liveActivity';
+import {
+  calcWorkKm,
+  shouldTriggerBoxBox,
+  shouldFireFinalLap,
+  shouldFireFinalLapSafety,
+} from '../lib/runTriggers';
 
 // Live Activity는 초당 1회로 throttle (ActivityKit 권고)
 const LA_UPDATE_INTERVAL_MS = 1000;
 
+// Re-export pure helpers for single-import convenience
+export { calcWorkKm, shouldTriggerBoxBox, shouldFireFinalLap, shouldFireFinalLapSafety };
+
 interface UseRunningOptions {
-  /** Fired once when the runner crosses into the last 1 km of the circuit. */
+  /** Fired once when the runner enters the final lap. */
   onFinalLap?: () => void;
   /** Fired once when the runner reaches the full circuit distance. */
   onFinish?: () => void;
@@ -33,6 +42,17 @@ export function useRunning(options: UseRunningOptions = {}) {
   const finishFiredRef = useRef(false);
   const boxBoxTriggerCountRef = useRef(0);
   const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // [A] Work distance tracking refs
+  const workStartKmRef = useRef(0);
+  const prevPitPhaseRef = useRef<string>('none');
+
+  // [B] Lap logging refs
+  const lapStartKmRef = useRef(0);
+  const lapStartMsRef = useRef(0);
+  const pitStartKmRef = useRef(0);
+  const pitStartMsRef = useRef(0);
+  const lapIdxRef = useRef(0);
 
   // Always-fresh callback refs so the RAF closure picks up the latest handlers.
   const onFinalLapRef = useRef(options.onFinalLap);
@@ -128,9 +148,17 @@ export function useRunning(options: UseRunningOptions = {}) {
       return;
     }
 
+    // 레이스 시작 시 모든 per-run ref 초기화
     finalLapFiredRef.current = false;
     finishFiredRef.current = false;
     boxBoxTriggerCountRef.current = 0;
+    workStartKmRef.current = 0;
+    prevPitPhaseRef.current = 'none';
+    lapStartKmRef.current = 0;
+    lapStartMsRef.current = 0;
+    pitStartKmRef.current = 0;
+    pitStartMsRef.current = 0;
+    lapIdxRef.current = 0;
 
     const loop = (ts: number) => {
       if (!isPaused && lastTsRef.current !== null) {
@@ -170,24 +198,111 @@ export function useRunning(options: UseRunningOptions = {}) {
   }, [isRunning, isPaused]);
 
   function checkBoxBox() {
-    const { distKm, tire, boxBoxActive, pitPhase: phase, triggerBoxBox } =
-      useRunStore.getState();
-    if (boxBoxActive || phase !== 'none') return;
+    const {
+      distKm, elapsedMs, tire, boxBoxActive, pitPhase: phase,
+      triggerBoxBox, pushLap, setFinalLap, isFinalLap,
+    } = useRunStore.getState();
+
+    if (boxBoxActive) return;
 
     const activePlan = useAppStore.getState().activePlan;
-
-    // activePlan이 있으면 인터벌 기반, 없으면 타이어 기반 fallback (Practice 등)
     const intervalKm = activePlan
       ? activePlan.intervals.distanceM / 1000
       : TIRES[tire].boxBoxDistKm;
     const maxReps = activePlan ? activePlan.intervals.reps : Infinity;
 
-    // 이미 모든 인터벌을 소화한 경우 더 이상 트리거 안 함 (cool-down)
+    // ── Phase transition: 회복 종료 → work 시작 ──────────────────────────────
+    if (prevPitPhaseRef.current !== 'none' && phase === 'none') {
+      // [B] pit 구간 기록
+      const pitDistM = Math.max(0, Math.round((distKm - pitStartKmRef.current) * 1000));
+      const pitDurationSec = Math.max(0.1, (elapsedMs - pitStartMsRef.current) / 1000);
+      pushLap({
+        idx: lapIdxRef.current++,
+        type: 'pit',
+        distM: pitDistM,
+        durationSec: pitDurationSec,
+        paceS: null,
+      });
+
+      // work 시작점 갱신
+      workStartKmRef.current = distKm;
+      lapStartKmRef.current = distKm;
+      lapStartMsRef.current = elapsedMs;
+
+      // [C] 주판정: 남은 거리가 1사이클 이하 → 최종 랩
+      if (!finalLapFiredRef.current) {
+        const { selectedCircuitId } = useAppStore.getState();
+        const circuit = CIRCUITS.find(c => c.id === selectedCircuitId) ?? CIRCUITS[0];
+        const expectedCycleM = activePlan?.totals.expectedCycleDistanceM
+          ?? Math.round(intervalKm * 1500); // fallback: interval + ~50% recovery estimate
+        if (shouldFireFinalLap({ distKm, circuitKm: circuit.distanceKm, expectedCycleM })) {
+          finalLapFiredRef.current = true;
+          setFinalLap(true);
+          onFinalLapRef.current?.();
+        }
+      }
+    }
+
+    // ── Phase transition: work 종료 → 회복 시작 ──────────────────────────────
+    if (prevPitPhaseRef.current === 'none' && phase !== 'none') {
+      // [B] pit 시작점 기록
+      pitStartKmRef.current = distKm;
+      pitStartMsRef.current = elapsedMs;
+    }
+
+    prevPitPhaseRef.current = phase;
+
+    // 회복 중에는 BoxBox 트리거 없음
+    if (phase !== 'none') return;
+
+    // [C] 안전망: work 중 남은 거리 기준 최종 랩 (주판정을 놓친 경우 대비)
+    if (!finalLapFiredRef.current) {
+      const { selectedCircuitId } = useAppStore.getState();
+      const circuit = CIRCUITS.find(c => c.id === selectedCircuitId) ?? CIRCUITS[0];
+      if (shouldFireFinalLapSafety({ distKm, circuitKm: circuit.distanceKm, intervalKm })) {
+        finalLapFiredRef.current = true;
+        setFinalLap(true);
+        onFinalLapRef.current?.();
+      }
+    }
+
+    // 모든 인터벌 소화 시 BoxBox 트리거 없음 (cool-down)
     if (boxBoxTriggerCountRef.current >= maxReps) return;
 
-    // distKm >= intervalKm 하한 필수: GPS 첫 틱(distKm ≈ 0.001)에서
-    // 0.001 % intervalKm ≈ 0.001 < 0.005 이 되어 즉시 발동되는 버그 방지.
-    if (distKm >= intervalKm && distKm % intervalKm < 0.005) {
+    // [A] work 거리 기반 트리거 (기존 modulo 방식 제거)
+    const workKm = calcWorkKm(distKm, workStartKmRef.current);
+    if (workKm >= intervalKm) {
+      // [C] 최종 랩: 회복 스킵 → 바로 완주 처리
+      if (isFinalLap) {
+        if (!finishFiredRef.current) {
+          finishFiredRef.current = true;
+          const distM = Math.round(workKm * 1000);
+          const durationSec = Math.max(0.1, (elapsedMs - lapStartMsRef.current) / 1000);
+          const paceS = durationSec / (distM / 1000);
+          pushLap({
+            idx: lapIdxRef.current++,
+            type: 'lap',
+            distM,
+            durationSec,
+            paceS: isFinite(paceS) ? Math.round(paceS) : null,
+          });
+          onFinishRef.current?.();
+        }
+        return;
+      }
+
+      // [B] work(lap) 구간 기록
+      const distM = Math.round(workKm * 1000);
+      const durationSec = Math.max(0.1, (elapsedMs - lapStartMsRef.current) / 1000);
+      const paceS = durationSec / (distM / 1000);
+      pushLap({
+        idx: lapIdxRef.current++,
+        type: 'lap',
+        distM,
+        durationSec,
+        paceS: isFinite(paceS) ? Math.round(paceS) : null,
+      });
+
       triggerBoxBox();
       boxBoxTriggerCountRef.current += 1;
     }
@@ -199,11 +314,8 @@ export function useRunning(options: UseRunningOptions = {}) {
     const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
     const total = circuit.distanceKm;
 
-    if (!finalLapFiredRef.current && distKm >= total - 1 && distKm < total) {
-      finalLapFiredRef.current = true;
-      onFinalLapRef.current?.();
-    }
-
+    // 최종 랩 판정은 checkBoxBox의 cycle-based 로직으로 처리.
+    // 완주 안전망: 서킷 총 거리 초과 시 finish (GPS 드리프트 등 예외 대비)
     if (!finishFiredRef.current && distKm >= total) {
       finishFiredRef.current = true;
       onFinishRef.current?.();

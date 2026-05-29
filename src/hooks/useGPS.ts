@@ -32,7 +32,7 @@ const POLL_INTERVAL_MS = 1000;
  *
  * enabled false → task 중지. true → 권한 요청 + task 시작 + 1초마다 polling.
  */
-export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) {
+export function useGPS(enabled: boolean, onDistance: (deltaKm: number, dtSec?: number) => void) {
   const prevCoordsRef = useRef<LocationCoords | null>(null);
   const lastTimestampRef = useRef<number>(0);
   // onDistance를 ref로 잡아 effect가 deps 변화로 재시작되지 않게.
@@ -88,6 +88,10 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
         }
         if (bg.timestamp <= lastTimestampRef.current) return;
 
+        // GPS 읽기 간격(초): 속도 필터에 전달 (첫 읽기는 undefined)
+        const dtSec = lastTimestampRef.current > 0
+          ? (bg.timestamp - lastTimestampRef.current) / 1000
+          : undefined;
         lastTimestampRef.current = bg.timestamp;
 
         const coords: LocationCoords = {
@@ -111,7 +115,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
           if (dist >= MIN_DELTA_KM && dist <= MAX_DELTA_KM) {
             gpsDiag.acceptCount++;
             gpsDiag.totalAccumulatedKm += dist;
-            onDistanceRef.current(dist);
+            onDistanceRef.current(dist, dtSec);
           } else {
             gpsDiag.distSkipCount++;
           }

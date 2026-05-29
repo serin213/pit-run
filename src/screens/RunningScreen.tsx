@@ -62,7 +62,7 @@ const IN_PIT_PAUSE_BUTTON = require('../../assets/control-buttons/inpit-pause.pn
 
 
 export default function RunningScreen({ navigation }: NavRunningScreenProps) {
-  const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId } = useAppStore();
+  const { selectedCircuitId, profile: storeProfile, updatePaceRecord, currentRaceEventId, activePlan } = useAppStore();
   const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
   const profile = storeProfile;
   // 시작 시점 INSERT 안 함. ResultScreen.handleConfirm에서 distKm >= 0.10일 때만 INSERT.
@@ -110,6 +110,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     isPaused,
     boxBoxActive,
     pitPhase,
+    isFinalLap,
     pauseRun,
     resumeRun,
     stopRun,
@@ -121,6 +122,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     setSector,
   } = useRunStore();
   const pitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // isPaused 연동: inPit 타이머 잔여시간 추적
+  const pitTimerRemainingMsRef = useRef<number>(0);
+  const pitTimerStartedAtRef = useRef<number>(0);
   const backgroundOpacity = useRef(new Animated.Value(1)).current;
 
   const handleVisibilityChange = useCallback((v: boolean) => {
@@ -154,7 +158,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
   // isPaused는 GPS 조건에서 제외 — 화면 잠금 시 isPaused가 순간 true로 흔들려도
   // background task가 종료되지 않도록. pause 중 거리 누적 차단은 addGpsDistance에서 처리.
-  useGPS(isRunning, (d) => useRunStore.getState().addGpsDistance(d));
+  useGPS(isRunning, (d, dtSec) => useRunStore.getState().addGpsDistance(d, dtSec));
 
   useEffect(() => {
     startRun();
@@ -173,7 +177,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     isInPitTheme
       ? { line: PALETTE.white, text: PALETTE.white }
       : getCircuitTheme(circuitLabel);
-  const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : 'RACING';
+  const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : isFinalLap ? 'FINAL LAP' : 'RACING';
   const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
@@ -261,6 +265,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     onPaceSample?.(paceS);
   }, [paceS, onPaceSample]);
 
+  // activePlan 기반 회복 시간 (없으면 기존 상수 폴백)
+  const inPitDurationMs = (activePlan?.recovery.durationSec ?? (IN_PIT_DURATION_MS / 1000)) * 1000;
+
   useEffect(() => {
     if (pitTimerRef.current) {
       clearTimeout(pitTimerRef.current);
@@ -277,10 +284,13 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         setPitPhase('inPit');
       }, BOXBOX_ALERT_MS);
     } else if (pitPhase === 'inPit') {
+      // 잔여 시간 초기화 (isPaused 연동 useEffect에서 사용)
+      pitTimerRemainingMsRef.current = inPitDurationMs;
+      pitTimerStartedAtRef.current = Date.now();
       pitTimerRef.current = setTimeout(() => {
         setPitPhase('fullPush');
         setBoxBoxActive(true);
-      }, IN_PIT_DURATION_MS);
+      }, inPitDurationMs);
     } else if (pitPhase === 'fullPush') {
       playSound('fullPush');
       hapticTimer = setTimeout(() => doubleImpact(), 400);
@@ -297,7 +307,28 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       }
       if (hapticTimer) clearTimeout(hapticTimer);
     };
-  }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase]);
+  }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase, inPitDurationMs]);
+
+  // isPaused 연동: inPit 타이머 일시정지/재개
+  useEffect(() => {
+    if (pitPhase !== 'inPit') return;
+    if (isPaused) {
+      // 타이머 중지 + 잔여 시간 갱신
+      if (pitTimerRef.current) {
+        clearTimeout(pitTimerRef.current);
+        pitTimerRef.current = null;
+        const elapsed = Date.now() - pitTimerStartedAtRef.current;
+        pitTimerRemainingMsRef.current = Math.max(0, pitTimerRemainingMsRef.current - elapsed);
+      }
+    } else {
+      // 잔여 시간으로 타이머 재개
+      pitTimerStartedAtRef.current = Date.now();
+      pitTimerRef.current = setTimeout(() => {
+        setPitPhase('fullPush');
+        setBoxBoxActive(true);
+      }, pitTimerRemainingMsRef.current);
+    }
+  }, [isPaused, pitPhase, setBoxBoxActive, setPitPhase]);
 
   return (
     <View style={styles.container}>
