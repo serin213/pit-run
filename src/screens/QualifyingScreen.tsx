@@ -1,5 +1,6 @@
 import { COLORS, PALETTE } from '../constants/colors';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import { LETTER_SPACING } from '../constants/typography';
+import React, { useEffect, useId, useReducer, useRef, useState } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
@@ -38,6 +39,7 @@ import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
 import ConfirmSheet from '../components/ConfirmSheet';
 import { useGPS } from '../hooks/useGPS';
+import { gpsDiag, resetGpsDiag } from '../platform/gpsDiag';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
@@ -69,7 +71,7 @@ type Phase = 'intro' | 'warmup' | 'qualifying' | 'retireConfirm';
 
 export default function QualifyingScreen({ navigation, route }: QualifyingScreenProps) {
   const skipIntro = route.params?.skipIntro ?? false;
-  const { setQualifyingResult, recordQualifyingDateToday, profile } = useAppStore();
+  const { setQualifyingResult, recordQualifyingDateToday, recordActivity, addDistance, profile } = useAppStore();
   const { saveResult } = useSupabaseQualifying();
   const { saveCompletedSession } = useSupabaseSession();
   // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
@@ -135,6 +137,17 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // 'qualifying' ↔ 'retireConfirm' 토글 시 boolean이 동일해서 effect cycle 안 끊김.
   const isGpsActive = phase === 'qualifying' || phase === 'retireConfirm';
   useGPS(isGpsActive, (d) => setTrialDistKm((prev) => prev + d));
+
+  // GPS-DIAG overlay — production iOS에서 console.log가 Console.app으로 안 흘러
+  // 가는 케이스 대비. gpsDiag 모듈 객체를 500ms마다 force-render해서 화면에
+  // 직접 카운터 표시. qualifying 진입 시 reset.
+  const [, forceDiagRender] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => {
+    if (!isGpsActive) return;
+    resetGpsDiag();
+    const id = setInterval(() => forceDiagRender(), 500);
+    return () => clearInterval(id);
+  }, [isGpsActive]);
 
   // Auto-complete when GPS distance reaches 1km
   useEffect(() => {
@@ -314,6 +327,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setQualifyingResult(result);
     // 캘린더 pill / qual icon 즉시 반영 위해 로컬 qualifyingDates에 오늘 추가
     recordQualifyingDateToday();
+    // History TOTAL/ON TRACK 통계 — race 결과 화면처럼 qualifying 1km 완주도 누적.
+    // 이전엔 ResultScreen에서만 호출 → qualifying만 한 사용자는 영원히 0km/0days.
+    recordActivity();
+    addDistance(1);
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
     saveResult({
       one_km_ms: oneKmMs,
@@ -340,6 +357,24 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       avg_pace_sec_per_km: result.paceSecPerKm,
     }).catch(() => {});
     qualifyingStartedAtRef.current = null;
+    // LA를 'completed' 상태로 update — Swift View에서 qualifying mode + completed
+    // pitPhase 조합을 "Well done, mate" wave view로 분기. QualifyingPostScreen에서
+    // unmount 시점에 종료. (이전엔 PostScreen mount 즉시 endAll로 well done LA를
+    // 한 번도 안 보였음.)
+    const activityId = getCurrentActivityId();
+    if (activityId) {
+      updateLiveActivity(activityId, {
+        distKm: 1,
+        elapsedMs: oneKmMs,
+        paceS: Math.round(result.paceSecPerKm),
+        sector: 'green',
+        tire: 'soft',
+        pitPhase: 'completed',
+        prog: 1,
+        isPaused: false,
+        mode: 'qualifying',
+      }).catch(() => {});
+    }
     if (user?.id) {
       logQualifyingCompleted({
         userId: user.id,
@@ -513,6 +548,30 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
           onPrimary={executeRetire}
         />
       )}
+
+      {/* GPS-DIAG overlay — temporary, for build 4x debugging */}
+      {isGpsActive && (
+        <View style={[styles.gpsDiagBox, { top: safeTop + 4 }]} pointerEvents="none">
+          <Text style={styles.gpsDiagText}>defCalled={String(gpsDiag.defineCalled)} earlyReg={String(gpsDiag.earlyReg)}</Text>
+          <Text style={styles.gpsDiagText}>tasks={gpsDiag.earlyRegTasks.slice(0, 50)}</Text>
+          <Text style={styles.gpsDiagText}>en={String(gpsDiag.enabled)} fg={String(gpsDiag.fgPerm)} bg={String(gpsDiag.bgPerm)}</Text>
+          <Text style={styles.gpsDiagText}>reg={String(gpsDiag.taskRegistered)} started={String(gpsDiag.taskStarted)} bypass={String(gpsDiag.startBypassed)} resolv={String(gpsDiag.startResolved)}</Text>
+          <Text style={styles.gpsDiagText}>taskWrites={gpsDiag.taskWriteCount} lastTs={gpsDiag.lastTaskWriteTs ? String(gpsDiag.lastTaskWriteTs).slice(-6) : '-'}</Text>
+          <Text style={styles.gpsDiagText}>tick={gpsDiag.tick} null={gpsDiag.nullCount}</Text>
+          <Text style={styles.gpsDiagText}>accSkip={gpsDiag.accSkipCount} distSkip={gpsDiag.distSkipCount} accept={gpsDiag.acceptCount}</Text>
+          <Text style={styles.gpsDiagText}>lastAcc={gpsDiag.lastAccuracy != null ? gpsDiag.lastAccuracy.toFixed(1) : '-'} lastDist={gpsDiag.lastDist != null ? gpsDiag.lastDist.toFixed(4) : '-'}</Text>
+          <Text style={styles.gpsDiagText}>totalKm={gpsDiag.totalAccumulatedKm.toFixed(4)} cleanup={gpsDiag.cleanupCount}</Text>
+          {gpsDiag.defineError !== '' && (
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>defErr={gpsDiag.defineError.slice(0, 60)}</Text>
+          )}
+          {gpsDiag.earlyRegError !== '' && (
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>earlyRegErr={gpsDiag.earlyRegError.slice(0, 60)}</Text>
+          )}
+          {gpsDiag.startError !== '' && (
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>err={gpsDiag.startError.slice(0, 60)}</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -674,12 +733,29 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
 
+  // GPS-DIAG overlay (temporary, build 4x)
+  gpsDiagBox: {
+    position: 'absolute',
+    right: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 4,
+    maxWidth: 260,
+  },
+  gpsDiagText: {
+    color: '#7FFF7F',
+    fontFamily: 'Menlo',
+    fontSize: 9,
+    lineHeight: 11,
+  },
+
   // ── Intro ──
   introTitle: {
     color: PALETTE.white,
     fontFamily: 'Formula1-Black',
     fontSize: 36,
-    letterSpacing: 1.8,
+    letterSpacing: LETTER_SPACING.caption(36),
     includeFontPadding: false,
     marginLeft: 4,
   },
@@ -689,7 +765,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     marginTop: 12,
     includeFontPadding: false,
   },
@@ -711,7 +787,7 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 20,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     includeFontPadding: false,
   },
   stepCardMeta: {
@@ -719,7 +795,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    letterSpacing: -0.34,
+    letterSpacing: LETTER_SPACING.display(17),
     includeFontPadding: false,
   },
   ctaContainer: {
@@ -756,7 +832,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     includeFontPadding: false,
   },
   timerText: {
@@ -764,7 +840,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: PALETTE.white,
     fontFamily: 'Formula1-Black',
-    letterSpacing: 5,
+    letterSpacing: LETTER_SPACING.caption(100),
     includeFontPadding: false,
     fontVariant: ['tabular-nums'],
   },
@@ -781,7 +857,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
-    letterSpacing: -0.17,
+    letterSpacing: LETTER_SPACING.display(17),
     includeFontPadding: false,
   },
   distLabelsRow: {

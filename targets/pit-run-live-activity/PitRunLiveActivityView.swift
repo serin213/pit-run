@@ -576,7 +576,16 @@ struct PitRunLiveActivityView: View {
             if state.mode == "warmup" {
                 LockWarmupView(elapsedMs: state.elapsedMs)
             } else if state.mode == "qualifying" {
-                LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)
+                // qualifying 완주(1km) 시점에 pitPhase='completed'로 update되면
+                // race와 동일하게 "Well done, mate" wave view 표시. 그 외엔
+                // 진행 중인 trial view.
+                if state.pitPhase == "completed" {
+                    Link(destination: URL(string: "pitrun://qualifying-result")!) {
+                        LockWaveView(teamColor: QUALIFYING_RED, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
+                    }
+                } else {
+                    LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)
+                }
             } else {
                 switch state.pitPhase {
                 case "boxbox":
@@ -696,6 +705,13 @@ struct PitRunLiveActivity: Widget {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 24, height: 24)
+                    // 빌드 47 시도 .contentTransition(.identity) 무효 — SwiftUI의
+                    // contentTransition은 SF Symbol/Text에만 적용, Asset Image에는
+                    // 영향 없음. ActivityKit이 state update할 때 view tree 전체에
+                    // .smooth animation을 자동 적용하므로 transaction으로 명시 차단.
+                    .transaction { transaction in
+                        transaction.animation = nil
+                    }
             } compactTrailing: {
                 // warmup/qualifying: n'nn" 시간 (warmup=카운트다운, qualifying=경과).
                 // race: distKm.
@@ -713,6 +729,9 @@ struct PitRunLiveActivity: Widget {
                     .renderingMode(.original)
                     .resizable()
                     .scaledToFit()
+                    .transaction { transaction in
+                        transaction.animation = nil
+                    }
             }
         }
     }
