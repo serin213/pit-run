@@ -77,13 +77,14 @@ export function useSyncOnLogin() {
         const sortedDates = [...new Set(remoteDates)].sort().reverse();
         useAppStore.setState({ activityDates: sortedDates });
 
-        // 누적 거리 동기화 — DB의 모든 completed 레이스 거리 합으로 덮어씀.
+        // 누적 거리 동기화 — DB의 모든 completed 세션 거리 합으로 덮어씀.
         // Zustand 영속값(addDistance로 누적)이 옛 stale 합계로 남는 문제 방어.
-        // qualifying은 제외 (HomeScreen/HistoryScreen 통계와 동일 정책).
+        // qualifying(1km)도 포함 — TOTAL 스탯은 grand_prix + qualifying 합산이 맞는 정책.
+        // (월간 거리 thisMonthDistKm는 grand_prix만 집계하지만, 통산 TOTAL은 모든 완주 포함)
         try {
           const allSessions = await fetchSessions(500);
           const totalKm = allSessions
-            .filter((s) => s.status === 'completed' && s.type === 'grand_prix' && (s.total_dist_km ?? 0) >= 0.10)
+            .filter((s) => s.status === 'completed' && (s.type === 'grand_prix' || s.type === 'qualifying') && (s.total_dist_km ?? 0) >= 0.10)
             .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
           useAppStore.setState({ totalDistanceKm: totalKm });
         } catch {
