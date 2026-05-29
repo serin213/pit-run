@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { usePracticeDistance } from '../hooks/usePracticeDistance';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
+import { useAppStore } from '../store/appStore';
 import type { PracticeScreenProps } from '../navigation/types';
 
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -26,6 +27,7 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
   const distKm = usePracticeDistance(isPaused);
   // 시작 시점 INSERT 안 함. stop 시 distKm >= 0.10일 때만 INSERT.
   const { saveCompletedSession } = useSupabaseSession();
+  const { recordActivity, addDistance } = useAppStore();
   const startTimeRef = useRef(Date.now());
   const startedAtIsoRef = useRef(new Date().toISOString());
 
@@ -81,6 +83,9 @@ export default function PracticeScreen({ navigation }: PracticeScreenProps) {
                 total_dist_km: distKm,
                 total_time_ms: Date.now() - startTimeRef.current,
               }).catch(() => {});
+              // 로컬 스탯 즉시 반영 (useSyncOnLogin 전에도 History/Home에 보임)
+              recordActivity();
+              addDistance(distKm);
               navigation.replace('PracticeResult', { distanceKm: distKm });
             }}>
               <Image source={STOP_BUTTON} style={styles.controlButton} resizeMode="contain" />

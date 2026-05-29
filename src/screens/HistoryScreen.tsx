@@ -294,12 +294,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
         const now = new Date();
         const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        // 월간 거리: HomeScreen과 일관되게 grand_prix(레이스)만 집계.
-        // 퀄리파잉은 항상 1km로 저장되지만 카드에서 거리로 노출되지 않으므로 제외.
+        // 월간 거리: grand_prix + qualifying + practice 모두 포함.
+        // history에 기록되는 조건(dist >= 0.10)과 동일 기준.
         const monthDist = sessions
           .filter((s) =>
             s.status === 'completed' &&
-            s.type === 'grand_prix' &&
             s.started_at.slice(0, 7) === thisMonth &&
             (s.total_dist_km ?? 0) >= 0.10,
           )

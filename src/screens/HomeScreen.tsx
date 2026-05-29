@@ -332,14 +332,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       (async () => {
         const sessions = await loadSessions(100);
         if (cancelled) return;
-        // 주간/월간 거리는 grand_prix(레이스)만 집계.
-        // 퀄리파잉은 항상 total_dist_km=1로 저장되지만 history 카드에는 거리 대신
-        // 페이스/등급만 표시되므로, 합산에 포함하면 "기록이 다 0km인데 1km로 뜬다"는
-        // 사용자 혼란을 유발. 0.10km 미만은 옛 NULL/짧은 행 방어.
+        // 주간/월간 거리: grand_prix + qualifying + practice 모두 포함.
+        // history에 기록되는 조건(dist >= 0.10)과 동일 기준.
         const completed = sessions.filter(
           (s) =>
             s.status === 'completed' &&
-            s.type === 'grand_prix' &&
             (s.total_dist_km ?? 0) >= 0.10,
         );
 
