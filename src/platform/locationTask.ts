@@ -85,10 +85,10 @@ export function defineBackgroundLocationTask(): void {
       setString(LATEST_KEY, JSON.stringify(coords));
 
       // ── Accuracy filter ────────────────────────────────────────────────────
+      // 정확도 불량 좌표는 PREV_KEY에 저장하지 않음.
+      // 저장하면 다음 정상 좌표와의 haversine이 잘못된 기준점에서 계산됨.
       if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) {
         gpsDiag.accSkipCount++;
-        // Still update prev so next good reading has a recent reference
-        setString(PREV_KEY, JSON.stringify(coords));
         return;
       }
 

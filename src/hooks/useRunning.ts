@@ -64,6 +64,17 @@ export function useRunning(options: UseRunningOptions = {}) {
   // 자연 완주(pitPhase === 'completed')일 때는 종료를 ResultScreen 마운트로 위임 →
   // "Well done, mate" 상태가 잠금화면에 잠시 유지되도록.
   useEffect(() => {
+    // cleanup: 훅 unmount 시 pending 타이머 정리
+    // (컴포넌트 unmount 후 타이머가 발화해 잘못된 LA를 끊는 방지)
+    return () => {
+      if (completedTimerRef.current) {
+        clearTimeout(completedTimerRef.current);
+        completedTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (isRunning) {
       // If a previous completion is still waiting to auto-dismiss, end it now.
       if (completedTimerRef.current) {

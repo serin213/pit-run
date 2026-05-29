@@ -310,6 +310,11 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase, inPitDurationMs]);
 
   // isPaused 연동: inPit 타이머 일시정지/재개
+  //
+  // 주의: pitPhase도 deps에 포함 — pitPhase가 'inPit'으로 바뀔 때 이 effect가 실행되지만,
+  // 그 시점에는 pitPhase effect가 먼저 타이머를 시작해 pitTimerRef.current != null.
+  // resume 분기의 `if (pitTimerRef.current === null)` 가드가 중복 타이머 시작을 막음.
+  // (pitPhase effect와 순서: pitPhase effect → isPaused effect 순으로 실행 보장)
   useEffect(() => {
     if (pitPhase !== 'inPit') return;
     if (isPaused) {
@@ -321,12 +326,15 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         pitTimerRemainingMsRef.current = Math.max(0, pitTimerRemainingMsRef.current - elapsed);
       }
     } else {
-      // 잔여 시간으로 타이머 재개
-      pitTimerStartedAtRef.current = Date.now();
-      pitTimerRef.current = setTimeout(() => {
-        setPitPhase('fullPush');
-        setBoxBoxActive(true);
-      }, pitTimerRemainingMsRef.current);
+      // 일시정지에서 재개: pitTimerRef가 null일 때만 시작 (pause가 타이머를 지운 경우).
+      // pitPhase='inPit' 전환 시에는 pitPhase effect가 이미 타이머를 시작했으므로 스킵.
+      if (pitTimerRef.current === null) {
+        pitTimerStartedAtRef.current = Date.now();
+        pitTimerRef.current = setTimeout(() => {
+          setPitPhase('fullPush');
+          setBoxBoxActive(true);
+        }, pitTimerRemainingMsRef.current);
+      }
     }
   }, [isPaused, pitPhase, setBoxBoxActive, setPitPhase]);
 
