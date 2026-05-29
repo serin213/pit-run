@@ -3,6 +3,7 @@
  */
 
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useSharedValue, withTiming, useAnimatedStyle, Easing as ReanimatedEasing } from 'react-native-reanimated';
 import Reanimated from 'react-native-reanimated';
@@ -135,7 +136,7 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId, isAlreadyA
           fontFamily: 'Formula1-Regular',
           fontSize: 13,
           lineHeight: ROW_H,
-          letterSpacing: -0.26,
+          letterSpacing: LETTER_SPACING.display(13),
           includeFontPadding: false,
         }}>
           Already ahead
@@ -174,7 +175,7 @@ function GapRow({ barWidth, filledWidth, nextGrade, gapSec, gapRowId, isAlreadyA
           fontFamily: 'Formula1-Regular',
           fontSize: 13,
           lineHeight: ROW_H,
-          letterSpacing: -0.26,
+          letterSpacing: LETTER_SPACING.numeric(13),
           includeFontPadding: false,
         }}
       >
@@ -230,7 +231,7 @@ const startButtonStyles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 17,
     lineHeight: 20,
-    letterSpacing: -0.17,
+    letterSpacing: LETTER_SPACING.display(17),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -798,7 +799,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
@@ -830,7 +831,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Bold',
     fontSize: 30,
     lineHeight: 36,
-    letterSpacing: -0.6,
+    letterSpacing: LETTER_SPACING.display(30),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -839,7 +840,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     lineHeight: 16,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,
@@ -857,7 +858,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -0.2,
+    letterSpacing: LETTER_SPACING.display(20),
     color: PALETTE.white,
     opacity: 0.5,
     includeFontPadding: false,

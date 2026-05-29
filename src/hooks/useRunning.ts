@@ -185,7 +185,9 @@ export function useRunning(options: UseRunningOptions = {}) {
     // 이미 모든 인터벌을 소화한 경우 더 이상 트리거 안 함 (cool-down)
     if (boxBoxTriggerCountRef.current >= maxReps) return;
 
-    if (distKm > 0 && distKm % intervalKm < 0.005) {
+    // distKm >= intervalKm 하한 필수: GPS 첫 틱(distKm ≈ 0.001)에서
+    // 0.001 % intervalKm ≈ 0.001 < 0.005 이 되어 즉시 발동되는 버그 방지.
+    if (distKm >= intervalKm && distKm % intervalKm < 0.005) {
       triggerBoxBox();
       boxBoxTriggerCountRef.current += 1;
     }

@@ -9,6 +9,7 @@ import { useGPS } from '../hooks/useGPS';
 import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { getDriverCode, getDriverDisplayName } from '../utils/driverCode';
 import { COLORS, PALETTE} from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import { DEFAULT_CIRCUIT_KM as CIRCUIT_KM } from '../config/circuits';
 import PauseButton from '../components/PauseButton';
 import StopButton from '../components/StopButton';
@@ -151,7 +152,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     navigation.replace('Result');
   }, [navigation, setPitPhase, setBoxBoxActive, stopRun]);
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
-  useGPS(isRunning && !isPaused, (d) => useRunStore.getState().addGpsDistance(d));
+  // isPaused는 GPS 조건에서 제외 — 화면 잠금 시 isPaused가 순간 true로 흔들려도
+  // background task가 종료되지 않도록. pause 중 거리 누적 차단은 addGpsDistance에서 처리.
+  useGPS(isRunning, (d) => useRunStore.getState().addGpsDistance(d));
 
   useEffect(() => {
     startRun();
@@ -336,7 +339,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             fontFamily: 'Formula1-Black',
             fontSize: 130.2486572265625,
             lineHeight: 156,
-            letterSpacing: 6.5,
+            letterSpacing: LETTER_SPACING.caption(130),
           },
         ]}
         onLayout={onDistSampleLayout}
@@ -546,7 +549,7 @@ const styles = StyleSheet.create({
   },
   dist: {
     fontFamily: 'Formula1-Black',
-    letterSpacing: 6.5,
+    letterSpacing: LETTER_SPACING.caption(130),
     includeFontPadding: false,
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
@@ -555,7 +558,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontFamily: 'Formula1-Regular',
     color: COLORS.text.dim,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
     includeFontPadding: false,
   },
   val: {
@@ -610,7 +613,7 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     fontFamily: 'Formula1-Bold',
     fontSize: 12,
-    letterSpacing: 0.5,
+    letterSpacing: LETTER_SPACING.caption(12),
     includeFontPadding: false,
     maxWidth: 160,
     textAlign: 'center',

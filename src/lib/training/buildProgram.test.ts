@@ -6,7 +6,7 @@ import {
   type User,
 } from './buildProgram';
 
-const MODENA: Circuit = { id: 'modena', baseIntervalM: 200, baseReps: 8 };
+const MODENA: Circuit = { id: 'modena', distanceKm: 5, baseIntervalM: 200, baseReps: 8 };
 
 describe('buildProgram', () => {
   it('F2 user + Modena + medium → correct base program', () => {
@@ -21,14 +21,14 @@ describe('buildProgram', () => {
     expect(result.intervals.reps).toBe(6);
     // hardPace should be around 334 (5:34/km)
     // distanceFactor for 0.2km, paceFloor 0.94: speedupRange = 0.06, factor = 1 - 0.06 * 0.8 = 0.952
-    // hardPace = round(360 * 0.952 * 1.00) = round(342.72) = 343? Let's check actual
-    // Actually: calcDistanceFactor(0.2, 0.94) = 1.0 - 0.06 * (1.0 - 0.2) = 1.0 - 0.048 = 0.952
-    // hardPace = round(360 * 0.952 * 1.0) = round(342.72) = 343
+    // hardPace = round(360 * 0.952 * 1.00) = round(342.72) = 343
     // The spec says "334초 근처" so let's allow some range
     expect(result.intervals.hardPace).toBeGreaterThanOrEqual(330);
     expect(result.intervals.hardPace).toBeLessThanOrEqual(350);
     expect(result.recovery.mode).toBe('jog');
     expect(result.cyclePhase).toBe('BASE');
+    // expectedCycleDistanceM should be positive
+    expect(result.totals.expectedCycleDistanceM).toBeGreaterThan(200);
   });
 
   it('F3 user + Modena + medium → walk recovery (easyPace > 540)', () => {
@@ -60,6 +60,7 @@ describe('buildProgram', () => {
     // clampReps(13.2, 160, {min:5,max:14}, 1.10)
     // targetVolumeKm = 1.0 * 1.10 = 1.1, minForVolume = ceil(1100/160) = ceil(6.875) = 7
     // rounded = 13, effectiveMin = max(5,7) = 7, result = max(7, min(14, 13)) = 13
+    // maxFitReps for 5km ≥ 13 (expectedCycleKm ≈ 0.38), so reps = 13
     expect(result.intervals.reps).toBe(13);
   });
 
@@ -87,6 +88,7 @@ describe('buildProgram', () => {
         };
         const circuit: Circuit = {
           id: 'test',
+          distanceKm: 5,
           baseIntervalM: 200,
           baseReps,
         };
@@ -104,10 +106,32 @@ describe('buildProgram', () => {
       grade: 'f2',
       totalSessionCount: 0,
     };
-    const circuit: Circuit = { id: 'tiny', baseIntervalM: 50, baseReps: 10 };
+    const circuit: Circuit = { id: 'tiny', distanceKm: 3, baseIntervalM: 50, baseReps: 10 };
     const result = buildProgram(user, circuit, 'soft');
 
     // intervalM = max(100, round(50 * 0.80)) = max(100, 40) = 100
     expect(result.intervals.distanceM).toBeGreaterThanOrEqual(100);
+  });
+
+  it('short circuit → intervalM reduced so MIN_REPS fit', () => {
+    // 서킷 2.5km, baseIntervalM 500, hard → 초기 intervalM=600이면 2사이클만 들어감
+    // 역산 후 MIN_REPS(4)가 들어오도록 intervalM이 줄어들어야 함
+    const user: User = {
+      trainingBasePace: 300,
+      grade: 'f1',
+      totalSessionCount: 0,
+    };
+    const circuit: Circuit = { id: 'short', distanceKm: 2.5, baseIntervalM: 500, baseReps: 6 };
+    const result = buildProgram(user, circuit, 'hard');
+
+    const { distanceM, reps } = result.intervals;
+    const { expectedCycleDistanceM } = result.totals;
+
+    // reps × expectedCycleDistanceM ≤ circuit.distanceKm (m 단위)
+    expect(reps * expectedCycleDistanceM).toBeLessThanOrEqual(2500 + expectedCycleDistanceM);
+    // MIN_REPS가 들어가야 함
+    expect(Math.floor(2500 / expectedCycleDistanceM)).toBeGreaterThanOrEqual(4);
+    // intervalM은 줄어들어 원래 600보다 작아야 함
+    expect(distanceM).toBeLessThan(600);
   });
 });

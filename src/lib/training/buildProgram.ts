@@ -7,6 +7,7 @@ export type { Grade };
 
 export type Circuit = {
   id: string;
+  distanceKm: number;
   baseIntervalM: number;
   baseReps: number;
 };
@@ -33,6 +34,8 @@ export type Program = {
     hardDistanceM: number;
     hardDurationSec: number;
     recoveryDurationSec: number;
+    /** work 1회 + 회복 1회 예상 이동거리(m). RunningScreen 마지막 랩 판정에 사용. */
+    expectedCycleDistanceM: number;
   };
 };
 
@@ -63,6 +66,7 @@ export const EASY_PACE_FACTOR = 1.30;
 export const WALK_THRESHOLD_SEC = 540;
 export const MIN_HARD_DISTANCE_KM = 1.0;
 export const MIN_INTERVAL_M = 100;
+export const MIN_REPS = 4;
 export const RECOVERY_BOUNDS_SEC = { min: 60, max: 240 };
 
 export const PROGRESSION: { factor: number; label: string }[] = [
@@ -121,54 +125,93 @@ export function buildProgram(
   const cycle = PROGRESSION[sessionCount % 4];
 
   // 2단계: 인터벌 거리
-  const intervalM = Math.max(
+  let intervalM = Math.max(
     MIN_INTERVAL_M,
     Math.round(circuit.baseIntervalM * t.distance),
   );
-  const intervalKm = intervalM / 1000;
+  let intervalKm = intervalM / 1000;
 
-  // 3단계: reps
+  // 3단계: reps rawValue (최종 확정은 역산 후)
   const rawReps = circuit.baseReps * g.reps * t.reps * cycle.factor;
-  const reps = clampReps(rawReps, intervalM, g.repsBounds, cycle.factor);
 
   // 4단계: hard 페이스
-  const distanceFactor = calcDistanceFactor(intervalKm, g.paceFloor);
-  const hardPace = Math.round(user.trainingBasePace * distanceFactor * t.pace);
+  let hardPace = Math.round(
+    user.trainingBasePace * calcDistanceFactor(intervalKm, g.paceFloor) * t.pace,
+  );
 
   // 5단계: recovery
-  const intervalSec = intervalKm * hardPace;
-  const recoverySec = clamp(
-    Math.round(intervalSec * t.recovery),
+  const easyPaceRaw = user.trainingBasePace * EASY_PACE_FACTOR;
+  let recoverySec = clamp(
+    Math.round(intervalKm * hardPace * t.recovery),
     RECOVERY_BOUNDS_SEC.min,
     RECOVERY_BOUNDS_SEC.max,
   );
-  const easyPaceRaw = user.trainingBasePace * EASY_PACE_FACTOR;
-
-  const recovery: Recovery =
+  let recovery: Recovery =
     easyPaceRaw > WALK_THRESHOLD_SEC
-      ? {
-          mode: 'walk',
-          label: 'WALK',
-          maxPace: WALK_THRESHOLD_SEC,
-          durationSec: recoverySec,
-        }
-      : {
-          mode: 'jog',
-          label: 'EASY',
-          pace: Math.round(easyPaceRaw),
-          durationSec: recoverySec,
-        };
+      ? { mode: 'walk', label: 'WALK', maxPace: WALK_THRESHOLD_SEC, durationSec: recoverySec }
+      : { mode: 'jog', label: 'EASY', pace: Math.round(easyPaceRaw), durationSec: recoverySec };
+
+  // ── 역산: 서킷 총거리 안에 MIN_REPS 보장 ────────────────────────────────────
+  // 회복 중 이동 페이스 (walk=WALK_THRESHOLD_SEC, jog=easyPace)
+  const recoveryPace =
+    recovery.mode === 'walk' ? WALK_THRESHOLD_SEC : recovery.pace;
+
+  // 예상 사이클 거리 = work 구간 + 회복 구간 이동거리
+  let recoveryDistKm = recoverySec / recoveryPace;
+  let expectedCycleKm = intervalKm + recoveryDistKm;
+
+  if (Math.floor(circuit.distanceKm / expectedCycleKm) < MIN_REPS) {
+    // hardPace·recoveryPace를 근사 상수로 고정하고 역산:
+    //   MIN_REPS × intervalKm × (1 + recoveryFactor) ≤ distanceKm
+    //   ⟹ intervalKm ≤ distanceKm / (MIN_REPS × (1 + recoveryFactor))
+    const recoveryFactor = (hardPace * t.recovery) / recoveryPace;
+    const maxIntervalM = Math.max(
+      MIN_INTERVAL_M,
+      Math.floor((circuit.distanceKm / MIN_REPS / (1 + recoveryFactor)) * 1000),
+    );
+
+    if (maxIntervalM < intervalM) {
+      // 새 intervalM으로 4·5단계 재계산
+      intervalM = maxIntervalM;
+      intervalKm = intervalM / 1000;
+      hardPace = Math.round(
+        user.trainingBasePace * calcDistanceFactor(intervalKm, g.paceFloor) * t.pace,
+      );
+      recoverySec = clamp(
+        Math.round(intervalKm * hardPace * t.recovery),
+        RECOVERY_BOUNDS_SEC.min,
+        RECOVERY_BOUNDS_SEC.max,
+      );
+      recovery =
+        easyPaceRaw > WALK_THRESHOLD_SEC
+          ? { mode: 'walk', label: 'WALK', maxPace: WALK_THRESHOLD_SEC, durationSec: recoverySec }
+          : { mode: 'jog', label: 'EASY', pace: Math.round(easyPaceRaw), durationSec: recoverySec };
+
+      recoveryDistKm = recoverySec / recoveryPace;
+      expectedCycleKm = intervalKm + recoveryDistKm;
+    }
+  }
+
+  // 서킷에 실제로 들어갈 수 있는 사이클 수 (상한으로만 사용)
+  const maxFitReps = Math.floor(circuit.distanceKm / expectedCycleKm);
+
+  // 3단계: reps 확정 — grade bounds + 서킷 적합 상한
+  const reps = Math.min(
+    clampReps(rawReps, intervalM, g.repsBounds, cycle.factor),
+    maxFitReps,
+  );
 
   // 6단계: totals
   const hardDistanceM = intervalM * reps;
   const hardDurationSec = Math.round(intervalKm * hardPace * reps);
   const recoveryDurationSec = recoverySec * Math.max(0, reps - 1);
+  const expectedCycleDistanceM = Math.round(expectedCycleKm * 1000);
 
   // 7단계: 반환
   return {
     intervals: { distanceM: intervalM, reps, hardPace },
     recovery,
     cyclePhase: cycle.label,
-    totals: { hardDistanceM, hardDurationSec, recoveryDurationSec },
+    totals: { hardDistanceM, hardDurationSec, recoveryDurationSec, expectedCycleDistanceM },
   };
 }

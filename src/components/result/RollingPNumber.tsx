@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import DigitColumn from './DigitColumn';
+import { LETTER_SPACING } from '../../constants/typography';
 
 const DIGIT_H = 110;
 
@@ -14,7 +15,7 @@ export default function RollingPNumber({ target, color }: RollingPNumberProps) {
     () => ({
       fontFamily: 'Formula1-Black',
       fontSize: 100,
-      letterSpacing: -2,
+      letterSpacing: LETTER_SPACING.numeric(100),
       includeFontPadding: false,
       color,
     }),
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 100,
     lineHeight: 110,
-    letterSpacing: -2,
+    letterSpacing: LETTER_SPACING.numeric(100),
     includeFontPadding: false,
   },
 });

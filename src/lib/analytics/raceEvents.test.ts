@@ -35,7 +35,7 @@ import { buildProgram } from '../training/buildProgram';
 
 // ─── Test fixtures ───────────────────────────────────────────────────────────
 
-const MODENA = { id: 'modena', baseIntervalM: 200, baseReps: 8 };
+const MODENA = { id: 'modena', distanceKm: 5, baseIntervalM: 200, baseReps: 8 };
 const USER = { trainingBasePace: 360, grade: 'f2' as const, totalSessionCount: 0 };
 const program = buildProgram(USER, MODENA, 'medium');
 

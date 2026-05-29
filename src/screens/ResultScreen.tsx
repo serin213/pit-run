@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { endLiveActivity, getCurrentActivityId } from '../platform/liveActivity';
 import { BlurView } from '../platform/blur';
@@ -183,6 +184,58 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   useEffect(() => {
     if (isHistoryMode) return;
     endAllLiveActivities().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 결과 화면 진입 즉시 자동 저장 — 사용자가 Confirm 안 누르고 다른 방식으로
+  // 화면을 떠나도(스와이프, 뒤로가기 등) 기록이 남게 보장. handleConfirm은
+  // navigation 책임만. qualifying의 finishOneKm과 동일 패턴.
+  const autoSavedRef = useRef(false);
+  useEffect(() => {
+    if (isHistoryMode || autoSavedRef.current) return;
+    autoSavedRef.current = true;
+    // 0.10km 미만은 기록에 안 남김 — DB INSERT / 누적거리 / activity_dates 전부 스킵.
+    const isValidRace = distKm >= 0.10;
+    if (!isValidRace) return;
+
+    recordActivity();
+    addDistance(distKm);
+    // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
+    if (statusLabel === 'FINISH' && circuitId) {
+      useAppStore.getState().recordCircuitRace(circuitId);
+    }
+    const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
+    const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
+    const diff = selectedDiffRef.current;
+    const startedAtIso = new Date(Date.now() - elapsedMs).toISOString();
+    saveCompletedSession({
+      type: 'grand_prix',
+      circuit_id: circuitId,
+      started_at: startedAtIso,
+      total_dist_km: distKm,
+      total_time_ms: elapsedMs,
+      avg_pace_sec_per_km: avgPace,
+      best_pace_sec_per_km: bestPace,
+      payload: diff ? { difficulty: diff } : undefined,
+    }).catch(() => {});
+    if (user?.id && currentRaceEventId) {
+      const activePlan = useAppStore.getState().activePlan;
+      const actualCompletedReps = activePlan
+        ? Math.min(
+            activePlan.intervals.reps,
+            Math.floor((distKm * 1000) / activePlan.intervals.distanceM),
+          )
+        : 0;
+      logRaceCompleted({
+        raceStartedEventId: currentRaceEventId,
+        userId: user.id,
+        completedReps: actualCompletedReps,
+        actualHardPace: avgPace ?? 0,
+        actualEasyPace: null,
+        totalDurationSec: Math.round(elapsedMs / 1000),
+      }).catch(() => {});
+      setCurrentRaceEventId(null);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -491,72 +544,15 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       navigation.goBack();
       return;
     }
-    // 0.10km 미만은 기록에 안 남김 — DB INSERT / 누적거리 / activity_dates 전부 스킵.
-    // 자동 완주(handleAutoFinish)는 항상 distKm 충분하므로 영향 없음.
-    const isValidRace = distKm >= 0.10;
-
-    if (isValidRace) {
-      recordActivity();
-      addDistance(distKm);
-    }
-    // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
-    if (isValidRace && statusLabel === 'FINISH' && circuitId) {
-      useAppStore.getState().recordCircuitRace(circuitId);
-    }
-    const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
-    const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
-    const diff = selectedDiffRef.current;
-    // started_at은 elapsedMs로 역산 — 별도 ref 전달 없이도 정확.
-    const startedAtIso = new Date(Date.now() - elapsedMs).toISOString();
-    const saves: Promise<unknown>[] = [];
-    if (isValidRace) {
-      saves.push(
-        saveCompletedSession({
-          type: 'grand_prix',
-          circuit_id: circuitId,
-          started_at: startedAtIso,
-          total_dist_km: distKm,
-          total_time_ms: elapsedMs,
-          avg_pace_sec_per_km: avgPace,
-          best_pace_sec_per_km: bestPace,
-          payload: diff ? { difficulty: diff } : undefined,
-        }),
-      );
-    }
-    if (user?.id && currentRaceEventId) {
-      // retire 시점까지 실제로 통과한 인터벌 횟수 계산
-      const activePlan = useAppStore.getState().activePlan;
-      const actualCompletedReps = activePlan
-        ? Math.min(
-            activePlan.intervals.reps,
-            Math.floor((distKm * 1000) / activePlan.intervals.distanceM),
-          )
-        : 0;
-
-      saves.push(
-        logRaceCompleted({
-          raceStartedEventId: currentRaceEventId,
-          userId: user.id,
-          completedReps: actualCompletedReps,
-          actualHardPace: avgPace ?? 0,
-          actualEasyPace: null,
-          totalDurationSec: Math.round(elapsedMs / 1000),
-        }),
-      );
-      setCurrentRaceEventId(null);
-    }
-    Promise.all(saves).catch(() => {});
+    // 저장 책임은 mount useEffect(autoSavedRef)로 이전 — 사용자가 Confirm 안
+    // 눌러도 화면 진입만으로 기록 보장. 여기선 navigation + reset 정리만.
     navigation.navigate('Home');
     resetTimerRef.current = setTimeout(() => resetRun(), 500);
     // 시트 닫힘은 fire-and-forget
     Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setShowSheet(false);
     });
-  }, [
-    isHistoryMode, sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
-    paceHistory, saveCompletedSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
-    circuitId, statusLabel,
-  ]);
+  }, [isHistoryMode, sheetAnim, resetRun, navigation]);
 
   const handleDiffSelect = useCallback((id: string) => {
     setSelectedDiff(id);
@@ -642,27 +638,32 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
               {/* Tap anywhere → next page */}
               <Pressable style={StyleSheet.absoluteFill} onPress={goNextPage} />
               <View style={styles.page1Content}>
-                {/* P + rank number + checker flag row */}
+                {/* P + rank number + checker flag row.
+                    DNF 시: P/RollingPNumber 숨기고 checker flag만 표시. rankRow가
+                    left-align이라 깃발이 자연스럽게 왼쪽으로 이동.
+                    FINISH 시: 기존 P + 숫자 + 깃발. */}
                 <View style={styles.rankRow}>
-                  <Text style={[styles.rankText, { color: topTheme.text }]}>P</Text>
-                  <View style={{ width: 8 }} />
-                  <RollingPNumber
-                    target={
-                      raceRank && raceRank.globalRank.percentile !== null
-                        ? percentileToPNumber(raceRank.globalRank.percentile)
-                        : null
-                    }
-                    color={topTheme.text}
-                  />
-                  {checkerFlagImage && (
+                  {statusLabel === 'FINISH' && (
                     <>
-                      <View style={{ width: 12 }} />
-                      <Image
-                        source={checkerFlagImage}
-                        style={[styles.checkerFlag, { marginTop: -1 }]}
-                        resizeMode="contain"
+                      <Text style={[styles.rankText, { color: topTheme.text }]}>P</Text>
+                      <View style={{ width: 8 }} />
+                      <RollingPNumber
+                        target={
+                          raceRank && raceRank.globalRank.percentile !== null
+                            ? percentileToPNumber(raceRank.globalRank.percentile)
+                            : null
+                        }
+                        color={topTheme.text}
                       />
+                      {checkerFlagImage && <View style={{ width: 12 }} />}
                     </>
+                  )}
+                  {checkerFlagImage && (
+                    <Image
+                      source={checkerFlagImage}
+                      style={[styles.checkerFlag, { marginTop: -1 }]}
+                      resizeMode="contain"
+                    />
                   )}
                 </View>
 
@@ -1043,7 +1044,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Black',
     fontSize: 100,
     lineHeight: 110,
-    letterSpacing: -2,
+    letterSpacing: LETTER_SPACING.display(100),
     color: PALETTE.white,
     includeFontPadding: false,
   },
@@ -1056,7 +1057,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Italic',
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
-    letterSpacing: 24 * -0.01, // -1%
+    letterSpacing: LETTER_SPACING.display(24),
     color: PALETTE.white,
     paddingRight: 20,
   },
@@ -1088,7 +1089,7 @@ const styles = StyleSheet.create({
     fontSize: 100,
     lineHeight: 110,
     color: PALETTE.white,
-    letterSpacing: 5,
+    letterSpacing: LETTER_SPACING.caption(100),
     includeFontPadding: false,
   },
   distUnit: {
@@ -1104,7 +1105,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     color: COLORS.text.secondary,
-    letterSpacing: -0.26,
+    letterSpacing: LETTER_SPACING.display(13),
   },
 
   // ── Graph section ──
@@ -1154,7 +1155,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
-    letterSpacing: -0.2,
+    letterSpacing: LETTER_SPACING.numeric(20),
     fontStyle: 'italic',
     color: PALETTE.white,
   },
@@ -1180,7 +1181,7 @@ const styles = StyleSheet.create({
   avgLabelText: {
     fontFamily: 'Formula1-Regular',
     fontSize: 11,
-    letterSpacing: -0.22,
+    letterSpacing: LETTER_SPACING.numeric(11),
   },
 
   // Sector labels
@@ -1222,7 +1223,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 30,
     color: PALETTE.white,
-    letterSpacing: -0.3,
+    letterSpacing: LETTER_SPACING.display(30),
     marginBottom: 24,
     lineHeight: 36,
   },
@@ -1278,12 +1279,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     color: COLORS.text.secondary,
-    letterSpacing: -0.13,
+    letterSpacing: LETTER_SPACING.display(13),
   },
   emojiLabelCenter: {
     fontFamily: 'Formula1-Regular',
     fontSize: 13,
     color: COLORS.text.secondary,
-    letterSpacing: -0.13,
+    letterSpacing: LETTER_SPACING.display(13),
   },
 });

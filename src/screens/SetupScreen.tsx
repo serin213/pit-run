@@ -1,4 +1,5 @@
 import { COLORS, PALETTE } from '../constants/colors';
+import { LETTER_SPACING } from '../constants/typography';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import TopSafeSpacer from '../components/TopSafeSpacer';
@@ -460,6 +461,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                     const circuitDef = CIRCUITS.find((c) => c.id === selectedCircuitId)!;
                     const circuit = {
                       id: circuitDef.id,
+                      distanceKm: circuitDef.distanceKm,
                       baseIntervalM: circuitDef.baseIntervalM,
                       baseReps: circuitDef.baseReps,
                     };
@@ -515,7 +517,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 43,
     color: PALETTE.white,
-    letterSpacing: 1.8,
+    letterSpacing: LETTER_SPACING.caption(36),
     includeFontPadding: false,
     marginBottom: TITLE_TO_TIRE_GAP,
     marginLeft: 4,
@@ -539,7 +541,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 24,
     color: 'rgba(255,255,255,0.7)',
-    letterSpacing: -0.4,
+    letterSpacing: LETTER_SPACING.display(20),
     includeFontPadding: false,
     flex: 1,
   },
@@ -564,7 +566,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 20.4,
     color: COLORS.text.secondary,
-    letterSpacing: -0.34,
+    letterSpacing: LETTER_SPACING.display(17),
     includeFontPadding: false,
   },
   seeAllBtn: {
@@ -577,7 +579,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22.1,
     color: COLORS.text.secondary,
-    letterSpacing: -0.34,
+    letterSpacing: LETTER_SPACING.display(17),
     includeFontPadding: false,
   },
   bestMatchCardColumn: {

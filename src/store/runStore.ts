@@ -9,6 +9,14 @@ export interface TyreSegment {
   endDist: number;
 }
 
+export interface LapEntry {
+  idx: number;
+  type: 'lap' | 'pit';
+  distM: number;
+  durationSec: number;
+  paceS: number | null;
+}
+
 interface RunState {
   // 러닝 상태
   isRunning: boolean;
@@ -36,6 +44,10 @@ interface RunState {
   // GPS
   gpsEnabled: boolean;
 
+  // 랩 기록
+  lapLog: LapEntry[];
+  isFinalLap: boolean;
+
   // 액션
   startRun: () => void;
   pauseRun: () => void;
@@ -52,6 +64,8 @@ interface RunState {
   closeBoxBox: () => void;
   setBoxBoxActive: (active: boolean) => void;
   setPitPhase: (phase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed') => void;
+  pushLap: (entry: LapEntry) => void;
+  setFinalLap: (v: boolean) => void;
 }
 
 const INITIAL_STATE = {
@@ -69,13 +83,22 @@ const INITIAL_STATE = {
   boxBoxActive: false,
   pitPhase: 'none' as const,
   gpsEnabled: false,
+  lapLog: [] as LapEntry[],
+  isFinalLap: false,
 };
 
 export const useRunStore = create<RunState>((set, get) => ({
   ...INITIAL_STATE,
 
   startRun: () =>
-    set({ isRunning: true, isPaused: false }),
+    set({
+      ...INITIAL_STATE,
+      isRunning: true,
+      isPaused: false,
+      tire: get().tire,
+      sector: get().sector,
+      tyreLog: [{ tire: get().tire, startDist: 0, endDist: 0 }],
+    }),
 
   pauseRun: () =>
     set({ isPaused: true }),
@@ -146,8 +169,8 @@ export const useRunStore = create<RunState>((set, get) => ({
   },
 
   addGpsDistance: (km: number) => {
-    const { distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog } = get();
-    if (km <= 0) return;
+    const { isPaused, distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog } = get();
+    if (km <= 0 || isPaused) return;
 
     const newDist = distKm + km;
     const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
@@ -202,4 +225,6 @@ export const useRunStore = create<RunState>((set, get) => ({
   closeBoxBox: () => set({ boxBoxActive: false }),
   setBoxBoxActive: (active) => set({ boxBoxActive: active }),
   setPitPhase: (phase) => set({ pitPhase: phase }),
+  pushLap: (entry) => set((s) => ({ lapLog: [...s.lapLog, entry] })),
+  setFinalLap: (v) => set({ isFinalLap: v }),
 }));
