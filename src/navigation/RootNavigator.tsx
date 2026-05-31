@@ -25,6 +25,7 @@ import { useActiveTab } from './navigationRef';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
+import { usePendingSessionFlush } from '../hooks/usePendingSessionFlush';
 import SplashScreen from '../screens/SplashScreen';
 import { endAllLiveActivities } from '../platform/liveActivity';
 
@@ -86,6 +87,8 @@ export default function RootNavigator() {
 
   // 로그인 시 Supabase 데이터 → 로컬 동기화
   useSyncOnLogin();
+  // 이전 세션에서 저장 실패한 세션 재시도 (인증 완료 후 자동 실행)
+  usePendingSessionFlush();
 
   const gradeForSplash = isAuthenticated ? (qualifyingResult?.grade ?? null) : null;
   const initialRoute = getInitialRoute(isAuthenticated, hasProfile);

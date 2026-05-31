@@ -8,6 +8,7 @@ import {
   type SessionType,
   type SessionStatus,
 } from '../api/sessions';
+import { enqueuePendingSession } from '../api/pendingSessions';
 import { recordActivityToday } from '../api/activity';
 import { useAuthStore } from '../store/authStore';
 
@@ -84,6 +85,11 @@ export function useSupabaseSession() {
    * 완주 확정 시점에 행을 직접 INSERT.
    * startSession/endSession 페어를 쓰지 않으므로 retire/중단 케이스에서
    * DB에 'started' 잔재가 절대 안 남음. 'completed' + activity_dates 갱신까지 처리.
+   *
+   * 저장 실패 처리:
+   *   withRetry 3회 후에도 실패하면 MMKV pending queue에 적재.
+   *   usePendingSessionFlush 훅이 다음 앱 시작 시 자동 재시도.
+   *   → 네트워크 오류로 인한 데이터 영구 유실 방지.
    */
   const saveCompletedSession = useCallback(
     async (fields: {
@@ -102,7 +108,9 @@ export function useSupabaseSession() {
         recordActivityToday().catch(() => {});
         return row;
       } catch (e) {
-        console.warn('[useSupabaseSession] saveCompleted error:', e);
+        console.warn('[useSupabaseSession] saveCompleted failed, queuing for retry:', e);
+        // 3회 재시도 후에도 실패 → MMKV에 보관, 다음 앱 시작 시 flush
+        enqueuePendingSession(fields);
         return null;
       }
     },

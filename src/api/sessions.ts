@@ -93,6 +93,11 @@ export async function deleteSession(sessionId: string): Promise<void> {
  * 완료된 세션을 한 번에 INSERT.
  * 'started' 행을 먼저 만들었다가 UPDATE하는 패턴 대신, 완주가 확정된 시점에만 행 생성.
  * → retire / 중단 케이스에서 DB에 noise 행이 절대 남지 않음.
+ *
+ * Auth 전략:
+ *   getUser()는 서버 검증 네트워크 요청 → GPS 종료 직후 불안정한 타이밍에 실패 가능.
+ *   getSession()은 MMKV 캐시 읽기(오프라인 안전) — JWT는 서버 INSERT 시 헤더로 검증됨.
+ *   → auth 체크도 withRetry 안으로 포함해 네트워크 복원 시 재시도 가능.
  */
 export async function insertCompletedSession(fields: {
   type: SessionType;
@@ -104,12 +109,13 @@ export async function insertCompletedSession(fields: {
   best_pace_sec_per_km?: number | null;
   payload?: Record<string, unknown>;
 }): Promise<SessionRow> {
-  // auth 확인은 재시도 대상이 아니므로 withRetry 바깥에서 1회 수행
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) throw new Error('Not authenticated');
-
-  // GPS 종료 직후 네트워크 전환 타이밍에 INSERT가 실패하는 케이스 대비 — 최대 3회 재시도
+  // GPS 종료 직후 네트워크 전환 타이밍에 실패하는 케이스 대비 — 최대 3회 재시도.
+  // getSession()은 MMKV 캐시 읽기라 네트워크 불필요 → auth 체크도 retry 루프 안에서 안전.
   return withRetry(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
+
     const { data, error } = await supabase
       .from('run_sessions')
       .insert({
