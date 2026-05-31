@@ -104,26 +104,30 @@ export async function insertCompletedSession(fields: {
   best_pace_sec_per_km?: number | null;
   payload?: Record<string, unknown>;
 }): Promise<SessionRow> {
+  // auth 확인은 재시도 대상이 아니므로 withRetry 바깥에서 1회 수행
   const userId = (await supabase.auth.getUser()).data.user?.id;
   if (!userId) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('run_sessions')
-    .insert({
-      user_id: userId,
-      type: fields.type,
-      circuit_id: fields.circuit_id ?? null,
-      started_at: fields.started_at,
-      ended_at: new Date().toISOString(),
-      status: 'completed' as SessionStatus,
-      total_dist_km: fields.total_dist_km,
-      total_time_ms: fields.total_time_ms,
-      avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
-      best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
-      payload: fields.payload ?? {},
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  // GPS 종료 직후 네트워크 전환 타이밍에 INSERT가 실패하는 케이스 대비 — 최대 3회 재시도
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('run_sessions')
+      .insert({
+        user_id: userId,
+        type: fields.type,
+        circuit_id: fields.circuit_id ?? null,
+        started_at: fields.started_at,
+        ended_at: new Date().toISOString(),
+        status: 'completed' as SessionStatus,
+        total_dist_km: fields.total_dist_km,
+        total_time_ms: fields.total_time_ms,
+        avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
+        best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
+        payload: fields.payload ?? {},
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  });
 }

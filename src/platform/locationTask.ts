@@ -34,11 +34,13 @@ const LATEST_KEY   = 'bg_location_latest';
 const PREV_KEY     = 'bg_location_prev';    // last processed coords + timestamp
 const ACCUM_KEY    = 'bg_location_accum_km'; // accumulated valid distance (km)
 
-// Thresholds (same values as v1 useGPS, now enforced in background)
-const MIN_ACCURACY_M = 50;
-const MIN_DELTA_KM   = 0.0005; // 0.5 m — avoids stationary GPS jitter
-const MAX_DELTA_KM   = 0.15;   // 150 m — per-step max (teleport guard per update)
-const MIN_SPEED_MS   = 0.5;    // 0.5 m/s ≈ very slow shuffle
+// Thresholds
+// accuracy 필터 제거: 거리 측정 목적에서 accuracy 제한은 긴 gap을 만들어 과소 측정을 유발함.
+// 대신 시간비례 동적 상한으로 GPS 텔레포트 노이즈만 걸러냄.
+const MIN_DELTA_KM   = 0.0005; // 0.5 m — 정지 시 GPS 미세 떨림 제거
+const MIN_SPEED_MS   = 0.5;    // 0.5 m/s — 거의 정지 상태 필터
+const MAX_SPEED_KM_S = 0.015;  // 15 m/s = 54 km/h — 달리기 한계 초과 시 GPS 노이즈로 간주
+const MAX_DELTA_ABS  = 0.3;    // 300m 절대 상한 (긴 gap에서도 텔레포트 방어)
 
 type StoredCoords = LocationCoords & { timestamp: number };
 
@@ -84,30 +86,29 @@ export function defineBackgroundLocationTask(): void {
       // Keep LATEST_KEY for diagnostics (v1 compat)
       setString(LATEST_KEY, JSON.stringify(coords));
 
-      // ── Accuracy filter ────────────────────────────────────────────────────
-      // 정확도 불량 좌표는 PREV_KEY에 저장하지 않음.
-      // 저장하면 다음 정상 좌표와의 haversine이 잘못된 기준점에서 계산됨.
-      if (coords.accuracy != null && coords.accuracy > MIN_ACCURACY_M) {
-        gpsDiag.accSkipCount++;
-        return;
-      }
-
+      // 모든 좌표를 PREV_KEY에 저장 — accuracy 필터 없이 gap 방지
       const prev = readPrev();
       setString(PREV_KEY, JSON.stringify(coords));
 
       if (!prev) return; // first valid reading — no delta yet
 
-      // ── Distance filter ────────────────────────────────────────────────────
+      // ── Distance + Speed filter ────────────────────────────────────────────
       const dist = haversineKm(prev, coords);
       gpsDiag.lastDist = dist;
+      const dtSec = (coords.timestamp - prev.timestamp) / 1000;
 
-      if (dist < MIN_DELTA_KM || dist > MAX_DELTA_KM) {
+      // 시간비례 동적 상한: 측정 간격(dtSec)이 길수록 더 큰 이동을 허용.
+      // dtSec ≈ 1s (정상 1Hz 업데이트) → max ≈ 15m/s
+      const dynamicMaxKm = dtSec > 0
+        ? Math.min(MAX_DELTA_ABS, dtSec * MAX_SPEED_KM_S)
+        : MAX_DELTA_ABS;
+
+      if (dist < MIN_DELTA_KM || dist > dynamicMaxKm) {
         gpsDiag.distSkipCount++;
         return;
       }
 
       // ── Speed filter ───────────────────────────────────────────────────────
-      const dtSec = (coords.timestamp - prev.timestamp) / 1000;
       if (dtSec > 0 && (dist * 1000) / dtSec < MIN_SPEED_MS) {
         gpsDiag.distSkipCount++;
         return;

@@ -54,6 +54,7 @@ import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { GRADE_COLORS, GRADE_LABELS, GRADE_ORDER } from '../constants/grade';
 import type { QualifyingGrade } from '../types';
 import { useSessionHistory } from '../hooks/useSessionHistory';
+import type { SessionRow } from '../api/sessions';
 import { fmtDist } from '../utils/format';
 import { getWeekDates } from '../components/MonthCalendar';
 
@@ -321,7 +322,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const qualifyingSet = useMemo(() => new Set(qualifyingDates), [qualifyingDates]);
 
   const [weekDistKm, setWeekDistKm] = useState(0);
-  const [monthDistKm, setMonthDistKm] = useState(0);
+  const [cachedSessions, setCachedSessions] = useState<SessionRow[]>([]);
 
   const { load: loadSessions } = useSessionHistory();
 
@@ -341,7 +342,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         );
 
         const now = new Date();
-        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const weekDates = getWeekDates(now);
         const weekStart = toISO(weekDates[0]);
         const weekEnd = toISO(weekDates[6]);
@@ -353,12 +353,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           })
           .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
 
-        const mDist = completed
-          .filter((s) => s.started_at.slice(0, 7) === thisMonth)
-          .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
-
         setWeekDistKm(wDist);
-        setMonthDistKm(mDist);
+        setCachedSessions(sessions); // monthDistKm은 useMemo로 monthOffset 반응형 계산
       })();
       return () => { cancelled = true; };
     }, [user?.id, loadSessions]),
@@ -370,6 +366,27 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const [calExpanded, setCalExpanded] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
+
+  // 달력 월 이동(monthOffset)에 따라 해당 달 거리를 실시간으로 계산
+  const displayMonthHome = useMemo(() => {
+    const base = new Date(todayISO);
+    const m = base.getMonth() + monthOffset;
+    const y = base.getFullYear() + Math.floor(m / 12);
+    const adjustedM = ((m % 12) + 12) % 12;
+    return `${y}-${String(adjustedM + 1).padStart(2, '0')}`;
+  }, [todayISO, monthOffset]);
+
+  const monthDistKm = useMemo(() => {
+    return cachedSessions
+      .filter(
+        (s) =>
+          s.status === 'completed' &&
+          s.started_at.slice(0, 7) === displayMonthHome &&
+          (s.total_dist_km ?? 0) >= 0.10,
+      )
+      .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+  }, [cachedSessions, displayMonthHome]);
+
   const [svgKey, setSvgKey] = useState(0);
   const calHeight = useSharedValue(CAL_H_WEEK);
   const calHeightStyle = useAnimatedStyle(() => ({ height: calHeight.value }));

@@ -41,6 +41,7 @@ import { CIRCUITS } from '../config/circuits';
 import { fmtDist, fmtPace } from '../utils/format';
 import { useQualifyingHistory } from '../hooks/useQualifyingHistory';
 import { useSessionHistory } from '../hooks/useSessionHistory';
+import type { SessionRow } from '../api/sessions';
 import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import { COLORS, PALETTE} from '../constants/colors';
 import type { HistoryScreenProps } from '../navigation/types';
@@ -229,8 +230,27 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
   // ─── Supabase 데이터 fetch ────────────────────────────────────────────────
   const [qualifyingData, setQualifyingData] = useState<QHistRow[]>(FALLBACK_QUALIFYING);
   const [historyData, setHistoryData] = useState<HistoryRow[]>(FALLBACK_HISTORY);
-  // 초기값 0 — 옛 디자인 더미(32.2) 제거. fetch 결과로 덮어씀.
-  const [thisMonthDistKm, setThisMonthDistKm] = useState(0);
+  const [cachedSessions, setCachedSessions] = useState<SessionRow[]>([]);
+
+  // 달력 이동(monthOffset)에 맞는 YYYY-MM 문자열 — 반응형
+  const displayMonthHist = useMemo(() => {
+    const base = new Date(todayISO);
+    const m = base.getMonth() + monthOffset;
+    const y = base.getFullYear() + Math.floor(m / 12);
+    const adjustedM = ((m % 12) + 12) % 12;
+    return `${y}-${String(adjustedM + 1).padStart(2, '0')}`;
+  }, [todayISO, monthOffset]);
+
+  const thisMonthDistKm = useMemo(() => {
+    return cachedSessions
+      .filter(
+        (s) =>
+          s.status === 'completed' &&
+          s.started_at.slice(0, 7) === displayMonthHist &&
+          (s.total_dist_km ?? 0) >= 0.10,
+      )
+      .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
+  }, [cachedSessions, displayMonthHist]);
 
   const slideAnim = useRef(new Animated.Value(24)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -292,19 +312,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
           qualPaceByDate.set(dateKey, q.pace_sec_per_km);
         }
 
-        const now = new Date();
-        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        // 월간 거리: grand_prix + qualifying + practice 모두 포함.
-        // history에 기록되는 조건(dist >= 0.10)과 동일 기준.
-        const monthDist = sessions
-          .filter((s) =>
-            s.status === 'completed' &&
-            s.started_at.slice(0, 7) === thisMonth &&
-            (s.total_dist_km ?? 0) >= 0.10,
-          )
-          .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
-        // 0이어도 setState — 이번 달 첫 진입 / 마지막 행을 SQL로 지운 직후 stale 0 표시 방지
-        setThisMonthDistKm(monthDist);
+        // 세션 캐시 저장 — thisMonthDistKm는 useMemo로 monthOffset에 반응형 계산
+        setCachedSessions(sessions);
 
         // 0.10km 미만 / NULL 거리 / 1초 이내는 history에서 숨김.
         // DB cleanup이 NULL 행을 못 지우는 경우 + 옛 데이터 잔존 케이스 둘 다 방어.
