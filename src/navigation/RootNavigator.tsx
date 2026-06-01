@@ -26,6 +26,7 @@ import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { useSyncOnLogin } from '../hooks/useSyncOnLogin';
 import { usePendingSessionFlush } from '../hooks/usePendingSessionFlush';
+import { usePendingFlushTriggers } from '../hooks/usePendingFlushTriggers';
 import SplashScreen from '../screens/SplashScreen';
 import { endAllLiveActivities } from '../platform/liveActivity';
 
@@ -85,10 +86,15 @@ export default function RootNavigator() {
     }
   }, [isLoading, splashDone, splashOpacity]);
 
-  // 로그인 시 Supabase 데이터 → 로컬 동기화
+  // 로그인 시 Supabase 데이터 → 로컬 동기화 (launch 시 pending queue 자동 flush 포함)
   useSyncOnLogin();
   // 이전 세션에서 저장 실패한 세션 재시도 (인증 완료 후 자동 실행)
   usePendingSessionFlush();
+  // Offline-first 트리거: AppState 'active' 전환 시 모든 pending mutation flush.
+  // 백그라운드 → 포그라운드 (잠금 해제 / 앱 전환 복귀) 시점에 네트워크 보통 회복되어
+  // 있고 사용자가 활동 재개하는 자연스러운 push 시점. NetInfo 미설치라 정확한
+  // "네트워크 회복" 이벤트는 못 잡지만 실용적 근사치.
+  usePendingFlushTriggers();
 
   const gradeForSplash = isAuthenticated ? (qualifyingResult?.grade ?? null) : null;
   const initialRoute = getInitialRoute(isAuthenticated, hasProfile);

@@ -5,16 +5,8 @@ import { useAppStore } from '../store/appStore';
 import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying';
 import { fetchActivityDates } from '../api/activity';
 import { fetchProfile, upsertProfile } from '../api/profiles';
-import { fetchSessions, insertCompletedSession } from '../api/sessions';
-import { insertQualifying } from '../api/qualifying';
-import { getPendingQueue, removePendingSession } from '../api/pendingSessions';
-import {
-  getPendingQualifyingQueue,
-  removePendingQualifying,
-  getPendingProfile,
-  clearPendingProfile,
-} from '../api/pendingMutations';
-import { recordActivityToday } from '../api/activity';
+import { fetchSessions } from '../api/sessions';
+import { flushAllPendingMutations } from '../api/pendingFlush';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
 /**
@@ -40,49 +32,10 @@ export function useSyncOnLogin() {
         // 이유 — 직전 launch에서 저장이 큐에 적재되었다면, fetch를 먼저 할 경우
         // DB가 비어있어 로컬을 0/[]로 덮어씀 → 그 후 flush해도 totalKm은 다음 launch
         // 까지 stale. 큐 flush 선행 → DB가 즉시 반영되어 후속 fetch가 올바른 값을 가져옴.
-
-        // 1. Sessions queue flush
-        const sessionQueue = getPendingQueue();
-        if (sessionQueue.length > 0) {
-          console.warn(`[useSyncOnLogin] flushing ${sessionQueue.length} pending session(s)`);
-          for (const pending of sessionQueue) {
-            const { _queuedAt, ...fields } = pending;
-            try {
-              await insertCompletedSession(fields);
-              removePendingSession(_queuedAt);
-              recordActivityToday().catch(() => {});
-            } catch (e) {
-              console.warn(`[useSyncOnLogin] session flush failing for ${fields.started_at}:`, e);
-            }
-          }
-        }
-
-        // 2. Qualifying queue flush — qualifying_results 0행 문제 복구.
-        const qualQueue = getPendingQualifyingQueue();
-        if (qualQueue.length > 0) {
-          console.warn(`[useSyncOnLogin] flushing ${qualQueue.length} pending qualifying`);
-          for (const pending of qualQueue) {
-            const { _queuedAt, ...fields } = pending;
-            try {
-              await insertQualifying(fields);
-              removePendingQualifying(_queuedAt);
-            } catch (e) {
-              console.warn(`[useSyncOnLogin] qualifying flush failing:`, e);
-            }
-          }
-        }
-
-        // 3. Profile pending slot flush
-        const pendingProf = getPendingProfile();
-        if (pendingProf) {
-          console.warn(`[useSyncOnLogin] flushing pending profile push`);
-          try {
-            await upsertProfile(pendingProf);
-            clearPendingProfile();
-          } catch (e) {
-            console.warn(`[useSyncOnLogin] profile flush failing:`, e);
-          }
-        }
+        //
+        // flush 로직은 api/pendingFlush.ts로 분리 — AppState 'active' 트리거 등 다른
+        // 시점에서도 동일 코드 재사용 (usePendingFlushTriggers).
+        await flushAllPendingMutations();
 
         // 프로필 동기화 — 양방향:
         //   (1) remote 있고 local이 default → local에 remote 반영
