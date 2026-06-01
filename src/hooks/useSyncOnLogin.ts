@@ -7,6 +7,11 @@ import { fetchActivityDates } from '../api/activity';
 import { fetchProfile, upsertProfile } from '../api/profiles';
 import { fetchSessions } from '../api/sessions';
 import { flushAllPendingMutations } from '../api/pendingFlush';
+import { getPendingQueue } from '../api/pendingSessions';
+import {
+  getPendingQualifyingQueue,
+  getPendingProfile,
+} from '../api/pendingMutations';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
 /**
@@ -71,12 +76,13 @@ export function useSyncOnLogin() {
           }
         }
 
-        // 퀄리파잉 동기화 — DB가 source-of-truth.
-        // 이전엔 `&& !state.qualifyingResult` 가드로 "로컬에 있으면 안 덮어씀" 정책이라,
-        // DB에서 cleanup된 경우(다른 디바이스 삭제 / SQL 마이그레이션 등) 로컬에
-        // stale qualifyingResult가 영구히 남아 마이페이지/히스토리에 등급 트로피가
-        // 표시되고 RaceScreen의 `if (!qualifyingResult)` 가드를 우회하는 버그.
-        // qualifyingDates와 동일하게 DB 결과를 무조건 반영 — 비어있으면 로컬도 null.
+        // flush 시도 후에도 큐에 남아있는지 재확인 — 남아있으면 "아직 미동기 데이터"가
+        // 있다는 뜻이라 로컬을 DB로 덮어쓰면 안 됨 (사용자 race 결과가 사라짐).
+        const pendingSessionsAfter = getPendingQueue();
+        const pendingQualAfter = getPendingQualifyingQueue();
+        const pendingProfileAfter = getPendingProfile();
+
+        // 퀄리파잉 동기화 — DB가 source-of-truth, 단 pending이 있으면 로컬 보존.
         const qualifying = await fetchLatestQualifying();
         if (qualifying) {
           useAppStore.getState().setQualifyingResult({
@@ -84,37 +90,52 @@ export function useSyncOnLogin() {
             oneKmMs: qualifying.one_km_ms,
             paceSecPerKm: qualifying.pace_sec_per_km,
             grade: qualifying.grade,
-            nextIntervalHint: '', // 서버에서는 hint 미저장, 로컬 재생성 필요 시 core 사용
+            nextIntervalHint: '',
           });
-        } else {
+        } else if (pendingQualAfter.length === 0) {
+          // DB 비어있고 pending도 없음 → 정말 비어있음 (다른 디바이스 삭제 등)
           useAppStore.getState().setQualifyingResult(null);
+        } else {
+          // pending 있음 → 로컬 보존 (사용자 race 결과 사라지지 않게)
+          console.warn(`[useSyncOnLogin] ${pendingQualAfter.length} pending qualifying — keeping local`);
         }
 
-        // 퀄리파잉 날짜 동기화 — DB가 source-of-truth.
-        // DB가 비어있어도 (cleanup 직후) 로컬을 비워줘야 stale 잔재가 안 남음.
+        // 퀄리파잉 날짜 동기화 — DB + pending qualifying 날짜 머지.
         const qualRows = await fetchQualifyingHistory();
-        const qualifyingDates = qualRows.map((r) => r.recorded_at.slice(0, 10));
+        const dbQualDates = qualRows.map((r) => r.recorded_at.slice(0, 10));
+        const pendingQualDates = pendingQualAfter.map((p) => p._queuedAt.slice(0, 10));
+        const qualifyingDates = [...new Set([...dbQualDates, ...pendingQualDates])];
         useAppStore.setState({ qualifyingDates });
 
-        // 활동 날짜 동기화 — 동일하게 DB로 덮어씀. MERGE 금지.
-        // (옛 코드: local과 remote를 merge → DB에서 지운 행이 로컬에 stale로 남음)
+        // 활동 날짜 동기화 — DB + pending session 날짜 머지.
+        // (pending session도 사용자 활동한 날이므로 캘린더 dot 표시해야 함)
         const remoteDates = await fetchActivityDates();
-        const sortedDates = [...new Set(remoteDates)].sort().reverse();
+        const pendingSessionDates = pendingSessionsAfter
+          .filter((p) => (p.total_dist_km ?? 0) >= 0.10)
+          .map((p) => p.started_at.slice(0, 10));
+        const sortedDates = [...new Set([...remoteDates, ...pendingSessionDates])]
+          .sort()
+          .reverse();
         useAppStore.setState({ activityDates: sortedDates });
 
-        // 누적 거리 동기화 — DB의 모든 completed 세션 거리 합으로 덮어씀.
-        // Zustand 영속값(addDistance로 누적)이 옛 stale 합계로 남는 문제 방어.
-        // grand_prix + qualifying + practice 모두 포함.
-        // (history에 기록되는 조건: dist >= 0.10 — 동일 기준 적용)
+        // 누적 거리 동기화 — DB 세션 + pending 세션 합산. dist >= 0.10 동일 기준.
+        // pending이 있을 때 로컬이 wipe되어 0으로 떨어지는 사용자 보고 버그 fix.
         try {
           const allSessions = await fetchSessions(500);
-          const totalKm = allSessions
+          const dbKm = allSessions
             .filter((s) => s.status === 'completed' && (s.total_dist_km ?? 0) >= 0.10)
             .reduce((sum, s) => sum + (s.total_dist_km ?? 0), 0);
-          useAppStore.setState({ totalDistanceKm: totalKm });
+          const pendingKm = pendingSessionsAfter
+            .filter((p) => (p.total_dist_km ?? 0) >= 0.10)
+            .reduce((sum, p) => sum + (p.total_dist_km ?? 0), 0);
+          useAppStore.setState({ totalDistanceKm: dbKm + pendingKm });
         } catch {
-          // 실패 시 기존 값 유지 — 다음 로그인 시점에 다시 시도
+          // 실패 시 기존 값 유지
         }
+
+        // 프로필 pending이 있어도 로컬은 이미 setProfile로 반영되어 있음 (ProfileSetup
+        // 시점에). flush가 다음 launch에서 처리. 별도 액션 불필요.
+        void pendingProfileAfter;
       } catch (e) {
         console.warn('[useSyncOnLogin] sync error:', e);
       }
