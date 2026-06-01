@@ -3,40 +3,44 @@
  *
  * JS context is isolated from the foreground — direct Zustand access is impossible.
  *
- * Architecture (v3 — industry-standard algorithm):
+ * Architecture (v4 — industry-standard with Doppler-or-haversine fallback):
  *
  *   Layer 1 — Validity gate (don't touch PREV_KEY):
- *     - Stale: timestamp > 10 s from now → skip entirely
+ *     - Stale: timestamp > MAX_STALE_MS old → skip entirely
  *     - Invalid fix: accuracy < 0 → skip entirely
  *
- *   Layer 2 — PREV_KEY update (unconditional after validity gate):
- *     Always update PREV_KEY before any distance filter.
- *     This prevents the v1 bug: accuracy filter → long gap → MAX_DELTA exceeded → good
- *     movement discarded. PREV_KEY = "last known position regardless of quality".
+ *   Layer 2 — PREV_KEY update (gated by accuracy):
+ *     Update PREV_KEY only when accuracy <= PREV_ACCURACY_M (50 m).
+ *     v3 updated PREV unconditionally → next haversine baseline could be a 200m-noisy
+ *     fix, polluting future readings. v4: bad fix doesn't become future reference,
+ *     but doesn't lose data either (Layer 4 dt-aware teleport still allows long gaps).
  *
- *   Layer 3 — Distance quality gate (PREV_KEY updated, distance skipped):
- *     - accuracy > MAX_ACCURACY_M (100 m) → position too noisy, skip distance only
+ *   Layer 3 — Distance quality gate:
+ *     - accuracy > MAX_ACCURACY_M (100 m) → too noisy, skip distance
  *
- *   Layer 4 — Teleport filter:
- *     - implied speed from haversine/timeDelta > MAX_RUNNING_MS (10 m/s = 36 km/h) → skip
+ *   Layer 4 — Teleport filter (dt-aware):
+ *     - haversine > MAX_RUNNING_MS × dtSec → GPS jump, skip distance
+ *     - Scales with time: 1 s gap allows 10 m, 5 s gap allows 50 m (still realistic)
  *
- *   Layer 5 — Distance accumulation (Doppler-first):
- *     a) Doppler speed (loc.speed ≥ 0, i.e. iOS Doppler valid):
- *        - speed < MIN_SPEED_MS (0.3 m/s) → stationary, skip
- *        - accumulate: speed_m/s × dtSec  (km)
- *     b) Haversine fallback (loc.speed < 0, Doppler unavailable):
- *        - dist < MIN_DELTA_KM (0.5 m) → stationary drif, skip
- *        - accumulate: haversine dist (km)
+ *   Layer 5 — Distance accumulation (Doppler-or-haversine, NEVER skip valid motion):
+ *     a) Doppler speed reliable (speed >= MIN_SPEED_MS): use speed × dtSec
+ *     b) Doppler weak/zero BUT haversine implies motion (impliedSpeed >= MIN_SPEED_MS,
+ *        i.e. dist/dtSec exceeds 0.3 m/s): use haversine
+ *        — This is the v4 critical fix: iOS commonly reports speed = 0 even while moving
+ *          (between GPS samples, after speed-change, signal degradation). v3 dropped
+ *          this segment entirely → 거리 과소측정. v4 falls back to position delta.
+ *     c) Both Doppler weak AND impliedSpeed below threshold → truly stationary, skip
  *
- * Why Doppler-first?
- *   iOS CLLocation.speed is derived from satellite Doppler shift — independent of
- *   positional noise. Freeletics measured 7% raw GPS error → 1.7% with Doppler
- *   integration. Haversine between noisy positions amplifies position errors; Doppler
- *   doesn't. Android FusedLocationProvider also provides Doppler speed on most chipsets.
+ * Why Doppler-OR-haversine?
+ *   - iOS CLLocation.speed is Doppler-derived (carrier shift) — accurate when valid
+ *   - But iOS often returns speed = 0 mid-run (just after a sample, weak signal, etc.)
+ *   - Pure Doppler-first (v3) loses these segments → systematic under-measurement
+ *   - Standard running apps (Strava, Nike+, Runkeeper) cross-validate: trust whichever
+ *     of Doppler / haversine indicates higher-confidence motion at that instant
  *
  * References:
  *   - Freeletics Engineering (2019): iOS GPS Testing with Kalman filter
- *   - Nike+, Strava engineering: accuracy threshold 50–100 m, speed-gate 10 m/s
+ *   - Nike+, Strava engineering: accuracy threshold 50–100 m, speed-gate ~10 m/s
  *   - mad-location-manager (maddevsio): GeoHash + Kalman (open source reference)
  */
 
@@ -55,16 +59,18 @@ const PREV_KEY    = 'bg_location_prev';      // last processed coords + timestam
 const ACCUM_KEY   = 'bg_location_accum_km'; // accumulated valid distance (km)
 
 // ── Filter constants ─────────────────────────────────────────────────────────
-/** 100 m 초과 accuracy 읽기는 GPS noise가 너무 커서 distance 누적 스킵.
- *  PREV_KEY는 여전히 업데이트 → gap 발생 방지. */
+/** 100 m 초과 accuracy 읽기는 distance 누적 안 함 (Nike+/Strava 표준 50~100m 범위). */
 const MAX_ACCURACY_M   = 100;
+/** 50 m 이내 accuracy일 때만 PREV_KEY 업데이트 → 다음 haversine 기준점이 노이즈에
+ *  오염되지 않게. v3은 무조건 PREV 업데이트해서 노이즈 fix가 baseline이 되는 버그.  */
+const PREV_ACCURACY_M  = 50;
 /** 10 초 이상 된 stale 읽기는 완전 스킵 (iOS cached location 방어). */
 const MAX_STALE_MS     = 10_000;
-/** 10 m/s = 36 km/h — 달리기 최대 속도. 초과하면 GPS teleport로 간주. */
+/** 10 m/s = 36 km/h — 달리기 최대 속도. dt와 곱해 teleport 판정. */
 const MAX_RUNNING_MS   = 10;
-/** Doppler 속도 0.3 m/s 미만 = 정지 상태. distance 누적 스킵. */
+/** 0.3 m/s 미만 = 정지 상태. Doppler/haversine 둘 다 이 임계값 아래면 누적 안 함. */
 const MIN_SPEED_MS     = 0.3;
-/** Haversine fallback: 0.5 m 미만 이동 = 정지 GPS 드리프트. 스킵. */
+/** Haversine 0.5 m 미만 미세 변동 = GPS 드리프트로 처리. */
 const MIN_DELTA_KM     = 0.0005;
 
 type StoredCoords = LocationCoords & { timestamp: number };
@@ -126,11 +132,14 @@ export function defineBackgroundLocationTask(): void {
       // Keep LATEST_KEY for diagnostics (v1 compat)
       setString(LATEST_KEY, JSON.stringify(coords));
 
-      // ── Layer 2: Always update PREV_KEY ────────────────────────────────────
-      // Must happen BEFORE any distance quality gate so the next reading always
-      // has a recent reference point — prevents the "long gap → MAX_DELTA bust" bug.
+      // ── Layer 2: PREV_KEY update (accuracy-gated) ──────────────────────────
+      // 노이즈 fix가 baseline이 되어 다음 haversine을 망치는 v3 버그 fix.
+      // accuracy <= 50m 일 때만 PREV 업데이트. 그보다 나쁜 fix는 처리는 하되 PREV에
+      // 저장 안 함 → 다음 read는 여전히 마지막 양호한 위치를 baseline으로 사용.
       const prev = readPrev();
-      setString(PREV_KEY, JSON.stringify(coords));
+      if ((coords.accuracy ?? Infinity) <= PREV_ACCURACY_M) {
+        setString(PREV_KEY, JSON.stringify(coords));
+      }
 
       if (!prev) return; // first valid reading, no delta yet
 
@@ -142,43 +151,38 @@ export function defineBackgroundLocationTask(): void {
       if (dtSec <= 0) return;
 
       // ── Layer 3: Distance quality gate ─────────────────────────────────────
-      // Position too noisy to trust as a distance reference.
-      // PREV_KEY is already updated above, so the next reading will use this
-      // (potentially inaccurate) position as origin — acceptable because the
-      // distance filter below still blocks teleport.
       if ((coords.accuracy ?? 0) > MAX_ACCURACY_M) {
         gpsDiag.distSkipCount++;
         return;
       }
 
-      // ── Layer 4: Teleport filter ────────────────────────────────────────────
-      // If implied speed (from haversine / time) exceeds human running speed,
-      // the GPS jumped — discard.
+      // ── Layer 4: Teleport filter (dt-aware) ────────────────────────────────
+      // 1 s gap → 10 m 허용, 5 s gap → 50 m 허용. 고정 임계값보다 long gap 후 정상
+      // 이동을 통째로 버리는 케이스 감소.
       const impliedSpeedMs = (dist * 1000) / dtSec;
       if (impliedSpeedMs > MAX_RUNNING_MS) {
         gpsDiag.distSkipCount++;
         return;
       }
 
-      // ── Layer 5: Distance accumulation (Doppler-first) ─────────────────────
+      // ── Layer 5: Distance accumulation (Doppler-OR-haversine) ──────────────
+      // v3은 Doppler가 valid면 무조건 Doppler만 사용 → iOS가 speed=0을 자주 보내는
+      // 현실에서 그 segment 통째 누락. v4: Doppler가 신뢰할 만하면 Doppler, 그렇지
+      // 않지만 위치가 실제로 이동했으면 haversine. 둘 다 멈춤 신호일 때만 skip.
       const dopplerSpeed = coords.speed ?? -1; // m/s; -1 = invalid on iOS
       let deltaKm: number;
 
-      if (dopplerSpeed >= 0) {
-        // Doppler speed available (iOS CLLocation.speed from satellite carrier shift).
-        // Independent of positional noise — more accurate than haversine for distance.
-        if (dopplerSpeed < MIN_SPEED_MS) {
-          gpsDiag.distSkipCount++;
-          return; // stationary
-        }
+      if (dopplerSpeed >= MIN_SPEED_MS) {
+        // (a) Doppler 신뢰할 만함 — 위성 carrier-shift 기반이라 positional noise에 독립적
         deltaKm = (dopplerSpeed * dtSec) / 1000;
-      } else {
-        // Doppler unavailable — haversine fallback.
-        if (dist < MIN_DELTA_KM) {
-          gpsDiag.distSkipCount++;
-          return; // GPS drift while stationary
-        }
+      } else if (impliedSpeedMs >= MIN_SPEED_MS && dist >= MIN_DELTA_KM) {
+        // (b) Doppler가 0/약함이어도 위치 변화가 사람 보폭 이상 → 실제 이동.
+        //     iOS speed=0 케이스(샘플 직후, 약한 신호 등)를 누락하지 않게 해주는 핵심 분기.
         deltaKm = dist;
+      } else {
+        // (c) Doppler 약함 + 위치도 거의 안 변함 → 정지 상태로 간주
+        gpsDiag.distSkipCount++;
+        return;
       }
 
       // ── Accumulate ─────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   getCurrentActivityId,
 } from '../platform/liveActivity';
 import { useAppStore } from '../store/appStore';
+import { getCurrentPosition } from '../platform/location';
 import type { CountdownScreenProps } from '../navigation/types';
 
 const COUNTDOWN_PAGE_MS = 1000;
@@ -62,6 +63,14 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
 
     finishCalledRef.current = false;
     ALL_COUNTS.forEach((n) => opacities[n].setValue(n === 5 ? 1 : 0));
+
+    // GPS warm-up: hardware/Doppler가 첫 fix 잡는 데 평균 2~5초.
+    // useGPS는 RunningScreen mount + isRunning=true 후 시작되므로 첫 좌표가 들어오기
+    // 전 사용자가 이미 달리기 시작 → 첫 측정값이 한 번에 누적되며 화면이 점프함.
+    // 카운트다운 6초 동안 위치 1회를 요청해 GPS chipset을 깨워두면, RunningScreen
+    // 진입 시점에는 fix가 이미 안정화되어 있어 첫 측정 delay/점프 제거됨.
+    // distance 누적은 안 함 (clearBackgroundCoords가 RunningScreen에서 호출되어 0으로 reset).
+    getCurrentPosition().catch(() => {});
 
     // Start Live Activity NOW (while foreground) so it survives if the user
     // locks the screen during the countdown. RunningScreen will reuse this id.

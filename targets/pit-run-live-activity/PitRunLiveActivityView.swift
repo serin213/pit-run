@@ -473,24 +473,32 @@ private func formatQualTime(_ ms: Int) -> String {
 }
 
 // QualifyingScreen.tsx의 barTrack / barFillWrap 시각 사양과 1:1.
-// height 12, cornerRadius 6 pill. Track 흰색 10%, Fill 빨강→핑크 horizontal gradient.
+// height 12 pill. Track 흰색 10%, Fill 빨강→핑크 horizontal gradient.
+//
+// clipShape 정책: 외부 ZStack 전체를 Capsule()로 클립 — track + fill이 동일한 mask 안에서
+// 렌더링됨. fill은 plain Rectangle이라 prog가 작을 때(예: 5%) 좌측 곡선만 보이고 우측은
+// 직선으로 잘려서 "트랙 안에 자연스럽게 채워지는" 모양. fill 자체에 cornerRadius를 주면
+// 작은 폭에서 양쪽이 모두 둥근 독립 알약이 트랙 안에 떠 보이는 버그(이전 동작).
 private struct QualifyingProgressBar: View {
     let prog: Double  // 0.0 – 1.0
 
     var body: some View {
         GeometryReader { geo in
+            let clamped = max(0, min(1, prog))
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                Rectangle()
                     .fill(Color.white.opacity(0.1))
-                let clamped = max(0, min(1, prog))
-                LinearGradient(
-                    colors: [Color(hex: "#E03A3E"), Color(hex: "#E03A8A")],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .frame(width: geo.size.width * CGFloat(clamped))
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "#E03A3E"), Color(hex: "#E03A8A")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geo.size.width * CGFloat(clamped))
             }
+            .clipShape(Capsule())
         }
         .frame(height: 12)
     }

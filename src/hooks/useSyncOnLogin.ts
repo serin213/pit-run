@@ -4,8 +4,10 @@ import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying';
 import { fetchActivityDates } from '../api/activity';
-import { fetchProfile } from '../api/profiles';
-import { fetchSessions } from '../api/sessions';
+import { fetchProfile, upsertProfile } from '../api/profiles';
+import { fetchSessions, insertCompletedSession } from '../api/sessions';
+import { getPendingQueue, removePendingSession } from '../api/pendingSessions';
+import { recordActivityToday } from '../api/activity';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
 /**
@@ -27,22 +29,59 @@ export function useSyncOnLogin() {
 
     (async () => {
       try {
-        // 프로필 동기화
-        const profile = await fetchProfile();
-        if (profile) {
-          const current = useAppStore.getState().profile;
-          const isDefault =
-            current.displayName === 'LEC' &&
-            current.raceNumber === '16' &&
-            current.nameTagAccentColor === PALETTE.red;
+        // ⚠️ 순서가 중요: pending session flush를 fetch 전에 먼저 실행.
+        // 이유 — 직전 launch에서 race 저장이 !isAuthenticated으로 큐에 적재되었다고
+        // 가정. 만약 fetch를 먼저 하면 DB는 아직 비어있어 useSyncOnLogin이 로컬
+        // totalDistanceKm/activityDates를 0/[]로 덮어씀 → 그 후 flush해도 totalKm은
+        // 다음 launch까지 stale. flush를 선행하면 DB가 즉시 반영되어 후속 fetch가
+        // 올바른 값을 가져옴.
+        const queue = getPendingQueue();
+        if (queue.length > 0) {
+          console.warn(`[useSyncOnLogin] flushing ${queue.length} pending session(s) before sync`);
+          for (const pending of queue) {
+            const { _queuedAt, ...fields } = pending;
+            try {
+              await insertCompletedSession(fields);
+              removePendingSession(_queuedAt);
+              recordActivityToday().catch(() => {});
+            } catch (e) {
+              console.warn(`[useSyncOnLogin] flush still failing for ${fields.started_at}:`, e);
+              // 큐에 유지 — 다음 launch에서 재시도
+            }
+          }
+        }
 
-          // Supabase에 프로필이 있고 로컬이 기본값이면 Supabase 우선
-          if (profile.display_name && isDefault) {
-            useAppStore.getState().setProfile({
-              displayName: profile.display_name,
-              raceNumber: profile.race_number || current.raceNumber,
-              nameTagAccentColor: profile.accent_color || current.nameTagAccentColor,
+        // 프로필 동기화 — 양방향:
+        //   (1) remote 있고 local이 default → local에 remote 반영
+        //   (2) remote 없고 local이 non-default → local을 remote에 push
+        //       (ProfileSetup 시점 save가 silent fail로 사라진 케이스 복구 — 사용자 명시 버그)
+        const profile = await fetchProfile();
+        const current = useAppStore.getState().profile;
+        const isDefault =
+          current.displayName === 'LEC' &&
+          current.raceNumber === '16' &&
+          current.nameTagAccentColor === PALETTE.red;
+
+        if (profile && profile.display_name && isDefault) {
+          // (1) remote → local
+          useAppStore.getState().setProfile({
+            displayName: profile.display_name,
+            raceNumber: profile.race_number || current.raceNumber,
+            nameTagAccentColor: profile.accent_color || current.nameTagAccentColor,
+          });
+        } else if (!profile && !isDefault) {
+          // (2) local → remote. ProfileSetup의 save()가 !isAuthenticated이나 네트워크
+          // 오류로 silent drop된 경우 로컬엔 사용자가 입력한 값이 있는데 Supabase엔
+          // 행 자체가 없음 → 다음 launch에서 이 경로로 자동 복구.
+          console.warn('[useSyncOnLogin] remote profile missing — pushing local profile to Supabase');
+          try {
+            await upsertProfile({
+              display_name: current.displayName,
+              race_number: current.raceNumber,
+              accent_color: current.nameTagAccentColor,
             });
+          } catch (e) {
+            console.warn('[useSyncOnLogin] profile push failed (will retry on next launch):', e);
           }
         }
 

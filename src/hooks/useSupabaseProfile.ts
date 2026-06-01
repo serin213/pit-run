@@ -40,16 +40,28 @@ export function useSupabaseProfile() {
     [isAuthenticated],
   );
 
-  /** 프로필 필드 저장 (upsertProfile 래퍼). 성공 시 로컬 상태도 갱신. */
+  /**
+   * 프로필 필드 저장 (upsertProfile 래퍼).
+   *
+   * 실패해도 silent drop 금지:
+   *   - !isAuthenticated → console.warn + null 반환 (호출부에서 재시도 가능 시그널).
+   *   - upsertProfile throw → console.warn으로 surface (e.g., 'PGRST116', network).
+   *
+   * 로컬 (appStore) 저장은 호출부(ProfileSetupScreen)에서 별도로 이미 처리되므로
+   * 여기서 실패해도 로컬엔 보존됨 — useSyncOnLogin이 다음 launch에 push 재시도.
+   */
   const save = useCallback(
     async (fields: { display_name: string; race_number?: string; accent_color?: string }) => {
-      if (!isAuthenticated) return null;
+      if (!isAuthenticated) {
+        console.warn('[useSupabaseProfile] save skipped — not authenticated. Local kept; will retry on next launch sync.');
+        return null;
+      }
       try {
         const updated = await upsertProfile(fields);
         setProfile(updated);
         return updated;
       } catch (e) {
-        console.warn('[useSupabaseProfile] save error:', e);
+        console.warn('[useSupabaseProfile] save error (local kept; sync will retry):', e);
         return null;
       }
     },

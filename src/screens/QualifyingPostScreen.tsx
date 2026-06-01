@@ -14,7 +14,7 @@ import { LinearGradient } from '../platform/gradient';
 import LottieView, { type AnimationObject } from 'lottie-react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
-import { endAllLiveActivities } from '../platform/liveActivity';
+import { useEndLiveActivityWhenActive } from '../hooks/useEndLiveActivityWhenActive';
 import { calcQualifyingRank } from '../lib/ranking/calcRank';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useAppStore } from '../store/appStore';
@@ -77,12 +77,9 @@ const CONFETTI_SOURCE = require('../../assets/qualifying/lottie/confetti.json');
 const CONFETTI_SIZE = 295;
 
 export default function QualifyingPostScreen({ navigation, route }: QualifyingPostScreenProps) {
-  // 결과 화면 진입 즉시 LA 종료 — race ResultScreen과 동일 패턴.
-  // finishOneKm에서 LA를 'completed'로 update해두긴 했지만, well done LA를
-  // 결과 화면 보는 동안까지 유지하지 않음 (사용자 명세).
-  React.useEffect(() => {
-    endAllLiveActivities().catch(() => {});
-  }, []);
+  // LA는 사용자가 LA 탭으로 진입 OR 결과 화면을 foreground에서 본 시점에만 종료.
+  // 백그라운드 자동완주 케이스에서는 잠금화면에 "Well done, mate"가 유지됨.
+  useEndLiveActivityWhenActive();
 
   const { width: windowW, height: windowH } = useWindowDimensions();
   const safeTop = useSafeTop();

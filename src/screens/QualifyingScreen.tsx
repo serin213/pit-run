@@ -41,6 +41,7 @@ import ConfirmSheet from '../components/ConfirmSheet';
 import { useGPS } from '../hooks/useGPS';
 import { gpsDiag, resetGpsDiag } from '../platform/gpsDiag';
 import { useLocationPermission } from '../hooks/useLocationPermission';
+import { getCurrentPosition } from '../platform/location';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
@@ -89,6 +90,14 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const [warmupLeftSec, setWarmupLeftSec] = useState(RECOMMENDED_WARMUP_MINUTES * 60);
   const [trialStartedAt, setTrialStartedAt] = useState<number | null>(null);
   const [trialElapsedMs, setTrialElapsedMs] = useState(0);
+
+  // Warmup phase에 GPS warm-up — 1km 측정이 시작되는 'qualifying' 진입 전에
+  // GPS chipset을 깨워두면 첫 fix 지연으로 인한 큰 delta 점프 없음.
+  // (5분 warmup이라 GPS는 충분히 안정화 — 사용자 명세상 RunningScreen 진입 시 점프 제거)
+  useEffect(() => {
+    if (phase !== 'warmup') return;
+    getCurrentPosition().catch(() => {});
+  }, [phase]);
 
   // Warmup countdown.
   // 종료 5초 전(prev → 6일 때 새 값 5)에 'countdown' 사운드 1회 재생 (6초짜리 5,4,3,2,1,go).

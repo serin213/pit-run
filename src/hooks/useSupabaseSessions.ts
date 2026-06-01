@@ -87,9 +87,11 @@ export function useSupabaseSession() {
    * DB에 'started' 잔재가 절대 안 남음. 'completed' + activity_dates 갱신까지 처리.
    *
    * 저장 실패 처리:
-   *   withRetry 3회 후에도 실패하면 MMKV pending queue에 적재.
-   *   usePendingSessionFlush 훅이 다음 앱 시작 시 자동 재시도.
-   *   → 네트워크 오류로 인한 데이터 영구 유실 방지.
+   *   - !isAuthenticated이라도 pending queue에 무조건 적재 (다음 launch flush에서 처리).
+   *     v1은 `if (!isAuthenticated) return null`로 silent drop → 백그라운드에서
+   *     세션 refresh 실패 시점에 race 종료하면 데이터 영구 유실됨.
+   *   - withRetry 3회 후에도 실패하면 동일하게 MMKV pending queue에 적재.
+   *   - usePendingSessionFlush 훅이 다음 앱 시작 시 자동 재시도.
    */
   const saveCompletedSession = useCallback(
     async (fields: {
@@ -102,7 +104,14 @@ export function useSupabaseSession() {
       best_pace_sec_per_km?: number | null;
       payload?: Record<string, unknown>;
     }) => {
-      if (!isAuthenticated) return null;
+      // 인증되지 않은 상태에서도 절대 drop하지 않음 — pending queue로.
+      // 백그라운드 자동완주 직후 supabase session refresh가 일시적으로 실패해
+      // isAuthenticated이 false인 케이스를 방어. 다음 launch에서 인증되면 flush됨.
+      if (!isAuthenticated) {
+        console.warn('[useSupabaseSession] not authenticated, queuing session for next launch');
+        enqueuePendingSession(fields);
+        return null;
+      }
       try {
         const row = await insertCompletedSession(fields);
         recordActivityToday().catch(() => {});

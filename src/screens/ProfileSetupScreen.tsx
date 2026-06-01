@@ -159,6 +159,8 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             label="MAKE DEBUT"
             enabled={canSubmit}
             onPress={() => {
+              // 로컬 (MMKV)에 먼저 저장 — 어떤 경우에도 사용자가 입력한 프로필은 보존됨.
+              // 만약 Supabase save가 실패해도 useSyncOnLogin이 다음 launch에 push 재시도.
               setProfile({
                 displayName: trimmedName,
                 raceNumber: normalizedNumber,
@@ -168,7 +170,9 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 display_name: trimmedName,
                 race_number: normalizedNumber,
                 accent_color: teamColor ?? PREVIEW_DEFAULT_COLOR,
-              }).catch(() => {});
+              }).catch((e) => {
+                console.warn('[ProfileSetup] save failed (local kept; sync will retry):', e);
+              });
               getCurrentUser().then((user) => {
                 if (user?.id) {
                   logOnboardingCompleted({ userId: user.id }).catch(() => {});

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { useRunStore } from '../store/runStore';
 import {
   requestForegroundPermission,
@@ -41,6 +42,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
     }
 
     let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let appStateSubscription: { remove: () => void } | null = null;
     let cancelled = false;
 
     (async () => {
@@ -70,7 +72,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       }
 
       // 1초마다 background 누적 거리를 읽어 delta 전달
-      pollInterval = setInterval(() => {
+      const drainAccum = () => {
         gpsDiag.tick++;
         const accum = getAccumulatedKm();
         const delta = accum - lastAppliedAccumRef.current;
@@ -78,7 +80,18 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
           lastAppliedAccumRef.current = accum;
           onDistanceRef.current(delta);
         }
-      }, POLL_INTERVAL_MS);
+      };
+      pollInterval = setInterval(drainAccum, POLL_INTERVAL_MS);
+
+      // AppState 'active' 전환 시 즉시 sync.
+      // JS thread는 화면 잠금 시 suspend됨 → setInterval도 정지 → background task가
+      // MMKV에 거리는 계속 쌓아도 RN state는 다음 폴링까지 멈춰있음.
+      // 잠금 해제 직후 setInterval이 깨어나려면 최대 1초 대기 → 그동안 큰 delta가
+      // 한 번에 들어와 화면이 "점프 업데이트"되는 현상 발생.
+      // 'active' 이벤트 발생 즉시 drain → 점프 폭 최소화 (1초 → 즉시).
+      appStateSubscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') drainAccum();
+      });
     })();
 
     return () => {
@@ -86,6 +99,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       cancelled = true;
       lastAppliedAccumRef.current = 0;
       if (pollInterval) clearInterval(pollInterval);
+      if (appStateSubscription) appStateSubscription.remove();
       stopBackgroundLocationTask();
       setGpsEnabled(false);
     };

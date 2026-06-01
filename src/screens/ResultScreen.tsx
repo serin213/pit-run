@@ -1,7 +1,6 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import { LETTER_SPACING } from '../constants/typography';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { endLiveActivity, getCurrentActivityId } from '../platform/liveActivity';
 import { BlurView } from '../platform/blur';
 import {
   Animated,
@@ -41,7 +40,7 @@ import { selectCommentary } from '../lib/commentary/selectCommentary';
 import { GRADE_COLORS, GRADE_DISPLAY_NAME } from '../constants/grade';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { useSessionHistory } from '../hooks/useSessionHistory';
-import { endAllLiveActivities } from '../platform/liveActivity';
+import { useEndLiveActivityWhenActive } from '../hooks/useEndLiveActivityWhenActive';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -131,19 +130,9 @@ function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ResultScreen({ navigation, route }: ResultScreenProps) {
-  // Dismiss the lock-screen Live Activity the moment the result is on screen.
-  // 두 가지 안전망 같이 사용:
-  //   1. currentActivityId가 살아있으면 그걸로 종료 시도
-  //   2. endAllLiveActivities()로 트랙된 모든 ActivityKit activity 강제 종료
-  // 이전엔 (1)만 했는데, useRunning에서 ref만 null로 만들고 module variable이
-  // stale 상태일 때 / activities dict의 키 mismatch 등 edge case에서 LA가 잠금화면에
-  // 남는 증상 발생. endAllLiveActivities는 native에서 Activity<*>.activities를 순회해
-  // dismissalPolicy: .immediate로 종료하므로 robust.
-  React.useEffect(() => {
-    const id = getCurrentActivityId();
-    if (id) endLiveActivity(id).catch(() => {});
-    endAllLiveActivities().catch(() => {});
-  }, []);
+  // LA는 사용자가 LA 탭으로 진입 OR 결과 화면을 foreground에서 본 시점에만 종료.
+  // 백그라운드 자동완주 케이스에서는 잠금화면에 "Well done, mate"가 유지됨.
+  useEndLiveActivityWhenActive();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
@@ -177,13 +166,6 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   useEffect(() => {
     if (isHistoryMode) return;
     loadSessions(200).then(() => setSessionsReady(true));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 결과 화면 진입 시 라이브 액티비티 종료 (자연 완주 + 수동 종료 모두 커버)
-  useEffect(() => {
-    if (isHistoryMode) return;
-    endAllLiveActivities().catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
