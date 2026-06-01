@@ -17,15 +17,22 @@ export async function fetchActivityDates(): Promise<string[]> {
   });
 }
 
-/** 오늘 활동 기록 (이미 있으면 무시) */
+/**
+ * 오늘 활동 기록 (이미 있으면 무시).
+ *
+ * insertCompletedSession 호출 직후 fire-and-forget으로 호출됨.
+ * 안정성 패턴 통일: getSession() + auth 체크를 withRetry 루프 안으로.
+ */
 export async function recordActivityToday(): Promise<void> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) return;
-
   const today = new Date().toISOString().slice(0, 10);
   await withRetry(async () => {
-    await supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
+
+    const { error } = await supabase
       .from('activity_dates')
       .upsert({ user_id: userId, date: today }, { onConflict: 'user_id,date' });
+    if (error) throw error;
   });
 }

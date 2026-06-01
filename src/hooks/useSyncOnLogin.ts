@@ -6,7 +6,14 @@ import { fetchLatestQualifying, fetchQualifyingHistory } from '../api/qualifying
 import { fetchActivityDates } from '../api/activity';
 import { fetchProfile, upsertProfile } from '../api/profiles';
 import { fetchSessions, insertCompletedSession } from '../api/sessions';
+import { insertQualifying } from '../api/qualifying';
 import { getPendingQueue, removePendingSession } from '../api/pendingSessions';
+import {
+  getPendingQualifyingQueue,
+  removePendingQualifying,
+  getPendingProfile,
+  clearPendingProfile,
+} from '../api/pendingMutations';
 import { recordActivityToday } from '../api/activity';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 
@@ -29,25 +36,51 @@ export function useSyncOnLogin() {
 
     (async () => {
       try {
-        // ⚠️ 순서가 중요: pending session flush를 fetch 전에 먼저 실행.
-        // 이유 — 직전 launch에서 race 저장이 !isAuthenticated으로 큐에 적재되었다고
-        // 가정. 만약 fetch를 먼저 하면 DB는 아직 비어있어 useSyncOnLogin이 로컬
-        // totalDistanceKm/activityDates를 0/[]로 덮어씀 → 그 후 flush해도 totalKm은
-        // 다음 launch까지 stale. flush를 선행하면 DB가 즉시 반영되어 후속 fetch가
-        // 올바른 값을 가져옴.
-        const queue = getPendingQueue();
-        if (queue.length > 0) {
-          console.warn(`[useSyncOnLogin] flushing ${queue.length} pending session(s) before sync`);
-          for (const pending of queue) {
+        // ⚠️ 순서가 중요: pending flush를 fetch 전에 먼저 실행.
+        // 이유 — 직전 launch에서 저장이 큐에 적재되었다면, fetch를 먼저 할 경우
+        // DB가 비어있어 로컬을 0/[]로 덮어씀 → 그 후 flush해도 totalKm은 다음 launch
+        // 까지 stale. 큐 flush 선행 → DB가 즉시 반영되어 후속 fetch가 올바른 값을 가져옴.
+
+        // 1. Sessions queue flush
+        const sessionQueue = getPendingQueue();
+        if (sessionQueue.length > 0) {
+          console.warn(`[useSyncOnLogin] flushing ${sessionQueue.length} pending session(s)`);
+          for (const pending of sessionQueue) {
             const { _queuedAt, ...fields } = pending;
             try {
               await insertCompletedSession(fields);
               removePendingSession(_queuedAt);
               recordActivityToday().catch(() => {});
             } catch (e) {
-              console.warn(`[useSyncOnLogin] flush still failing for ${fields.started_at}:`, e);
-              // 큐에 유지 — 다음 launch에서 재시도
+              console.warn(`[useSyncOnLogin] session flush failing for ${fields.started_at}:`, e);
             }
+          }
+        }
+
+        // 2. Qualifying queue flush — qualifying_results 0행 문제 복구.
+        const qualQueue = getPendingQualifyingQueue();
+        if (qualQueue.length > 0) {
+          console.warn(`[useSyncOnLogin] flushing ${qualQueue.length} pending qualifying`);
+          for (const pending of qualQueue) {
+            const { _queuedAt, ...fields } = pending;
+            try {
+              await insertQualifying(fields);
+              removePendingQualifying(_queuedAt);
+            } catch (e) {
+              console.warn(`[useSyncOnLogin] qualifying flush failing:`, e);
+            }
+          }
+        }
+
+        // 3. Profile pending slot flush
+        const pendingProf = getPendingProfile();
+        if (pendingProf) {
+          console.warn(`[useSyncOnLogin] flushing pending profile push`);
+          try {
+            await upsertProfile(pendingProf);
+            clearPendingProfile();
+          } catch (e) {
+            console.warn(`[useSyncOnLogin] profile flush failing:`, e);
           }
         }
 

@@ -32,27 +32,33 @@ export async function fetchSessions(limit = 50): Promise<SessionRow[]> {
   });
 }
 
-/** 세션 생성 (러닝 시작) */
+/**
+ * 세션 생성 (러닝 시작) — completed-only INSERT 정책 도입 이후 거의 안 쓰이지만,
+ * 안정성 패턴 통일을 위해 insertCompletedSession와 동일 구조로 정리.
+ */
 export async function insertSession(fields: {
   type: SessionType;
   circuit_id?: string | null;
   started_at?: string;
 }): Promise<SessionRow> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) throw new Error('Not authenticated');
+  return withRetry(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('run_sessions')
-    .insert({
-      user_id: userId,
-      type: fields.type,
-      circuit_id: fields.circuit_id ?? null,
-      started_at: fields.started_at ?? new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+    const { data, error } = await supabase
+      .from('run_sessions')
+      .insert({
+        user_id: userId,
+        type: fields.type,
+        circuit_id: fields.circuit_id ?? null,
+        started_at: fields.started_at ?? new Date().toISOString(),
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  });
 }
 
 /** 세션 완료 업데이트 */

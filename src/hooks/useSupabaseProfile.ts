@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchProfile, upsertProfile, type ProfileRow } from '../api/profiles';
+import { setPendingProfile } from '../api/pendingMutations';
 import { useAuthStore } from '../store/authStore';
 
 /**
@@ -43,17 +44,18 @@ export function useSupabaseProfile() {
   /**
    * 프로필 필드 저장 (upsertProfile 래퍼).
    *
-   * 실패해도 silent drop 금지:
-   *   - !isAuthenticated → console.warn + null 반환 (호출부에서 재시도 가능 시그널).
-   *   - upsertProfile throw → console.warn으로 surface (e.g., 'PGRST116', network).
+   * 실패해도 silent drop 금지 — pending profile slot에 적재:
+   *   - !isAuthenticated → setPendingProfile(fields)
+   *   - upsertProfile throw → setPendingProfile(fields)
+   * 다음 launch의 useSyncOnLogin이 flush 시도.
    *
-   * 로컬 (appStore) 저장은 호출부(ProfileSetupScreen)에서 별도로 이미 처리되므로
-   * 여기서 실패해도 로컬엔 보존됨 — useSyncOnLogin이 다음 launch에 push 재시도.
+   * upsertProfile는 이미 getSession + withRetry라 일상적 실패율 낮음. 큐는 백업.
    */
   const save = useCallback(
     async (fields: { display_name: string; race_number?: string; accent_color?: string }) => {
       if (!isAuthenticated) {
-        console.warn('[useSupabaseProfile] save skipped — not authenticated. Local kept; will retry on next launch sync.');
+        console.warn('[useSupabaseProfile] not authenticated, queuing profile for next launch');
+        setPendingProfile(fields);
         return null;
       }
       try {
@@ -61,7 +63,8 @@ export function useSupabaseProfile() {
         setProfile(updated);
         return updated;
       } catch (e) {
-        console.warn('[useSupabaseProfile] save error (local kept; sync will retry):', e);
+        console.warn('[useSupabaseProfile] save error, queuing for retry:', e);
+        setPendingProfile(fields);
         return null;
       }
     },

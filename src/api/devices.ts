@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withRetry } from './client';
 
 export type DeviceRow = {
   id: string;
@@ -8,28 +8,36 @@ export type DeviceRow = {
   last_seen_at: string;
 };
 
-/** 디바이스 push token 등록/갱신 */
+/** 디바이스 push token 등록/갱신 — getSession + withRetry 통일 패턴. */
 export async function upsertDevice(fields: {
   push_token: string;
   platform: 'ios' | 'android';
 }): Promise<void> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) return;
+  await withRetry(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
 
-  await supabase.from('devices').upsert(
-    {
-      user_id: userId,
-      push_token: fields.push_token,
-      platform: fields.platform,
-      last_seen_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id,push_token' },
-  );
+    const { error } = await supabase.from('devices').upsert(
+      {
+        user_id: userId,
+        push_token: fields.push_token,
+        platform: fields.platform,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,push_token' },
+    );
+    if (error) throw error;
+  });
 }
 
-/** 디바이스 삭제 (로그아웃 시) */
+/** 디바이스 삭제 (로그아웃 시). */
 export async function removeDevice(pushToken: string): Promise<void> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) return;
-  await supabase.from('devices').delete().eq('push_token', pushToken).eq('user_id', userId);
+  await withRetry(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const { error } = await supabase.from('devices').delete().eq('push_token', pushToken).eq('user_id', userId);
+    if (error) throw error;
+  });
 }

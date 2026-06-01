@@ -26,25 +26,28 @@ export async function fetchLatestPlan(): Promise<PlanRow | null> {
   });
 }
 
-/** 인터벌 플랜 생성 */
+/** 인터벌 플랜 생성 — getSession + withRetry 통일 패턴. */
 export async function insertPlan(fields: {
   based_on_qualifying_id?: string | null;
   segments: IntervalSegment[];
   session_id?: string | null;
 }): Promise<PlanRow> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) throw new Error('Not authenticated');
+  return withRetry(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('interval_plans')
-    .insert({
-      user_id: userId,
-      based_on_qualifying_id: fields.based_on_qualifying_id ?? null,
-      segments: fields.segments,
-      session_id: fields.session_id ?? null,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+    const { data, error } = await supabase
+      .from('interval_plans')
+      .insert({
+        user_id: userId,
+        based_on_qualifying_id: fields.based_on_qualifying_id ?? null,
+        segments: fields.segments,
+        session_id: fields.session_id ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  });
 }
