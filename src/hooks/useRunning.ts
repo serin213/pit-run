@@ -16,6 +16,11 @@ import {
   shouldFireFinalLap,
   shouldFireFinalLapSafety,
 } from '../lib/runTriggers';
+import {
+  setActiveRacePlan,
+  getActiveRacePlan,
+  clearActiveRacePlan,
+} from '../api/racePlan';
 
 // Live Activity는 초당 1회로 throttle (ActivityKit 권고)
 const LA_UPDATE_INTERVAL_MS = 1000;
@@ -74,40 +79,37 @@ export function useRunning(options: UseRunningOptions = {}) {
     };
   }, []);
 
-  // ── Background resume catch-up — distKm 큰 jump 감지 후 work 사이클 reset.
+  // ── Background resume sync — MMKV의 activeRacePlan과 foreground refs 동기화.
   //
-  // 시나리오:
-  //   1. JS suspended (화면 잠금/앱 백그라운드) — RAF/setInterval 정지
-  //   2. background location task는 OS 콜백으로 계속 누적 거리 MMKV에 기록
-  //   3. 앱 active 복귀 → useGPS의 AppState listener가 drainAccum 호출 →
-  //      누적된 큰 delta를 addGpsDistance에 한 번에 전달
-  //   4. distKm 큰 폭 jump → checkBoxBox가 workKm >= intervalKm 즉시 만족 →
-  //      boxbox 트리거 → 4s 후 inPit → 회복시간 후 fullPush. 사용자 입장에선
-  //      "박스박스 뜨고 곧 풀푸시" 사이클이 자동 시작되는 게 부자연스러움
-  //      (실제로 인터벌 한 번 안 뛰었는데 알림만 깜빡)
+  // 배경: background location task가 잠금 상태에서 boxbox/fullPush를 발화하면서
+  // racePlan.lastBoxBoxAtKm을 업데이트함. 이 값이 "background이 마지막으로 알림
+  // 보낸 위치". 사용자가 앱 active 복귀하면 distKm 큰 jump가 발생할 수 있는데
+  // 이때 foreground workStartKmRef가 0(또는 옛 값)이면 workKm > intervalKm 즉시
+  // 만족 → 중복 boxbox 발화. 또는 background가 이미 처리한 사이클을 foreground가
+  // 재실행하려 함.
   //
-  // Fix: delta > 50m (1초 polling 인간 최대 ~5m, 정상 범위 훌쩍 초과) = catch-up
-  // 으로 간주 → workStartKmRef / lapStartKmRef / pitStartKmRef 를 현재 distKm
-  // 으로 reset. 다음 boxbox는 새로 intervalKm 채워야 발화 → 사용자가 알림 받지
-  // 못한 background 시간 동안의 stale 트리거 모두 무효화.
-  //
-  // Zustand subscribe로 store 변경 직후 동기 실행 — 다음 RAF의 checkBoxBox보다
-  // 무조건 먼저 발화 보장.
+  // Fix: distKm가 변할 때마다 MMKV plan.lastBoxBoxAtKm 읽어 workStartKmRef와
+  // 동기화. background이 잠금 중 0.4 → 0.8 → 1.2km에서 boxbox 발화했다면
+  // lastBoxBoxAtKm=1.2. foreground는 그 시점부터의 work만 카운트 → 1.2 + 0.4 =
+  // 1.6km 도달해야 다음 boxbox.
   useEffect(() => {
     const unsub = useRunStore.subscribe((state, prevState) => {
       if (!state.isRunning || state.isPaused) return;
-      const delta = state.distKm - prevState.distKm;
-      if (delta <= 0.05) return; // 정상 1초 polling 범위
-      workStartKmRef.current = state.distKm;
-      lapStartKmRef.current = state.distKm;
-      lapStartMsRef.current = state.elapsedMs;
-      pitStartKmRef.current = state.distKm;
-      pitStartMsRef.current = state.elapsedMs;
-      if (__DEV__) {
-        console.warn(
-          `[useRunning] background catch-up: distKm jumped ${delta.toFixed(3)}km, ` +
-          `resetting work/lap/pit refs to current ${state.distKm.toFixed(3)}km`,
-        );
+      if (state.distKm === prevState.distKm) return;
+      const plan = getActiveRacePlan();
+      if (!plan) return;
+      if (plan.lastBoxBoxAtKm > workStartKmRef.current) {
+        workStartKmRef.current = plan.lastBoxBoxAtKm;
+        if (__DEV__) {
+          console.warn(
+            `[useRunning] synced workStartKmRef ${plan.lastBoxBoxAtKm.toFixed(3)}km ` +
+            `from background plan (completedReps=${plan.completedReps})`,
+          );
+        }
+      }
+      // background이 이미 boxbox 발화한 사이클 수를 foreground 카운터에도 반영
+      if (plan.completedReps > boxBoxTriggerCountRef.current) {
+        boxBoxTriggerCountRef.current = plan.completedReps;
       }
     });
     return () => unsub();
@@ -210,6 +212,25 @@ export function useRunning(options: UseRunningOptions = {}) {
     pitStartMsRef.current = 0;
     lapIdxRef.current = 0;
 
+    // Background race event용 plan을 MMKV에 저장 — locationTask callback이 이 plan을
+    // 읽어 잠금/백그라운드 상태에서도 boxbox/fullPush 사운드를 적절한 시점에 발화.
+    const { activePlan } = useAppStore.getState();
+    const initialTire = useRunStore.getState().tire;
+    const intervalKmInit = activePlan
+      ? activePlan.intervals.distanceM / 1000
+      : TIRES[initialTire].boxBoxDistKm;
+    const recoveryDurationMsInit = (activePlan?.recovery.durationSec ?? 8) * 1000;
+    const maxRepsInit = activePlan ? activePlan.intervals.reps : Number.MAX_SAFE_INTEGER;
+    setActiveRacePlan({
+      startedAtMs: Date.now(),
+      intervalKm: intervalKmInit,
+      recoveryDurationMs: recoveryDurationMsInit,
+      maxReps: maxRepsInit,
+      lastBoxBoxAtKm: 0,
+      completedReps: 0,
+      nextFullPushAtMs: null,
+    });
+
     const loop = (ts: number) => {
       if (!isPaused && lastTsRef.current !== null) {
         const dt = ts - lastTsRef.current;
@@ -244,6 +265,8 @@ export function useRunning(options: UseRunningOptions = {}) {
     rafRef.current = requestAnimationFrame(loop);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      // race 종료 — background plan도 같이 clear
+      clearActiveRacePlan();
     };
   }, [isRunning, isPaused]);
 
@@ -278,6 +301,17 @@ export function useRunning(options: UseRunningOptions = {}) {
       workStartKmRef.current = distKm;
       lapStartKmRef.current = distKm;
       lapStartMsRef.current = elapsedMs;
+
+      // background plan 동기화 — fullPush 완료, 다음 work 사이클 시작.
+      // nextFullPushAtMs를 clear해서 background가 새 boxbox 발화 준비.
+      const planAtPitEnd = getActiveRacePlan();
+      if (planAtPitEnd) {
+        setActiveRacePlan({
+          ...planAtPitEnd,
+          lastBoxBoxAtKm: distKm,
+          nextFullPushAtMs: null,
+        });
+      }
 
       // [C] 주판정: 남은 거리가 1사이클 이하 → 최종 랩
       if (!finalLapFiredRef.current) {
@@ -355,6 +389,20 @@ export function useRunning(options: UseRunningOptions = {}) {
 
       triggerBoxBox();
       boxBoxTriggerCountRef.current += 1;
+
+      // background plan 동기화 — foreground가 boxbox 발화한 시점/위치를 MMKV에
+      // 반영. 사용자가 화면 잠그면 background task가 이어받아 fullPush 예약 시점
+      // 도래 시 발화.
+      const planNow = getActiveRacePlan();
+      if (planNow) {
+        const recMs = planNow.recoveryDurationMs;
+        setActiveRacePlan({
+          ...planNow,
+          lastBoxBoxAtKm: distKm,
+          completedReps: boxBoxTriggerCountRef.current,
+          nextFullPushAtMs: Date.now() + 4000 + recMs,
+        });
+      }
     }
   }
 

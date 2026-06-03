@@ -50,6 +50,55 @@ import { COLORS } from '../constants/colors';
 import { getString, setString, remove } from './storage';
 import { gpsDiag } from './gpsDiag';
 import { haversineKm, type LocationCoords } from './location';
+import { playSound } from './audio';
+import {
+  getActiveRacePlan,
+  updateActiveRacePlan,
+  type ActiveRacePlan,
+} from '../api/racePlan';
+
+/**
+ * Background race event check — distance 누적 직후 호출.
+ *
+ * 1. nextFullPushAtMs 시점 도래 → playSound('fullPush'), plan 업데이트
+ * 2. work 페이즈 (nextFullPushAtMs === null)이고 intervalKm 도달 → playSound('boxbox'),
+ *    nextFullPushAtMs 예약 (Date.now() + BOXBOX_ALERT_MS + recoveryDurationMs)
+ *
+ * 모든 동작은 try-catch로 보호 — 사운드 실패해도 distance 누적은 계속.
+ *
+ * 사용 가능한 이유:
+ *   - app.json UIBackgroundModes: ["location", "audio"]
+ *   - expo-audio setAudioModeAsync({shouldPlayInBackground: true})
+ *   - 따라서 background location callback이 깨어날 때 audio session도 활성 → playSound 정상 동작
+ */
+const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
+
+async function maybeFireBackgroundRaceEvents(): Promise<void> {
+  let plan = getActiveRacePlan();
+  if (!plan) return;
+
+  const now = Date.now();
+
+  // (1) 예약된 fullPush 시점 도래
+  if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
+    try { await playSound('fullPush'); } catch {}
+    plan = updateActiveRacePlan({ nextFullPushAtMs: null }) ?? plan;
+  }
+
+  // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
+  if (plan.nextFullPushAtMs == null && plan.completedReps < plan.maxReps) {
+    const currentAccum = readAccum();
+    const workKm = currentAccum - plan.lastBoxBoxAtKm;
+    if (workKm >= plan.intervalKm) {
+      try { await playSound('boxbox'); } catch {}
+      updateActiveRacePlan({
+        lastBoxBoxAtKm: currentAccum,
+        completedReps: plan.completedReps + 1,
+        nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
+      });
+    }
+  }
+}
 
 export const BACKGROUND_LOCATION_TASK = 'pit-run-background-location';
 
@@ -190,6 +239,10 @@ export function defineBackgroundLocationTask(): void {
       setString(ACCUM_KEY, String(newAccum));
       gpsDiag.acceptCount++;
       gpsDiag.totalAccumulatedKm = newAccum;
+
+      // ── Background race event (boxbox / fullPush) ──────────────────────────
+      // 잠금/백그라운드 상태에서도 적절한 시점에 사운드 발화. fire-and-forget.
+      maybeFireBackgroundRaceEvents().catch(() => {});
     });
     gpsDiag.defineCalled = true;
   } catch (e) {
