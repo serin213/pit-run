@@ -4,7 +4,8 @@ import type { QualifyingGrade } from '../types';
 export type HistoryResultData = {
   distKm: number;
   elapsedMs: number;
-  circuitId?: string;
+  /** null = circuit_id 미저장 (옛 row). ResultScreen에서 unknown 처리. */
+  circuitId?: string | null;
   difficulty?: string | null;
 };
 

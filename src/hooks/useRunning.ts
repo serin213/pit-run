@@ -74,6 +74,45 @@ export function useRunning(options: UseRunningOptions = {}) {
     };
   }, []);
 
+  // ── Background resume catch-up — distKm 큰 jump 감지 후 work 사이클 reset.
+  //
+  // 시나리오:
+  //   1. JS suspended (화면 잠금/앱 백그라운드) — RAF/setInterval 정지
+  //   2. background location task는 OS 콜백으로 계속 누적 거리 MMKV에 기록
+  //   3. 앱 active 복귀 → useGPS의 AppState listener가 drainAccum 호출 →
+  //      누적된 큰 delta를 addGpsDistance에 한 번에 전달
+  //   4. distKm 큰 폭 jump → checkBoxBox가 workKm >= intervalKm 즉시 만족 →
+  //      boxbox 트리거 → 4s 후 inPit → 회복시간 후 fullPush. 사용자 입장에선
+  //      "박스박스 뜨고 곧 풀푸시" 사이클이 자동 시작되는 게 부자연스러움
+  //      (실제로 인터벌 한 번 안 뛰었는데 알림만 깜빡)
+  //
+  // Fix: delta > 50m (1초 polling 인간 최대 ~5m, 정상 범위 훌쩍 초과) = catch-up
+  // 으로 간주 → workStartKmRef / lapStartKmRef / pitStartKmRef 를 현재 distKm
+  // 으로 reset. 다음 boxbox는 새로 intervalKm 채워야 발화 → 사용자가 알림 받지
+  // 못한 background 시간 동안의 stale 트리거 모두 무효화.
+  //
+  // Zustand subscribe로 store 변경 직후 동기 실행 — 다음 RAF의 checkBoxBox보다
+  // 무조건 먼저 발화 보장.
+  useEffect(() => {
+    const unsub = useRunStore.subscribe((state, prevState) => {
+      if (!state.isRunning || state.isPaused) return;
+      const delta = state.distKm - prevState.distKm;
+      if (delta <= 0.05) return; // 정상 1초 polling 범위
+      workStartKmRef.current = state.distKm;
+      lapStartKmRef.current = state.distKm;
+      lapStartMsRef.current = state.elapsedMs;
+      pitStartKmRef.current = state.distKm;
+      pitStartMsRef.current = state.elapsedMs;
+      if (__DEV__) {
+        console.warn(
+          `[useRunning] background catch-up: distKm jumped ${delta.toFixed(3)}km, ` +
+          `resetting work/lap/pit refs to current ${state.distKm.toFixed(3)}km`,
+        );
+      }
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     if (isRunning) {
       // If a previous completion is still waiting to auto-dismiss, end it now.

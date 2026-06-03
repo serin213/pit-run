@@ -1,7 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { fetchSessions, type SessionRow } from '../api/sessions';
 import { getPendingQueue } from '../api/pendingSessions';
 import { useAuthStore } from '../store/authStore';
+
+// 같은 데이터를 30초 안에 다시 요청하면 캐시된 결과 반환.
+// HistoryScreen / HomeScreen이 useFocusEffect로 매 focus마다 fetch하는데,
+// 짧은 시간 안에 여러 번 focus(탭 전환 등)할 때 불필요한 네트워크 round-trip 제거.
+// 만료 후엔 background refresh 패턴 — stale 데이터 즉시 반환 + 새로 fetch.
+const FETCH_TTL_MS = 30_000;
 
 /**
  * 세션 히스토리 조회 훅.
@@ -17,14 +23,27 @@ export function useSessionHistory() {
   const { isAuthenticated } = useAuthStore();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const lastFetchedAtRef = useRef<number>(0);
+  const sessionsRef = useRef<SessionRow[]>([]);
+  sessionsRef.current = sessions;
 
   const load = useCallback(
-    async (limit = 100) => {
+    async (limit = 100, options?: { force?: boolean }) => {
+      const force = options?.force ?? false;
       const pendingRows = pendingQueueAsRows();
+      const now = Date.now();
+      const cacheAge = now - lastFetchedAtRef.current;
+      const hasCache = sessionsRef.current.length > 0 || lastFetchedAtRef.current > 0;
+
+      // 캐시 hit — TTL 안이고 force 아니면 즉시 반환 (네트워크 안 함)
+      if (!force && hasCache && cacheAge < FETCH_TTL_MS) {
+        // pending queue는 매번 머지 (최신 큐 반영)
+        const merged = mergeWithPending(sessionsRef.current.filter((s) => s.user_id !== 'pending'), pendingRows);
+        if (merged.length !== sessionsRef.current.length) setSessions(merged);
+        return merged;
+      }
 
       if (!isAuthenticated) {
-        // 인증 안 됐어도 pending queue 자체는 표시 — 오프라인 시작한 사용자가
-        // 자기 race 결과를 history에서 볼 수 있게.
         setSessions(pendingRows);
         return pendingRows;
       }
@@ -33,10 +52,10 @@ export function useSessionHistory() {
         const rows = await fetchSessions(limit);
         const merged = mergeWithPending(rows, pendingRows);
         setSessions(merged);
+        lastFetchedAtRef.current = Date.now();
         return merged;
       } catch (e) {
         console.warn('[useSessionHistory] fetch error:', e);
-        // fetch 실패 시 pending만이라도 표시
         setSessions(pendingRows);
         return pendingRows;
       } finally {

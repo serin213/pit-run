@@ -222,19 +222,27 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   }, []);
 
   const circuitId          = isHistoryMode ? (historyData.circuitId ?? selectedCircuitId) : selectedCircuitId;
-  const circuit            = CIRCUITS.find((c) => c.id === circuitId) ?? CIRCUITS[0];
+  // 옛 row에서 circuit_id가 null인 경우 (저장 코드 버그 시점) — 특정 circuit으로
+  // 가짜 fallback하지 않고 'unknown' 상태로 표시. 이전엔 CIRCUITS[0](Shanghai)로
+  // 폴백되어 monaco 길이 기준 statusLabel 잘못 FINISH로 떴다가 P number까지 표시되던 버그.
+  const matchedCircuit     = circuitId ? CIRCUITS.find((c) => c.id === circuitId) : null;
+  const circuit            = matchedCircuit ?? CIRCUITS[0]; // UI 레이아웃 깨지지 않게 형식만 유지
+  const isUnknownCircuit   = !matchedCircuit;
   const topTheme           = getCircuitTheme(circuit.displayName.toUpperCase());
   const themeRgb           = useMemo(() => hexToRgb(topTheme.line), [topTheme.line]);
-  const circuitResultImage = CIRCUIT_RESULT_IMAGES[circuit.id] ?? null;
-  const checkerFlagColor   = CHECKER_FLAG_COLOR[circuit.id] ?? null;
+  const circuitResultImage = isUnknownCircuit ? null : (CIRCUIT_RESULT_IMAGES[circuit.id] ?? null);
+  const checkerFlagColor   = isUnknownCircuit ? null : (CHECKER_FLAG_COLOR[circuit.id] ?? null);
   const checkerFlagImage   = checkerFlagColor ? CHECKER_FLAG_IMAGES[checkerFlagColor] : null;
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
   const totalPaceS = distKm > 0 ? elapsedMs / 1000 / distKm : 0;
 
-  // DNF when runner covers less than 98% of circuit distance
-  const statusLabel = distKm >= circuit.distanceKm * 0.98 ? 'FINISH' : 'DNF';
+  // DNF when runner covers less than 98% of circuit distance.
+  // circuit_id가 null인 옛 row는 완주/포기 판정 불가 → 'COMPLETED'로 중립 표시.
+  const statusLabel = isUnknownCircuit
+    ? 'COMPLETED'
+    : (distKm >= circuit.distanceKm * 0.98 ? 'FINISH' : 'DNF');
 
   // ─── Commentary ───────────────────────────────────────────────────────────
   // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
@@ -576,11 +584,11 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     <View style={styles.root}>
       {/* Paging content area */}
       <Animated.View style={{ flex: 1, opacity: bgOpacity }}>
-      {/* Fixed header */}
+      {/* Fixed header — unknown circuit이면 깃발/이름 비움. */}
       <ScreenHeader
         safeTop={safeTop}
-        flagAsset={circuit.flagAsset}
-        circuitLabel={circuit.displayName}
+        flagAsset={isUnknownCircuit ? undefined : circuit.flagAsset}
+        circuitLabel={isUnknownCircuit ? 'UNKNOWN' : circuit.displayName}
         circuitKm={circuit.distanceKm}
         hideKm
         theme={topTheme}

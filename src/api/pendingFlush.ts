@@ -12,8 +12,8 @@
  *   - 모든 작업은 try-catch — 한 항목 실패해도 다음 항목 계속 처리
  */
 
-import { insertCompletedSession } from './sessions';
-import { insertQualifying } from './qualifying';
+import { insertCompletedSession, fetchSessions } from './sessions';
+import { insertQualifying, fetchQualifyingHistory } from './qualifying';
 import { upsertProfile } from './profiles';
 import { recordActivityToday } from './activity';
 import { getPendingQueue, removePendingSession } from './pendingSessions';
@@ -54,32 +54,74 @@ export async function flushAllPendingMutations(): Promise<{
   };
 
   try {
-    // 1. Sessions queue
+    // ── 1. Sessions queue ─────────────────────────────────────────────────
     const sessionQueue = getPendingQueue();
     result.sessions.attempted = sessionQueue.length;
-    for (const pending of sessionQueue) {
-      const { _queuedAt, ...fields } = pending;
+    if (sessionQueue.length > 0) {
+      // 중복 INSERT 방지 — 큐 항목 중 DB에 이미 존재하는 started_at은 skip하고 큐에서 제거.
+      // (이전 launch에서 save 성공했는데 큐가 비워지지 않은 케이스 / 같은 데이터 재 적재)
+      let dbStartedAt = new Set<string>();
       try {
-        await insertCompletedSession(fields);
-        removePendingSession(_queuedAt);
-        recordActivityToday().catch(() => {});
-        result.sessions.succeeded++;
-      } catch (e) {
-        console.warn(`[pendingFlush/session] retry failed for ${fields.started_at}:`, e);
+        const recent = await fetchSessions(200);
+        dbStartedAt = new Set(recent.map((r) => r.started_at));
+      } catch {
+        // fetch 실패 시 dedup 없이 진행
+      }
+      for (const pending of sessionQueue) {
+        const { _queuedAt, ...fields } = pending;
+        if (dbStartedAt.has(fields.started_at)) {
+          removePendingSession(_queuedAt);
+          if (__DEV__) {
+            console.warn(`[pendingFlush/session] DB has ${fields.started_at}, skipping`);
+          }
+          continue;
+        }
+        try {
+          await insertCompletedSession(fields);
+          removePendingSession(_queuedAt);
+          recordActivityToday().catch(() => {});
+          result.sessions.succeeded++;
+        } catch (e) {
+          console.warn(`[pendingFlush/session] retry failed for ${fields.started_at}:`, e);
+        }
       }
     }
 
-    // 2. Qualifying queue
+    // ── 2. Qualifying queue ───────────────────────────────────────────────
     const qualQueue = getPendingQualifyingQueue();
     result.qualifying.attempted = qualQueue.length;
-    for (const pending of qualQueue) {
-      const { _queuedAt, ...fields } = pending;
+    if (qualQueue.length > 0) {
+      // 중복 INSERT 방지. qualifying_results는 client-side recorded_at이 없어 시간
+      // 정확 비교 불가 → grade + one_km_ms + pace_sec_per_km 동치로 매칭.
+      // 같은 사용자가 같은 분 내에 같은 결과로 두 번 qualifying 할 가능성은 거의 없음.
+      let recentQual: Array<{ one_km_ms: number; pace_sec_per_km: number; grade: string }> = [];
       try {
-        await insertQualifying(fields);
-        removePendingQualifying(_queuedAt);
-        result.qualifying.succeeded++;
-      } catch (e) {
-        console.warn('[pendingFlush/qualifying] retry failed:', e);
+        recentQual = await fetchQualifyingHistory();
+      } catch {
+        // ignore
+      }
+      for (const pending of qualQueue) {
+        const { _queuedAt, ...fields } = pending;
+        const dup = recentQual.some(
+          (r) =>
+            r.one_km_ms === fields.one_km_ms &&
+            Math.abs(Number(r.pace_sec_per_km) - fields.pace_sec_per_km) < 0.01 &&
+            r.grade === fields.grade,
+        );
+        if (dup) {
+          removePendingQualifying(_queuedAt);
+          if (__DEV__) {
+            console.warn(`[pendingFlush/qualifying] DB has matching result, skipping`);
+          }
+          continue;
+        }
+        try {
+          await insertQualifying(fields);
+          removePendingQualifying(_queuedAt);
+          result.qualifying.succeeded++;
+        } catch (e) {
+          console.warn('[pendingFlush/qualifying] retry failed:', e);
+        }
       }
     }
 

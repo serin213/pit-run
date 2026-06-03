@@ -126,7 +126,7 @@ type QHistRow = {
 };
 
 type HistoryRow =
-  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null }
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string | null; difficulty?: string | null }
   | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
   | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
@@ -339,14 +339,17 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
             if (s.type === 'grand_prix') {
               const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
+              // 옛 row에서 circuit_id가 null인 경우 (저장 코드 버그 시점) — venue
+              // 'UNKNOWN'으로 정직하게 표시. fallback 'monaco'는 ResultScreen에서
+              // monaco 길이 기준 statusLabel을 잘못 FINISH로 계산하던 버그 원인이라 제거.
               return {
                 type: 'grand_prix',
                 sortKey,
                 dateDisplay,
                 distKm,
                 elapsedMs,
-                venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
-                circuitId: s.circuit_id ?? 'monaco',
+                venue: circuit?.displayName?.toUpperCase() ?? 'UNKNOWN',
+                circuitId: s.circuit_id, // null 유지
                 difficulty,
               };
             } else if (s.type === 'qualifying') {
@@ -796,7 +799,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
               const historyData = {
                 distKm: row.distKm,
                 elapsedMs: row.elapsedMs,
-                circuitId: row.circuitId,
+                circuitId: row.circuitId, // null이면 null 그대로 — ResultScreen에서 unknown 처리
                 difficulty: row.difficulty,
               };
               return (
