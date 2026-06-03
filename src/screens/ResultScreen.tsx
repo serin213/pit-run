@@ -195,7 +195,10 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       circuit_id: circuitId,
       started_at: startedAtIso,
       total_dist_km: distKm,
-      total_time_ms: elapsedMs,
+      // elapsedMs는 useRunning RAF dt 누적이라 float (예: 3863267.79). DB
+      // total_time_ms는 integer 컬럼 → round 안 하면 PG 22P02 에러. API 레이어에서
+      // 한 번 더 round되지만 pending queue에도 정수만 저장되도록 호출부에서도 round.
+      total_time_ms: Math.round(elapsedMs),
       avg_pace_sec_per_km: avgPace,
       best_pace_sec_per_km: bestPace,
       payload: diff ? { difficulty: diff } : undefined,

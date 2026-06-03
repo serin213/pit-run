@@ -587,9 +587,13 @@ struct PitRunLiveActivityView: View {
                 // qualifying 완주(1km) 시점에 pitPhase='completed'로 update되면
                 // race와 동일하게 "Well done, mate" wave view 표시. 그 외엔
                 // 진행 중인 trial view.
+                //
+                // 파형 색상은 사용자 팀 색상(teamClr) 사용 — JS에서 startLiveActivity에
+                // profile.nameTagAccentColor를 전달. 이전엔 QUALIFYING_RED 하드코딩이라
+                // 모든 사용자가 빨간 파형 봤음.
                 if state.pitPhase == "completed" {
                     Link(destination: URL(string: "pitrun://qualifying-result")!) {
-                        LockWaveView(teamColor: QUALIFYING_RED, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
+                        LockWaveView(teamColor: teamClr, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
                     }
                 } else {
                     LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)

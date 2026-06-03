@@ -43,6 +43,11 @@ import { gpsDiag, resetGpsDiag } from '../platform/gpsDiag';
 import { saveDiag, refreshSaveDiagCounts } from '../api/saveDiag';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { getCurrentPosition } from '../platform/location';
+import {
+  setActiveRacePlan,
+  getActiveRacePlan,
+  clearActiveRacePlan,
+} from '../api/racePlan';
 import { useAuthStore } from '../store/authStore';
 import { logQualifyingCompleted, logQualifyingAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
@@ -84,6 +89,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // 추가 tick마다 effect 재발화 → finishOneKm 여러 번 호출 → DB INSERT 여러 번.
   // navigation.replace로 unmount되기 전에 몇 차례 더 호출되는 race condition.
   const oneKmFinishedRef = useRef(false);
+  // active race plan 설정 (qualifying 모드)을 한 세션에 1회만. phase가 qualifying ↔
+  // retireConfirm 토글 시 useEffect 재발화로 plan reset되어 background 사운드 다시
+  // 발화하는 edge case 방지.
+  const racePlanSetRef = useRef(false);
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
@@ -185,6 +194,26 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialDistKm, phase]);
 
+  // phase가 'qualifying'으로 진입할 때 active race plan을 'qualifying' 모드로 설정.
+  // background location task가 이 plan을 읽어 1km 도달 시 qualifyingEnd 사운드를
+  // 잠금/백그라운드 상태에서도 발화 (race의 boxbox/fullPush와 동일 메커니즘).
+  // racePlanSetRef로 세션당 1회만 set — retireConfirm ↔ qualifying 토글 시 reset 방지.
+  useEffect(() => {
+    if (phase !== 'qualifying') return;
+    if (racePlanSetRef.current) return;
+    racePlanSetRef.current = true;
+    setActiveRacePlan({
+      mode: 'qualifying',
+      startedAtMs: Date.now(),
+      intervalKm: 1,
+      recoveryDurationMs: 0,
+      maxReps: 1,
+      lastBoxBoxAtKm: 0,
+      completedReps: 0,
+      nextFullPushAtMs: null,
+    });
+  }, [phase]);
+
   // Dev-only: simulate distance increasing over time (1km in 30s)
   const [simDistKm, setSimDistKm] = useState(0);
   useEffect(() => {
@@ -232,9 +261,13 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   useEffect(() => {
     if (phase !== 'warmup') return;
     if (getCurrentActivityId()) return;
+    // teamColor는 사용자 프로필의 nameTagAccentColor 전달. Swift LockWaveView
+     // ("Well done, mate")가 이 값을 사용해서 파형 색상으로 표시.
+     // (qualifying의 다른 UI — warmup/progress bar/DI 버튼 — 은 Swift에서
+     //  hardcoded red 유지. attributes.teamColor는 wave에서만 활용.)
     startLiveActivity(
       profile.displayName,
-      '#E03A3E',
+      profile.nameTagAccentColor,
       'qualifying',
       'warmup',
     ).catch(() => {});
@@ -312,6 +345,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
     qualifyingStartedAtRef.current = new Date().toISOString();
     oneKmFinishedRef.current = false; // 새 세션 시작 — guard 초기화
+    racePlanSetRef.current = false; // 새 세션 시작 — race plan setup 재허용
     // LA 시작은 별도 useEffect (phase deps)가 처리 — 빌드 28의 검증된 패턴.
   };
 
@@ -342,8 +376,18 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const finishOneKm = () => {
     if (oneKmFinishedRef.current) return; // idempotent guard
     oneKmFinishedRef.current = true;
-    playSound('qualifyingEnd');
+    // background task가 이미 qualifyingEnd 사운드를 발화했는지 확인 (mode='qualifying'
+    // + completedReps>0). 발화했으면 foreground 중복 재생 방지. 햅틱은 어차피
+    // background에서 동작 안 하므로 항상 실행.
+    const planAtFinish = getActiveRacePlan();
+    const bgAlreadyFiredSound =
+      planAtFinish?.mode === 'qualifying' && planAtFinish.completedReps > 0;
+    if (!bgAlreadyFiredSound) {
+      playSound('qualifyingEnd');
+    }
     successLong();
+    // plan은 더 이상 필요 없음. 다음 background tick에서 무관해지도록 정리.
+    clearActiveRacePlan();
     const oneKmMs = Math.max(1000, trialElapsedMs);
     const paceSecPerKm = oneKmMs / 1000;
     const gradeAssignment = assignGrade(paceSecPerKm, Date.now());
@@ -431,6 +475,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     // Live Activity는 navigation.goBack()으로 빠지면 QualifyingPostScreen으로
     // 안 가므로 여기서 직접 종료. (Post에는 자동완주 케이스에서만 도달.)
     endAllLiveActivities().catch(() => {});
+    clearActiveRacePlan(); // background task가 더 이상 qualifyingEnd 발화 안 하게
     qualifyingStartedAtRef.current = null;
     if (user?.id) {
       logQualifyingAbandoned({

@@ -62,7 +62,7 @@ export async function insertSession(fields: {
   });
 }
 
-/** 세션 완료 업데이트 */
+/** 세션 완료 업데이트 — total_time_ms는 integer 컬럼이라 round 필수 (PG 22P02 방어). */
 export async function completeSession(
   sessionId: string,
   fields: {
@@ -79,6 +79,7 @@ export async function completeSession(
     .update({
       ended_at: new Date().toISOString(),
       ...fields,
+      total_time_ms: Math.round(fields.total_time_ms),
     })
     .eq('id', sessionId)
     .select()
@@ -137,7 +138,11 @@ export async function insertCompletedSession(fields: {
         ended_at: new Date().toISOString(),
         status: 'completed' as SessionStatus,
         total_dist_km: fields.total_dist_km,
-        total_time_ms: fields.total_time_ms,
+        // total_time_ms는 DB에서 integer 컬럼. useRunning RAF 루프의 dt 누적값
+        // (elapsedMs)이 sub-ms precision float (예: 3863267.79)이라 raw 전달 시
+        // PG 22P02 (invalid input syntax for type integer) 에러로 INSERT 거부됨.
+        // API 레이어에서 round → fresh save + pending queue replay 모두 안전.
+        total_time_ms: Math.round(fields.total_time_ms),
         avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
         best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
         payload: fields.payload ?? {},

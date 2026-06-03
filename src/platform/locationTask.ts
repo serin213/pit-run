@@ -79,6 +79,21 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
 
   const now = Date.now();
 
+  // ── QUALIFYING mode ────────────────────────────────────────────────────────
+  // 1km 도달 시 qualifyingEnd 사운드 1회 발화. boxbox/fullPush 로직 무관.
+  // 잠금/백그라운드 상태에서도 사운드 발화 — race와 동일 패턴.
+  if (plan.mode === 'qualifying') {
+    if (plan.completedReps === 0) {
+      const currentAccum = readAccum();
+      if (currentAccum >= plan.intervalKm) {
+        try { await playSound('qualifyingEnd'); } catch {}
+        updateActiveRacePlan({ completedReps: 1 });
+      }
+    }
+    return; // qualifying은 boxbox/fullPush 분기 안 탐
+  }
+
+  // ── RACE mode ──────────────────────────────────────────────────────────────
   // (1) 예약된 fullPush 시점 도래
   if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
     try { await playSound('fullPush'); } catch {}

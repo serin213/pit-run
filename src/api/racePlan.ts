@@ -19,22 +19,29 @@ import { getString, setString, remove } from '../platform/storage';
 const KEY = 'active_race_plan_v1';
 
 export type ActiveRacePlan = {
-  /** race 시작 시각 (Date.now()) — 진단 용도 */
+  /**
+   * 'race' (grand prix) — boxbox/fullPush 사이클 적용.
+   * 'qualifying' — intervalKm(=1) 도달 시 qualifyingEnd 사운드 한 번만 발화.
+   *                boxbox/fullPush 로직 무관.
+   */
+  mode: 'race' | 'qualifying';
+  /** race/qualifying 시작 시각 (Date.now()) — 진단 용도 */
   startedAtMs: number;
-  /** 한 work 사이클 거리 (km). 이 거리만큼 뛰면 boxbox 발화. */
+  /** race: 한 work 사이클 거리. qualifying: 완료 거리(1km). */
   intervalKm: number;
-  /** 회복 시간 (ms). boxbox 발화 4초 후부터 카운트되어 fullPush 발화. */
+  /** race: 회복 시간 (ms). qualifying: 사용 안 함 (0). */
   recoveryDurationMs: number;
-  /** 총 인터벌 반복 횟수. completedReps가 이 값에 도달하면 더 이상 boxbox 발화 안 함. */
+  /** race: 총 인터벌 반복 횟수. qualifying: 1. */
   maxReps: number;
-  /** 직전 boxbox 발화 위치 (누적 km). 다음 boxbox는 이 값 + intervalKm에서 발화. */
+  /** race: 직전 boxbox 발화 위치. qualifying: 사용 안 함 (0). */
   lastBoxBoxAtKm: number;
-  /** 완료한 boxbox 사이클 수 */
+  /**
+   * race: 완료한 boxbox 사이클 수.
+   * qualifying: 0이면 미완료, 1이면 qualifyingEnd 사운드 발화 완료.
+   */
   completedReps: number;
   /**
-   * 예약된 fullPush 발화 시각 (Date.now() + 4000 + recoveryDurationMs).
-   * background task가 매 callback에서 Date.now()와 비교, 시점 도래 시 발화.
-   * null이면 현재 boxbox 사이클 진행 중이 아님 (work 페이즈).
+   * race: 예약된 fullPush 발화 시각. qualifying: 항상 null.
    */
   nextFullPushAtMs: number | null;
 };

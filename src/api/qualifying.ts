@@ -69,7 +69,14 @@ export async function insertQualifying(fields: {
 
     const { data, error } = await supabase
       .from('qualifying_results')
-      .insert({ user_id: userId, ...fields })
+      .insert({
+        user_id: userId,
+        ...fields,
+        // one_km_ms / warmup_minutes 도 integer 컬럼. trialElapsedMs는 Date.now()
+        // 기반이라 이미 integer지만 방어적으로 round (PG 22P02 방어).
+        one_km_ms: Math.round(fields.one_km_ms),
+        warmup_minutes: Math.round(fields.warmup_minutes),
+      })
       .select()
       .single();
     if (error) {

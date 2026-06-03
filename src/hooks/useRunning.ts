@@ -222,6 +222,7 @@ export function useRunning(options: UseRunningOptions = {}) {
     const recoveryDurationMsInit = (activePlan?.recovery.durationSec ?? 8) * 1000;
     const maxRepsInit = activePlan ? activePlan.intervals.reps : Number.MAX_SAFE_INTEGER;
     setActiveRacePlan({
+      mode: 'race',
       startedAtMs: Date.now(),
       intervalKm: intervalKmInit,
       recoveryDurationMs: recoveryDurationMsInit,
