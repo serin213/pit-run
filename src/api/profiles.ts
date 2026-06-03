@@ -1,4 +1,5 @@
 import { supabase, withRetry } from './client';
+import { recordSaveAttempt, recordSaveSuccess, recordSaveError, recordAuthState } from './saveDiag';
 
 export type ProfileRow = {
   user_id: string;
@@ -39,16 +40,26 @@ export async function upsertProfile(fields: {
   accent_color?: string;
 }): Promise<ProfileRow> {
   return withRetry(async () => {
+    recordSaveAttempt('profiles');
     const { data: { session } } = await supabase.auth.getSession();
+    recordAuthState(session);
     const userId = session?.user?.id;
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) {
+      const err = new Error('Not authenticated');
+      recordSaveError('profiles', err);
+      throw err;
+    }
 
     const { data, error } = await supabase
       .from('profiles')
       .upsert({ user_id: userId, ...fields })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      recordSaveError('profiles', error);
+      throw error;
+    }
+    recordSaveSuccess('profiles');
     return data;
   });
 }

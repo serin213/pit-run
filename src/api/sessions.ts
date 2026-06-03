@@ -1,4 +1,5 @@
 import { supabase, withRetry } from './client';
+import { recordSaveAttempt, recordSaveSuccess, recordSaveError, recordAuthState } from './saveDiag';
 
 export type SessionType = 'practice' | 'qualifying' | 'grand_prix';
 export type SessionStatus = 'completed' | 'abandoned';
@@ -115,12 +116,16 @@ export async function insertCompletedSession(fields: {
   best_pace_sec_per_km?: number | null;
   payload?: Record<string, unknown>;
 }): Promise<SessionRow> {
-  // GPS 종료 직후 네트워크 전환 타이밍에 실패하는 케이스 대비 — 최대 3회 재시도.
-  // getSession()은 MMKV 캐시 읽기라 네트워크 불필요 → auth 체크도 retry 루프 안에서 안전.
   return withRetry(async () => {
+    recordSaveAttempt('run_sessions');
     const { data: { session } } = await supabase.auth.getSession();
+    recordAuthState(session);
     const userId = session?.user?.id;
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) {
+      const err = new Error('Not authenticated');
+      recordSaveError('run_sessions', err);
+      throw err;
+    }
 
     const { data, error } = await supabase
       .from('run_sessions')
@@ -139,7 +144,11 @@ export async function insertCompletedSession(fields: {
       })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      recordSaveError('run_sessions', error);
+      throw error;
+    }
+    recordSaveSuccess('run_sessions');
     return data;
   });
 }

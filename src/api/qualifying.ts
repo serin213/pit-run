@@ -1,4 +1,5 @@
 import { supabase, withRetry } from './client';
+import { recordSaveAttempt, recordSaveSuccess, recordSaveError, recordAuthState } from './saveDiag';
 import type { QualifyingGrade } from '../types';
 
 export type QualifyingRow = {
@@ -56,16 +57,26 @@ export async function insertQualifying(fields: {
   warmup_minutes: number;
 }): Promise<QualifyingRow> {
   return withRetry(async () => {
+    recordSaveAttempt('qualifying_results');
     const { data: { session } } = await supabase.auth.getSession();
+    recordAuthState(session);
     const userId = session?.user?.id;
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) {
+      const err = new Error('Not authenticated');
+      recordSaveError('qualifying_results', err);
+      throw err;
+    }
 
     const { data, error } = await supabase
       .from('qualifying_results')
       .insert({ user_id: userId, ...fields })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      recordSaveError('qualifying_results', error);
+      throw error;
+    }
+    recordSaveSuccess('qualifying_results');
     return data;
   });
 }

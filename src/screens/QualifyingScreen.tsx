@@ -40,6 +40,7 @@ import { radius } from '../constants/radius';
 import ConfirmSheet from '../components/ConfirmSheet';
 import { useGPS } from '../hooks/useGPS';
 import { gpsDiag, resetGpsDiag } from '../platform/gpsDiag';
+import { saveDiag, refreshSaveDiagCounts } from '../api/saveDiag';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { getCurrentPosition } from '../platform/location';
 import { useAuthStore } from '../store/authStore';
@@ -78,6 +79,11 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
   // Retire는 DB와 무관하게 화면만 닫힘.
   const qualifyingStartedAtRef = useRef<string | null>(null);
+  // finishOneKm 다중 호출 방지 (root cause for duplicate qualifying rows).
+  // trialDistKm useEffect deps로 [trialDistKm, phase]가 있어, GPS가 1km 넘은 이후
+  // 추가 tick마다 effect 재발화 → finishOneKm 여러 번 호출 → DB INSERT 여러 번.
+  // navigation.replace로 unmount되기 전에 몇 차례 더 호출되는 race condition.
+  const oneKmFinishedRef = useRef(false);
   const { savePlan } = useSupabasePlans();
   const { ensurePermission } = useLocationPermission();
   const { user } = useAuthStore();
@@ -147,16 +153,29 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   const isGpsActive = phase === 'qualifying' || phase === 'retireConfirm';
   useGPS(isGpsActive, (d) => setTrialDistKm((prev) => prev + d));
 
-  // GPS-DIAG overlay — production iOS에서 console.log가 Console.app으로 안 흘러
-  // 가는 케이스 대비. gpsDiag 모듈 객체를 500ms마다 force-render해서 화면에
-  // 직접 카운터 표시. qualifying 진입 시 reset.
+  // GPS-DIAG + SAVE-DIAG overlay — production iOS에서 console.warn이 stripped되어
+  // 보이지 않는 케이스 대비. gpsDiag / saveDiag 모듈 객체를 500ms마다 force-render해서
+  // 화면에 직접 카운터 + 에러 메시지 표시. qualifying 진입 시 gpsDiag만 reset.
   const [, forceDiagRender] = useReducer((x: number) => x + 1, 0);
   useEffect(() => {
     if (!isGpsActive) return;
     resetGpsDiag();
-    const id = setInterval(() => forceDiagRender(), 500);
+    const id = setInterval(() => {
+      refreshSaveDiagCounts();
+      forceDiagRender();
+    }, 500);
     return () => clearInterval(id);
   }, [isGpsActive]);
+  // saveDiag는 intro/warmup phase에서도 표시 — 사용자가 qualifying 시작 전 pending
+  // queue 상태나 직전 세션의 에러 메시지를 확인할 수 있게 별도 interval로 갱신.
+  useEffect(() => {
+    refreshSaveDiagCounts();
+    const id = setInterval(() => {
+      refreshSaveDiagCounts();
+      forceDiagRender();
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Auto-complete when GPS distance reaches 1km
   useEffect(() => {
@@ -292,6 +311,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setPhase('warmup');
     // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
     qualifyingStartedAtRef.current = new Date().toISOString();
+    oneKmFinishedRef.current = false; // 새 세션 시작 — guard 초기화
     // LA 시작은 별도 useEffect (phase deps)가 처리 — 빌드 28의 검증된 패턴.
   };
 
@@ -320,6 +340,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   };
 
   const finishOneKm = () => {
+    if (oneKmFinishedRef.current) return; // idempotent guard
+    oneKmFinishedRef.current = true;
     playSound('qualifyingEnd');
     successLong();
     const oneKmMs = Math.max(1000, trialElapsedMs);
@@ -581,6 +603,23 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
           )}
         </View>
       )}
+
+      {/* SAVE-DIAG overlay — mutation 시도/실패 진단. 모든 phase에서 표시 (intro 포함). */}
+      <View style={[styles.saveDiagBox, { top: safeTop + 4 }]} pointerEvents="none">
+        <Text style={styles.gpsDiagText}>[save] auth={String(saveDiag.isAuth)} uid={saveDiag.authUid || '-'}</Text>
+        <Text style={styles.gpsDiagText}>pend.s={saveDiag.pendingSessions} q={saveDiag.pendingQual} p={String(saveDiag.pendingProfile)}</Text>
+        <Text style={styles.gpsDiagText}>att={saveDiag.attemptsTotal} ok={saveDiag.successTotal}</Text>
+        {saveDiag.lastSuccessTable !== '' && (
+          <Text style={styles.gpsDiagText}>lastOk={saveDiag.lastSuccessTable} @{String(saveDiag.lastSuccessAtSec).slice(-5)}</Text>
+        )}
+        {saveDiag.lastErrTable !== '' && (
+          <>
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>errT={saveDiag.lastErrTable} code={saveDiag.lastErrCode}</Text>
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>msg={saveDiag.lastErrMsg.slice(0, 50)}</Text>
+            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>at={String(saveDiag.lastErrAtSec).slice(-5)}</Text>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -746,6 +785,16 @@ const styles = StyleSheet.create({
   gpsDiagBox: {
     position: 'absolute',
     right: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 4,
+    maxWidth: 260,
+  },
+  // SAVE-DIAG overlay — gpsDiag 반대쪽(좌측)에 표시
+  saveDiagBox: {
+    position: 'absolute',
+    left: 4,
     paddingHorizontal: 6,
     paddingVertical: 4,
     backgroundColor: 'rgba(0,0,0,0.7)',
