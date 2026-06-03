@@ -571,10 +571,16 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
             ]}
           />
           {barFillW > 0 && (
+            // LA의 Capsule clip 패턴과 동일:
+            // - wrap은 트랙 전체 폭(barTrackW) + borderRadius로 알약 모양 + overflow:hidden
+            // - 내부 SVG는 left부터 width=barFillW로 fill 영역만 그림 (rx 없음 = 직사각형)
+            // - wrap의 알약 마스크가 fill의 왼쪽 곡선만 자연스럽게 노출, 오른쪽은
+            //   barFillW 지점에서 직선으로 끝남
+            // 이전엔 wrap width를 barFillW로 줘서 작은 fill일 때 양쪽 둥근 독립 알약처럼 보였음
             <View
               style={[
                 styles.barFillWrap,
-                { top: barTrackTop, left: barLeft, width: barFillW, height: barH, borderRadius: barH / 2 },
+                { top: barTrackTop, left: barLeft, width: barTrackW, height: barH, borderRadius: barH / 2 },
               ]}
             >
               <Svg width={barFillW} height={barH}>
@@ -584,7 +590,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
                     <Stop offset="100%" stopColor={PALETTE.pink} />
                   </SvgLinearGradient>
                 </Defs>
-                <Rect x={0} y={0} width={barFillW} height={barH} rx={barH / 2} fill="url(#qualBarGrad)" />
+                <Rect x={0} y={0} width={barFillW} height={barH} fill="url(#qualBarGrad)" />
               </Svg>
             </View>
           )}
