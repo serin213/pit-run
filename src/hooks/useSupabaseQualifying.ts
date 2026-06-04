@@ -6,6 +6,7 @@ import {
 } from '../api/qualifying';
 import { enqueuePendingQualifying } from '../api/pendingMutations';
 import { useAuthStore } from '../store/authStore';
+import { invalidateQualifyingCache } from '../api/historyCache';
 import type { QualifyingGrade } from '../types';
 
 /**
@@ -65,6 +66,8 @@ export function useSupabaseQualifying() {
       try {
         const row = await insertQualifying(fields);
         setLatest(row);
+        // History 캐시 무효화 — 다음 useFocusEffect에서 새 row 즉시 표시.
+        invalidateQualifyingCache();
         return row;
       } catch (e) {
         console.warn('[useSupabaseQualifying] saveResult failed, queuing for retry:', e);

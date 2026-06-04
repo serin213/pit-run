@@ -11,6 +11,7 @@ import {
 import { enqueuePendingSession } from '../api/pendingSessions';
 import { recordActivityToday } from '../api/activity';
 import { useAuthStore } from '../store/authStore';
+import { invalidateSessionsCache } from '../api/historyCache';
 
 /**
  * 같은 raceId (client-generated UUID)로 직전 30초 안에 저장 시도한 항목.
@@ -139,6 +140,10 @@ export function useSupabaseSession() {
       try {
         const row = await insertCompletedSession(fields);
         recordActivityToday().catch(() => {});
+        // History 캐시 무효화 — 다음 useFocusEffect에서 새 row 즉시 표시.
+        // 무효화 없으면 30s TTL 동안 stale 캐시가 노출되어 방금 저장한 race가
+        // History에 안 보임 (stale-while-revalidate가 갱신하긴 하지만 한 frame 지연).
+        invalidateSessionsCache();
         return row;
       } catch (e) {
         console.warn('[useSupabaseSession] saveCompleted failed, queuing for retry:', e);

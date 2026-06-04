@@ -23,6 +23,7 @@ import {
   getPendingProfile,
   clearPendingProfile,
 } from './pendingMutations';
+import { invalidateSessionsCache, invalidateQualifyingCache } from './historyCache';
 
 let _flushInFlight = false;
 
@@ -141,6 +142,11 @@ export async function flushAllPendingMutations(): Promise<{
         console.warn('[pendingFlush/profile] retry failed:', e);
       }
     }
+
+    // flush 성공한 항목이 있으면 history 캐시 무효화 → 다음 useFocusEffect에서
+    // 새 DB row가 즉시 반영됨. 한 종류라도 성공했을 때만 호출 (cache miss 비용 절약).
+    if (result.sessions.succeeded > 0) invalidateSessionsCache();
+    if (result.qualifying.succeeded > 0) invalidateQualifyingCache();
 
     const total =
       result.sessions.succeeded + result.qualifying.succeeded + (result.profile.succeeded ? 1 : 0);
