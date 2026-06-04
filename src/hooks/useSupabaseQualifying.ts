@@ -49,6 +49,9 @@ export function useSupabaseQualifying() {
    */
   const saveResult = useCallback(
     async (fields: {
+      /** 클라이언트 생성 UUID — withRetry 재시도 중복 차단용. QualifyingScreen에서
+       *  startWarmup 시점에 1회 생성한 stable id 전달. */
+      id?: string;
       one_km_ms: number;
       pace_sec_per_km: number;
       grade: QualifyingGrade;

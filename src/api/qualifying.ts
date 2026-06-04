@@ -51,6 +51,9 @@ export async function fetchQualifyingHistory(): Promise<QualifyingRow[]> {
  *     duplication
  */
 export async function insertQualifying(fields: {
+  /** 클라이언트 생성 UUID. withRetry가 server-side 성공한 INSERT를 재시도해서
+   *  생기는 중복 row 차단 (at-least-once delivery 문제 해결). */
+  id?: string;
   one_km_ms: number;
   pace_sec_per_km: number;
   grade: QualifyingGrade;
@@ -67,18 +70,19 @@ export async function insertQualifying(fields: {
       throw err;
     }
 
-    const { data, error } = await supabase
-      .from('qualifying_results')
-      .insert({
-        user_id: userId,
-        ...fields,
-        // one_km_ms / warmup_minutes 도 integer 컬럼. trialElapsedMs는 Date.now()
-        // 기반이라 이미 integer지만 방어적으로 round (PG 22P02 방어).
-        one_km_ms: Math.round(fields.one_km_ms),
-        warmup_minutes: Math.round(fields.warmup_minutes),
-      })
-      .select()
-      .single();
+    const row = {
+      user_id: userId,
+      one_km_ms: Math.round(fields.one_km_ms),
+      pace_sec_per_km: fields.pace_sec_per_km,
+      grade: fields.grade,
+      warmup_minutes: Math.round(fields.warmup_minutes),
+      ...(fields.id ? { id: fields.id } : {}),
+    };
+
+    const query = fields.id
+      ? supabase.from('qualifying_results').upsert(row, { onConflict: 'id' }).select().single()
+      : supabase.from('qualifying_results').insert(row).select().single();
+    const { data, error } = await query;
     if (error) {
       recordSaveError('qualifying_results', error);
       throw error;

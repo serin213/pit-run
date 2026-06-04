@@ -13,6 +13,14 @@ import { recordActivityToday } from '../api/activity';
 import { useAuthStore } from '../store/authStore';
 
 /**
+ * 같은 raceId (client-generated UUID)로 직전 30초 안에 저장 시도한 항목.
+ * autoSavedRef per-component-instance라 ResultScreen이 re-mount되면 reset되지만
+ * 이 module-level Set은 process 살아있는 동안 유지되어 같은 raceId 중복 차단.
+ * 30초 후 자동 제거 — process 죽으면 어차피 사라지므로 메모리 누수 아님.
+ */
+const recentlySavedIds = new Set<string>();
+
+/**
  * 러닝 세션을 Supabase에 기록하는 훅.
  * 세션 시작 → 완료/포기 흐름을 관리.
  *
@@ -95,6 +103,12 @@ export function useSupabaseSession() {
    */
   const saveCompletedSession = useCallback(
     async (fields: {
+      /**
+       * 클라이언트 생성 UUID — runStore.raceId 또는 호출부에서 결정.
+       * 전달되면 API 레이어에서 upsert(onConflict: 'id')로 처리 → 같은 race가
+       * 중복 호출되어도 DB row 1개만 유지 (re-mount / 네트워크 retry 모두 차단).
+       */
+      id?: string;
       type: SessionType;
       circuit_id?: string | null;
       started_at: string;
@@ -104,6 +118,11 @@ export function useSupabaseSession() {
       best_pace_sec_per_km?: number | null;
       payload?: Record<string, unknown>;
     }) => {
+      // In-memory dedup: 짧은 시간 안에 같은 id로 중복 호출되면 skip.
+      // useEffect 재발화 / Component re-mount 케이스 방어 (process 살아있는 동안).
+      if (fields.id && recentlySavedIds.has(fields.id)) {
+        return null;
+      }
       // 인증되지 않은 상태에서도 절대 drop하지 않음 — pending queue로.
       // 백그라운드 자동완주 직후 supabase session refresh가 일시적으로 실패해
       // isAuthenticated이 false인 케이스를 방어. 다음 launch에서 인증되면 flush됨.
@@ -111,6 +130,11 @@ export function useSupabaseSession() {
         console.warn('[useSupabaseSession] not authenticated, queuing session for next launch');
         enqueuePendingSession(fields);
         return null;
+      }
+      if (fields.id) {
+        recentlySavedIds.add(fields.id);
+        // 30초 후 cleanup — process 살아있는 동안만 의미 있음
+        setTimeout(() => recentlySavedIds.delete(fields.id!), 30_000);
       }
       try {
         const row = await insertCompletedSession(fields);

@@ -18,6 +18,9 @@ import type { QualifyingGrade } from '../types';
 const PENDING_QUAL_KEY = 'pending_qualifying_v1';
 
 export type PendingQualifyingFields = {
+  /** 클라이언트 생성 UUID. flush 시 그대로 insertQualifying에 전달되어
+   *  upsert(onConflict:'id')로 처리 → flush 재시도 중복 차단. */
+  id?: string;
   one_km_ms: number;
   pace_sec_per_km: number;
   grade: QualifyingGrade;

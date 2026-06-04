@@ -17,6 +17,9 @@ import type { SessionType } from './sessions';
 const PENDING_KEY = 'pending_sessions_v1';
 
 export type PendingSessionFields = {
+  /** 클라이언트 생성 UUID (race의 경우). flush 시 그대로 insertCompletedSession에 전달
+   *  되어 upsert(onConflict:'id')로 처리됨 → flush 재시도 시 중복 INSERT 차단. */
+  id?: string;
   type: SessionType;
   circuit_id?: string | null;
   started_at: string;

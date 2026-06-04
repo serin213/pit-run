@@ -27,6 +27,7 @@ import GradientCardBorder from '../components/GradientCardBorder';
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
 import { useAppStore } from '../store/appStore';
+import { generateUuid } from '../store/runStore';
 import type { QualifyingScreenProps } from '../navigation/types';
 import { useSupabaseQualifying } from '../hooks/useSupabaseQualifying';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
@@ -84,6 +85,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // 시작 시점 'started' 행을 만들지 않음 — 1km 완주 자동종료 시에만 INSERT.
   // Retire는 DB와 무관하게 화면만 닫힘.
   const qualifyingStartedAtRef = useRef<string | null>(null);
+  // qualifying 세션별 stable UUID — at-least-once delivery에 의한 중복 INSERT 차단.
+  // saveResult + saveCompletedSession 둘 다 같은 race를 가리키도록 별도 id 2개 사용.
+  const qualifyingResultIdRef = useRef<string | null>(null);
+  const qualifyingSessionIdRef = useRef<string | null>(null);
   // finishOneKm 다중 호출 방지 (root cause for duplicate qualifying rows).
   // trialDistKm useEffect deps로 [trialDistKm, phase]가 있어, GPS가 1km 넘은 이후
   // 추가 tick마다 effect 재발화 → finishOneKm 여러 번 호출 → DB INSERT 여러 번.
@@ -344,6 +349,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     setPhase('warmup');
     // started_at만 메모리에 보관. DB INSERT는 1km 완주 시점에만 1회.
     qualifyingStartedAtRef.current = new Date().toISOString();
+    // qualifying 세션별 stable UUID — at-least-once delivery 중복 차단용.
+    // qualifying_results와 run_sessions가 별도 row라 id도 별도.
+    qualifyingResultIdRef.current = generateUuid();
+    qualifyingSessionIdRef.current = generateUuid();
     oneKmFinishedRef.current = false; // 새 세션 시작 — guard 초기화
     racePlanSetRef.current = false; // 새 세션 시작 — race plan setup 재허용
     // LA 시작은 별도 useEffect (phase deps)가 처리 — 빌드 28의 검증된 패턴.
@@ -407,7 +416,10 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     recordActivity();
     addDistance(1);
     // Supabase에 퀄리파잉 결과 + 세션 완료 저장 (비동기)
+    // qualifyingResultIdRef는 startWarmup에서 1회 생성된 stable UUID.
+    // withRetry 재시도 중복 + finishOneKm 재호출 race condition 모두 upsert로 차단.
     saveResult({
+      id: qualifyingResultIdRef.current ?? undefined,
       one_km_ms: oneKmMs,
       pace_sec_per_km: result.paceSecPerKm,
       grade: result.grade,
@@ -425,6 +437,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     // 1km GPS 완주가 확정된 이 시점에만 run_sessions 행 INSERT.
     // started_at는 startWarmup 시점에 캡쳐했던 ISO를 그대로 사용 (없으면 now).
     saveCompletedSession({
+      id: qualifyingSessionIdRef.current ?? undefined,
       type: 'qualifying',
       started_at: qualifyingStartedAtRef.current ?? new Date().toISOString(),
       total_dist_km: 1,

@@ -48,6 +48,12 @@ interface RunState {
   lapLog: LapEntry[];
   isFinalLap: boolean;
 
+  // 레이스 식별 — startRun에서 1회 생성, ResultScreen이 stable 식별자로 사용.
+  // navigation.replace('Result')가 두 번 호출되어 Result가 re-mount되어도
+  // 같은 raceId + raceStartedAt로 INSERT → DB에서 upsert로 중복 차단.
+  raceId: string | null;
+  raceStartedAt: string | null;
+
   // 액션
   startRun: () => void;
   pauseRun: () => void;
@@ -85,7 +91,29 @@ const INITIAL_STATE = {
   gpsEnabled: false,
   lapLog: [] as LapEntry[],
   isFinalLap: false,
+  raceId: null as string | null,
+  raceStartedAt: null as string | null,
 };
+
+/**
+ * UUID v4 생성 — crypto.randomUUID() 가용 시 우선 사용, 폴백은 Math.random.
+ * react-native-nitro-modules 등이 crypto polyfill을 깔아주지만 unsupported
+ * 환경 대비 폴백 유지.
+ *
+ * runStore 내부 + QualifyingScreen에서도 import해서 사용. 별도 utility 파일로
+ * 빼도 되지만 의존성 단순화 위해 여기 둠.
+ */
+export function generateUuid(): string {
+  try {
+    const g = globalThis as { crypto?: { randomUUID?: () => string } };
+    if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  } catch {}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export const useRunStore = create<RunState>((set, get) => ({
   ...INITIAL_STATE,
@@ -98,6 +126,10 @@ export const useRunStore = create<RunState>((set, get) => ({
       tire: get().tire,
       sector: get().sector,
       tyreLog: [{ tire: get().tire, startDist: 0, endDist: 0 }],
+      // race 시작 시점에 1회 생성 — ResultScreen이 re-mount되어도 동일 식별자
+      // 사용 → upsert(onConflict:'id')로 DB 중복 차단.
+      raceId: generateUuid(),
+      raceStartedAt: new Date().toISOString(),
     }),
 
   pauseRun: () =>

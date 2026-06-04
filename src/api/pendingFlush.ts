@@ -58,21 +58,25 @@ export async function flushAllPendingMutations(): Promise<{
     const sessionQueue = getPendingQueue();
     result.sessions.attempted = sessionQueue.length;
     if (sessionQueue.length > 0) {
-      // 중복 INSERT 방지 — 큐 항목 중 DB에 이미 존재하는 started_at은 skip하고 큐에서 제거.
-      // (이전 launch에서 save 성공했는데 큐가 비워지지 않은 케이스 / 같은 데이터 재 적재)
+      // 중복 INSERT 방지 — 큐 항목 중 DB에 이미 존재하는 id 또는 started_at은
+      // skip하고 큐에서 제거. id 매칭이 우선 (race의 경우 raceId 기반 idempotent).
+      let dbIds = new Set<string>();
       let dbStartedAt = new Set<string>();
       try {
         const recent = await fetchSessions(200);
+        dbIds = new Set(recent.map((r) => r.id));
         dbStartedAt = new Set(recent.map((r) => r.started_at));
       } catch {
-        // fetch 실패 시 dedup 없이 진행
+        // fetch 실패 시 dedup 없이 진행 — insertCompletedSession의 upsert가 보호
       }
       for (const pending of sessionQueue) {
         const { _queuedAt, ...fields } = pending;
-        if (dbStartedAt.has(fields.started_at)) {
+        const idAlreadyInDb = !!fields.id && dbIds.has(fields.id);
+        const startedAtAlreadyInDb = dbStartedAt.has(fields.started_at);
+        if (idAlreadyInDb || startedAtAlreadyInDb) {
           removePendingSession(_queuedAt);
           if (__DEV__) {
-            console.warn(`[pendingFlush/session] DB has ${fields.started_at}, skipping`);
+            console.warn(`[pendingFlush/session] DB already has session, skipping`);
           }
           continue;
         }

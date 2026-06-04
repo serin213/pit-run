@@ -108,6 +108,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
  *   → auth 체크도 withRetry 안으로 포함해 네트워크 복원 시 재시도 가능.
  */
 export async function insertCompletedSession(fields: {
+  /**
+   * 클라이언트 생성 UUID. 전달되면 upsert(onConflict:'id')로 처리 → 같은 id
+   * 재호출 시 INSERT 1번만 실제 행 생성, 이후는 동일 row UPDATE (idempotent).
+   * 네트워크 retry 중복, ResultScreen re-mount 중복 모두 차단.
+   * 전달 안 되면 기존처럼 .insert (DB가 id 자동 생성).
+   */
+  id?: string;
   type: SessionType;
   circuit_id?: string | null;
   started_at: string;
@@ -128,27 +135,30 @@ export async function insertCompletedSession(fields: {
       throw err;
     }
 
-    const { data, error } = await supabase
-      .from('run_sessions')
-      .insert({
-        user_id: userId,
-        type: fields.type,
-        circuit_id: fields.circuit_id ?? null,
-        started_at: fields.started_at,
-        ended_at: new Date().toISOString(),
-        status: 'completed' as SessionStatus,
-        total_dist_km: fields.total_dist_km,
-        // total_time_ms는 DB에서 integer 컬럼. useRunning RAF 루프의 dt 누적값
-        // (elapsedMs)이 sub-ms precision float (예: 3863267.79)이라 raw 전달 시
-        // PG 22P02 (invalid input syntax for type integer) 에러로 INSERT 거부됨.
-        // API 레이어에서 round → fresh save + pending queue replay 모두 안전.
-        total_time_ms: Math.round(fields.total_time_ms),
-        avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
-        best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
-        payload: fields.payload ?? {},
-      })
-      .select()
-      .single();
+    const row = {
+      user_id: userId,
+      type: fields.type,
+      circuit_id: fields.circuit_id ?? null,
+      started_at: fields.started_at,
+      ended_at: new Date().toISOString(),
+      status: 'completed' as SessionStatus,
+      total_dist_km: fields.total_dist_km,
+      // total_time_ms는 DB에서 integer 컬럼. useRunning RAF 루프의 dt 누적값
+      // (elapsedMs)이 sub-ms precision float (예: 3863267.79)이라 raw 전달 시
+      // PG 22P02 (invalid input syntax for type integer) 에러로 INSERT 거부됨.
+      // API 레이어에서 round → fresh save + pending queue replay 모두 안전.
+      total_time_ms: Math.round(fields.total_time_ms),
+      avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
+      best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
+      payload: fields.payload ?? {},
+      ...(fields.id ? { id: fields.id } : {}),
+    };
+
+    // id가 있으면 upsert (idempotent), 없으면 기존 insert
+    const query = fields.id
+      ? supabase.from('run_sessions').upsert(row, { onConflict: 'id' }).select().single()
+      : supabase.from('run_sessions').insert(row).select().single();
+    const { data, error } = await query;
     if (error) {
       recordSaveError('run_sessions', error);
       throw error;

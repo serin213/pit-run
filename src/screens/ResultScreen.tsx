@@ -189,11 +189,17 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
     const diff = selectedDiffRef.current;
-    const startedAtIso = new Date(Date.now() - elapsedMs).toISOString();
+    // raceId / raceStartedAt는 runStore에 startRun 시점에 1회 생성된 stable 식별자.
+    // ResultScreen이 navigation.replace 중복으로 re-mount되어도 동일 값 → API에서
+    // upsert(onConflict:'id') 처리 → DB 중복 row 차단.
+    // 폴백: 뭔가 잘못되어 raceId가 null이면 새로 만들지 말고 startedAtIso 폴백.
+    const rawStartedAt = runStore.raceStartedAt
+      ?? new Date(Date.now() - elapsedMs).toISOString();
     saveCompletedSession({
+      id: runStore.raceId ?? undefined,
       type: 'grand_prix',
       circuit_id: circuitId,
-      started_at: startedAtIso,
+      started_at: rawStartedAt,
       total_dist_km: distKm,
       // elapsedMs는 useRunning RAF dt 누적이라 float (예: 3863267.79). DB
       // total_time_ms는 integer 컬럼 → round 안 하면 PG 22P02 에러. API 레이어에서

@@ -77,6 +77,17 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   // 호출하는 게 idempotent해서 안전하고, <0.10km로 Home으로 직행하는 경로에서는
   // 여기서 안 끊으면 잠금화면 LA가 영구히 남는 버그 fix.
   // 자동완주(handleAutoFinish)는 건드리지 않음 — ResultScreen 진입 시 종료.
+  // navigation.replace('Result')가 두 번 호출되는 케이스 방어. 자동완주(handleAutoFinish)
+  // 와 수동 정지(onStop)가 거의 동시에 발생하면 둘 다 navigate → Result re-mount →
+  // autoSavedRef per-instance라 reset → save 두 번 호출 → DB 중복 row.
+  // shared ref로 navigate 1회만 보장.
+  const navigatedToResultRef = useRef(false);
+  const navigateToResult = useCallback(() => {
+    if (navigatedToResultRef.current) return;
+    navigatedToResultRef.current = true;
+    navigation.replace('Result');
+  }, [navigation]);
+
   const onStop = useCallback(() => {
     endAllLiveActivities().catch(() => {});
     const currentDistKm = useRunStore.getState().distKm;
@@ -84,8 +95,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       navigation.replace('Home');
       return;
     }
-    navigation.replace('Result');
-  }, [navigation]);
+    navigateToResult();
+  }, [navigation, navigateToResult]);
   const onPaceSample = useCallback((pace: number) => updatePaceRecord(pace), [updatePaceRecord]);
 
   const { width: windowW, height: windowH } = useWindowDimensions();
@@ -153,8 +164,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     setPitPhase('completed');
     setBoxBoxActive(true);
     stopRun();
-    navigation.replace('Result');
-  }, [navigation, setPitPhase, setBoxBoxActive, stopRun]);
+    navigateToResult();
+  }, [navigateToResult, setPitPhase, setBoxBoxActive, stopRun]);
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
   // isPaused는 GPS 조건에서 제외 — 화면 잠금 시 isPaused가 순간 true로 흔들려도
   // background task가 종료되지 않도록. pause 중 거리 누적 차단은 addGpsDistance에서 처리.
