@@ -1,6 +1,6 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import { LETTER_SPACING } from '../constants/typography';
-import React, { useEffect, useId, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
@@ -40,8 +40,6 @@ import { formatTime } from '../core/pace';
 import { radius } from '../constants/radius';
 import ConfirmSheet from '../components/ConfirmSheet';
 import { useGPS } from '../hooks/useGPS';
-import { gpsDiag, resetGpsDiag } from '../platform/gpsDiag';
-import { saveDiag, refreshSaveDiagCounts } from '../api/saveDiag';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { getCurrentPosition } from '../platform/location';
 import {
@@ -166,30 +164,6 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
   // 'qualifying' ↔ 'retireConfirm' 토글 시 boolean이 동일해서 effect cycle 안 끊김.
   const isGpsActive = phase === 'qualifying' || phase === 'retireConfirm';
   useGPS(isGpsActive, (d) => setTrialDistKm((prev) => prev + d));
-
-  // GPS-DIAG + SAVE-DIAG overlay — production iOS에서 console.warn이 stripped되어
-  // 보이지 않는 케이스 대비. gpsDiag / saveDiag 모듈 객체를 500ms마다 force-render해서
-  // 화면에 직접 카운터 + 에러 메시지 표시. qualifying 진입 시 gpsDiag만 reset.
-  const [, forceDiagRender] = useReducer((x: number) => x + 1, 0);
-  useEffect(() => {
-    if (!isGpsActive) return;
-    resetGpsDiag();
-    const id = setInterval(() => {
-      refreshSaveDiagCounts();
-      forceDiagRender();
-    }, 500);
-    return () => clearInterval(id);
-  }, [isGpsActive]);
-  // saveDiag는 intro/warmup phase에서도 표시 — 사용자가 qualifying 시작 전 pending
-  // queue 상태나 직전 세션의 에러 메시지를 확인할 수 있게 별도 interval로 갱신.
-  useEffect(() => {
-    refreshSaveDiagCounts();
-    const id = setInterval(() => {
-      refreshSaveDiagCounts();
-      forceDiagRender();
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
 
   // Auto-complete when GPS distance reaches 1km
   useEffect(() => {
@@ -644,46 +618,6 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         />
       )}
 
-      {/* GPS-DIAG overlay — temporary, for build 4x debugging */}
-      {isGpsActive && (
-        <View style={[styles.gpsDiagBox, { top: safeTop + 4 }]} pointerEvents="none">
-          <Text style={styles.gpsDiagText}>defCalled={String(gpsDiag.defineCalled)} earlyReg={String(gpsDiag.earlyReg)}</Text>
-          <Text style={styles.gpsDiagText}>tasks={gpsDiag.earlyRegTasks.slice(0, 50)}</Text>
-          <Text style={styles.gpsDiagText}>en={String(gpsDiag.enabled)} fg={String(gpsDiag.fgPerm)} bg={String(gpsDiag.bgPerm)}</Text>
-          <Text style={styles.gpsDiagText}>reg={String(gpsDiag.taskRegistered)} started={String(gpsDiag.taskStarted)} bypass={String(gpsDiag.startBypassed)} resolv={String(gpsDiag.startResolved)}</Text>
-          <Text style={styles.gpsDiagText}>taskWrites={gpsDiag.taskWriteCount} lastTs={gpsDiag.lastTaskWriteTs ? String(gpsDiag.lastTaskWriteTs).slice(-6) : '-'}</Text>
-          <Text style={styles.gpsDiagText}>tick={gpsDiag.tick} null={gpsDiag.nullCount}</Text>
-          <Text style={styles.gpsDiagText}>accSkip={gpsDiag.accSkipCount} distSkip={gpsDiag.distSkipCount} accept={gpsDiag.acceptCount}</Text>
-          <Text style={styles.gpsDiagText}>lastAcc={gpsDiag.lastAccuracy != null ? gpsDiag.lastAccuracy.toFixed(1) : '-'} lastDist={gpsDiag.lastDist != null ? gpsDiag.lastDist.toFixed(4) : '-'}</Text>
-          <Text style={styles.gpsDiagText}>totalKm={gpsDiag.totalAccumulatedKm.toFixed(4)} cleanup={gpsDiag.cleanupCount}</Text>
-          {gpsDiag.defineError !== '' && (
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>defErr={gpsDiag.defineError.slice(0, 60)}</Text>
-          )}
-          {gpsDiag.earlyRegError !== '' && (
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>earlyRegErr={gpsDiag.earlyRegError.slice(0, 60)}</Text>
-          )}
-          {gpsDiag.startError !== '' && (
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>err={gpsDiag.startError.slice(0, 60)}</Text>
-          )}
-        </View>
-      )}
-
-      {/* SAVE-DIAG overlay — mutation 시도/실패 진단. 모든 phase에서 표시 (intro 포함). */}
-      <View style={[styles.saveDiagBox, { top: safeTop + 4 }]} pointerEvents="none">
-        <Text style={styles.gpsDiagText}>[save] auth={String(saveDiag.isAuth)} uid={saveDiag.authUid || '-'}</Text>
-        <Text style={styles.gpsDiagText}>pend.s={saveDiag.pendingSessions} q={saveDiag.pendingQual} p={String(saveDiag.pendingProfile)}</Text>
-        <Text style={styles.gpsDiagText}>att={saveDiag.attemptsTotal} ok={saveDiag.successTotal}</Text>
-        {saveDiag.lastSuccessTable !== '' && (
-          <Text style={styles.gpsDiagText}>lastOk={saveDiag.lastSuccessTable} @{String(saveDiag.lastSuccessAtSec).slice(-5)}</Text>
-        )}
-        {saveDiag.lastErrTable !== '' && (
-          <>
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>errT={saveDiag.lastErrTable} code={saveDiag.lastErrCode}</Text>
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>msg={saveDiag.lastErrMsg.slice(0, 50)}</Text>
-            <Text style={[styles.gpsDiagText, { color: '#FF6B6B' }]}>at={String(saveDiag.lastErrAtSec).slice(-5)}</Text>
-          </>
-        )}
-      </View>
     </View>
   );
 }
@@ -843,33 +777,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
-  },
-
-  // GPS-DIAG overlay (temporary, build 4x)
-  gpsDiagBox: {
-    position: 'absolute',
-    right: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 4,
-    maxWidth: 260,
-  },
-  // SAVE-DIAG overlay — gpsDiag 반대쪽(좌측)에 표시
-  saveDiagBox: {
-    position: 'absolute',
-    left: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 4,
-    maxWidth: 260,
-  },
-  gpsDiagText: {
-    color: '#7FFF7F',
-    fontFamily: 'Menlo',
-    fontSize: 9,
-    lineHeight: 11,
   },
 
   // ── Intro ──
