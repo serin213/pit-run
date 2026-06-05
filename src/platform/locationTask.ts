@@ -90,6 +90,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 1km 도달 시 qualifyingEnd 사운드 1회 발화. boxbox/fullPush 로직 무관.
   // 잠금/백그라운드 상태에서도 사운드 발화 — race와 동일 패턴.
   if (plan.mode === 'qualifying') {
+    gpsDiag.bgEventQualifying++;
     if (plan.completedReps === 0) {
       const currentAccum = readAccum();
       if (currentAccum >= plan.intervalKm) {
@@ -104,6 +105,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // (1) 예약된 fullPush 시점 도래
   if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
     try { await playSound('fullPush'); } catch {}
+    gpsDiag.bgEventFullPushFired++;
     plan = updateActiveRacePlan({ nextFullPushAtMs: null }) ?? plan;
   }
 
@@ -113,12 +115,17 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
     const workKm = currentAccum - plan.lastBoxBoxAtKm;
     if (workKm >= plan.intervalKm) {
       try { await playSound('boxbox'); } catch {}
+      gpsDiag.bgEventBoxBoxFired++;
       updateActiveRacePlan({
         lastBoxBoxAtKm: currentAccum,
         completedReps: plan.completedReps + 1,
         nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
       });
+    } else {
+      gpsDiag.bgEventWorkNotReady++;
     }
+  } else if (plan.nextFullPushAtMs != null) {
+    gpsDiag.bgEventNotWorkPhase++;
   }
 }
 

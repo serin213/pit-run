@@ -46,6 +46,12 @@ export const gpsDiag = {
   // maybeFireBackgroundRaceEvents 가드 진단 — FIX 4
   bgEventCallCount: 0,
   bgEventPlanNull: 0,
+  // 분기별 카운터 — 잠금 중 사운드 미발화 원인 진단용
+  bgEventQualifying: 0,
+  bgEventFullPushFired: 0,
+  bgEventBoxBoxFired: 0,
+  bgEventWorkNotReady: 0,
+  bgEventNotWorkPhase: 0,
 };
 
 export function resetGpsDiag(): void {

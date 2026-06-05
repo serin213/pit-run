@@ -30,6 +30,7 @@ import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
+import { gpsDiag } from '../platform/gpsDiag';
 import { doubleImpact, successLong } from '../platform/haptics';
 import { endAllLiveActivities } from '../platform/liveActivity';
 
@@ -584,6 +585,32 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         onClose={closeBoxBox}
         onVisibilityChange={handleVisibilityChange}
       />
+
+      {/* ── BG event 진단 패널 (DEV 빌드만, 임시) ──
+       *  카운터는 module-level mutable이라 RN re-render를 트리거 안 함.
+       *  diagTick state를 1초마다 갱신해 최신 값 표시 강제. */}
+      <BgEventDiagPanel />
+    </View>
+  );
+}
+
+function BgEventDiagPanel() {
+  const [, setDiagTick] = useState(0);
+  useEffect(() => {
+    if (!__DEV__) return;
+    const id = setInterval(() => setDiagTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!__DEV__) return null;
+  return (
+    <View style={{ position: 'absolute', top: 60, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4 }} pointerEvents="none">
+      <Text style={{ color: '#fff', fontSize: 9 }}>call:{gpsDiag.bgEventCallCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>null:{gpsDiag.bgEventPlanNull}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>bb:{gpsDiag.bgEventBoxBoxFired}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>fp:{gpsDiag.bgEventFullPushFired}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>nr:{gpsDiag.bgEventWorkNotReady}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>nw:{gpsDiag.bgEventNotWorkPhase}</Text>
+      <Text style={{ color: '#fff', fontSize: 9 }}>q:{gpsDiag.bgEventQualifying}</Text>
     </View>
   );
 }
