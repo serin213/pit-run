@@ -42,6 +42,10 @@ export const gpsDiag = {
   taskWriteCount: 0,
   lastTaskWriteTs: 0,
   startError: '' as string,
+
+  // maybeFireBackgroundRaceEvents 가드 진단 — FIX 4
+  bgEventCallCount: 0,
+  bgEventPlanNull: 0,
 };
 
 export function resetGpsDiag(): void {

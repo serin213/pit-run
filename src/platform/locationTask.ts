@@ -74,8 +74,15 @@ import {
 const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
 
 async function maybeFireBackgroundRaceEvents(): Promise<void> {
+  gpsDiag.bgEventCallCount++;
   let plan = getActiveRacePlan();
-  if (!plan) return;
+  if (!plan) { gpsDiag.bgEventPlanNull++; return; }
+  // 이중 안전망 — clear가 호출되지 않은 채 race가 종료된 stale plan 방어.
+  // 정상 흐름에선 clearActiveRacePlan으로 plan 자체가 제거되어 위 null 체크에서
+  // 잡히지만, 앱 swipe kill 직후 task가 살아남는 케이스에서는 plan만 남고 race는
+  // 끝난 상태가 가능. cleanupStaleBackgroundTask가 부팅 시 isRunning을 false로
+  // 패치하거나 plan을 지워주지만, 그 사이 발화하는 한 사이클을 막기 위한 가드.
+  if (!plan.isRunning) { gpsDiag.bgEventPlanNull++; return; }
 
   const now = Date.now();
 
@@ -318,6 +325,40 @@ export async function stopBackgroundLocationTask(): Promise<void> {
   const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
   if (isStarted) {
     await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => {});
+  }
+}
+
+/**
+ * 앱 부팅 시 stale background task 정리 — 1차 방어선.
+ *
+ * 시나리오: race 진행 중 사용자가 앱 swipe kill → useGPS cleanup 미실행 →
+ * background task가 OS 레벨에서 계속 살아남음 → 잠금화면 GPS 아이콘 유지 +
+ * boxbox 사운드 발화. 다음 앱 부팅 시 이 함수가 그 task를 정리.
+ *
+ * 정책:
+ *   - task가 등록 + started 상태이고
+ *   - activeRacePlan이 없으면 (= race 진행 중이 아님)
+ *   → stopLocationUpdatesAsync + clearBackgroundCoords
+ *
+ * plan이 있으면 race가 정상 진행 중인 케이스(앱이 백그라운드에서 살아 부팅됨)와
+ * stale plan이 남은 비정상 케이스 둘 다 가능. 비정상 케이스는 isRunning 가드가
+ * maybeFireBackgroundRaceEvents에서 차단.
+ *
+ * 호출 시점: index.ts에서 defineBackgroundLocationTask 직후 1회.
+ */
+export async function cleanupStaleBackgroundTask(): Promise<void> {
+  try {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
+    if (!isRegistered) return;
+    const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
+    if (!isStarted) return;
+    const plan = getActiveRacePlan();
+    if (!plan) {
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => {});
+      clearBackgroundCoords();
+    }
+  } catch (e) {
+    console.warn('[cleanupStaleBackgroundTask]', e);
   }
 }
 

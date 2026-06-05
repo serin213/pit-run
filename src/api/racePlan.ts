@@ -25,6 +25,15 @@ export type ActiveRacePlan = {
    *                boxbox/fullPush 로직 무관.
    */
   mode: 'race' | 'qualifying';
+  /**
+   * race가 실제로 진행 중인지 여부 — background task 이중 안전망.
+   * 정상 흐름은 clearActiveRacePlan으로 전체 plan을 지우므로 이 필드는 redundant하지만,
+   * 앱 swipe kill 등 비정상 종료로 plan이 stale로 남는 경우를 막기 위해 명시적 가드.
+   * - race/qualifying 시작 시: true
+   * - clear 호출되면 plan 자체가 사라져 첫 줄 null check에서 잡힘
+   * - cleanupStaleBackgroundTask에서 false로 명시적 patch 가능
+   */
+  isRunning: boolean;
   /** race/qualifying 시작 시각 (Date.now()) — 진단 용도 */
   startedAtMs: number;
   /** race: 한 work 사이클 거리. qualifying: 완료 거리(1km). */

@@ -91,6 +91,17 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       // 'active' 이벤트 발생 즉시 drain → 점프 폭 최소화 (1초 → 즉시).
       appStateSubscription = AppState.addEventListener('change', (state) => {
         if (state === 'active') drainAccum();
+        // 'background' — 사용자가 swipe kill 직전 발생할 수 있음 (보장 X).
+        // race가 종료된 상태라면 background task도 같이 정리. swipe kill로
+        // useGPS cleanup이 실행되지 않을 가능성에 대비한 best-effort 방어선.
+        // FIX 1(cleanupStaleBackgroundTask)이 다음 부팅 시 1차 방어, 이 분기가
+        // 0차 방어.
+        if (state === 'background') {
+          const { isRunning } = useRunStore.getState();
+          if (!isRunning) {
+            stopBackgroundLocationTask().catch(() => {});
+          }
+        }
       });
     })();
 

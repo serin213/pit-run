@@ -1,6 +1,10 @@
 import { registerRootComponent } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
-import { defineBackgroundLocationTask, probeBackgroundTaskRegistration } from './src/platform/locationTask';
+import {
+  defineBackgroundLocationTask,
+  probeBackgroundTaskRegistration,
+  cleanupStaleBackgroundTask,
+} from './src/platform/locationTask';
 import App from './App';
 
 // Splash screen control:
@@ -15,5 +19,9 @@ setTimeout(() => {
 // 호출 후 즉시 isTaskRegisteredAsync로 등록 성공 여부 probe → gpsDiag.earlyReg 기록.
 defineBackgroundLocationTask();
 probeBackgroundTaskRegistration().catch(() => {});
+
+// 부팅 시 stale background task 정리 — 앱 swipe kill 후 OS 레벨에 남은 task가
+// 잠금화면 GPS 아이콘/사운드 유지하는 문제 1차 방어선. plan이 없으면 stop.
+cleanupStaleBackgroundTask().catch(() => {});
 
 registerRootComponent(App);

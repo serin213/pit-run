@@ -21,6 +21,7 @@ import {
   getActiveRacePlan,
   clearActiveRacePlan,
 } from '../api/racePlan';
+import { stopBackgroundLocationTask } from '../platform/locationTask';
 
 // Live Activity는 초당 1회로 throttle (ActivityKit 권고)
 const LA_UPDATE_INTERVAL_MS = 1000;
@@ -223,6 +224,7 @@ export function useRunning(options: UseRunningOptions = {}) {
     const maxRepsInit = activePlan ? activePlan.intervals.reps : Number.MAX_SAFE_INTEGER;
     setActiveRacePlan({
       mode: 'race',
+      isRunning: true,
       startedAtMs: Date.now(),
       intervalKm: intervalKmInit,
       recoveryDurationMs: recoveryDurationMsInit,
@@ -371,6 +373,9 @@ export function useRunning(options: UseRunningOptions = {}) {
             durationSec,
             paceS: isFinite(paceS) ? Math.round(paceS) : null,
           });
+          // background task 명시 종료 안전망 (checkLapMilestones 분기와 동일).
+          stopBackgroundLocationTask().catch(() => {});
+          clearActiveRacePlan();
           onFinishRef.current?.();
         }
         return;
@@ -417,6 +422,12 @@ export function useRunning(options: UseRunningOptions = {}) {
     // 완주 안전망: 서킷 총 거리 초과 시 finish (GPS 드리프트 등 예외 대비)
     if (!finishFiredRef.current && distKm >= total) {
       finishFiredRef.current = true;
+      // background task 명시 종료 안전망 — isRunning false 전환의 cleanup useEffect도
+      // 이미 같은 stop을 호출하지만 race condition 방지 위해 finish 분기에서 한 번 더.
+      // clear도 같이 — maybeFireBackgroundRaceEvents가 plan stale로 fullPush 발화하는
+      // 케이스 차단.
+      stopBackgroundLocationTask().catch(() => {});
+      clearActiveRacePlan();
       onFinishRef.current?.();
     }
   }

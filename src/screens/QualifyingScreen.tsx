@@ -183,6 +183,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     racePlanSetRef.current = true;
     setActiveRacePlan({
       mode: 'qualifying',
+      isRunning: true,
       startedAtMs: Date.now(),
       intervalKm: 1,
       recoveryDurationMs: 0,
