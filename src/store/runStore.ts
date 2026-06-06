@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { TireType, SectorColor } from '../constants/colors';
 import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
-import { DEFAULT_CIRCUIT_KM as CIRCUIT_KM } from '../config/circuits';
+import { CIRCUITS } from '../config/circuits';
+import { useAppStore } from './appStore';
 
 export interface TyreSegment {
   tire: TireType;
@@ -170,7 +171,12 @@ export const useRunStore = create<RunState>((set, get) => ({
 
     const dKm = dtMs / (newPace * 1000);
     const newDist = distKm + dKm;
-    const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
+    // FIX B: progress를 선택된 서킷 거리 기준으로 계산. 기존 % CIRCUIT_KM 패턴은
+    // 모든 서킷이 5.14km인 것처럼 계산되어 짧은/긴 서킷에서 진행률 비례 안 맞음.
+    // selectedCircuitId 못 찾으면 0 → CircuitMap이 정지 상태로 보임 (fallback).
+    const selectedCircuitId = useAppStore.getState().selectedCircuitId;
+    const circuitKm = CIRCUITS.find((c) => c.id === selectedCircuitId)?.distanceKm ?? 0;
+    const newProg = circuitKm > 0 ? Math.min(newDist / circuitKm, 1) : 0;
 
     // 페이스 기록 (500m마다)
     let newHistory = paceHistory;
@@ -207,7 +213,10 @@ export const useRunStore = create<RunState>((set, get) => ({
     if (km <= 0 || isPaused) return;
 
     const newDist = distKm + km;
-    const newProg = (newDist % CIRCUIT_KM) / CIRCUIT_KM;
+    // FIX B: 서킷별 거리 기반 progress (tick과 동일 패턴).
+    const selectedCircuitId = useAppStore.getState().selectedCircuitId;
+    const circuitKm = CIRCUITS.find((c) => c.id === selectedCircuitId)?.distanceKm ?? 0;
+    const newProg = circuitKm > 0 ? Math.min(newDist / circuitKm, 1) : 0;
 
     // GPS 실측 페이스 계산: 최근 tick 시간 기준
     // elapsedMs > 0이고 distKm > 0이면 현재 평균 페이스 계산

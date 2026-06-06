@@ -106,7 +106,15 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
     try { await playSound('fullPush'); } catch {}
     gpsDiag.bgEventFullPushFired++;
-    plan = updateActiveRacePlan({ nextFullPushAtMs: null }) ?? plan;
+    // FIX D: 회복 종료 시점을 다음 work 측정 시작점으로 갱신.
+    // foreground의 workStartKmRef는 회복 종료 시 distKm로 갱신되므로 background도
+    // 동일하게 currentAccum으로 맞춤. 안 그러면 background workKm 계산에 회복 거리가
+    // 그대로 누적되어 박스박스 발화 시점이 일찍/늦게 어긋남.
+    const accumAtFullPush = readAccum();
+    plan = updateActiveRacePlan({
+      nextFullPushAtMs: null,
+      lastBoxBoxAtKm: accumAtFullPush,
+    }) ?? plan;
   }
 
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)

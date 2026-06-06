@@ -55,7 +55,6 @@ const CONTROL_BUTTON_SIZE = 76;
 const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
 const BOXBOX_ALERT_MS = 4000;
-const IN_PIT_DURATION_MS = 8000;
 const FULL_PUSH_ALERT_MS = 4000;
 const IN_PIT_PLAY_BUTTON = require('../../assets/control-buttons/inpit-play.png');
 const IN_PIT_STOP_BUTTON = require('../../assets/control-buttons/inpit-stop.png');
@@ -277,8 +276,21 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     onPaceSample?.(paceS);
   }, [paceS, onPaceSample]);
 
-  // activePlan 기반 회복 시간 (없으면 기존 상수 폴백)
-  const inPitDurationMs = (activePlan?.recovery.durationSec ?? (IN_PIT_DURATION_MS / 1000)) * 1000;
+  // activePlan 기반 회복 시간. fallback 60초 — 정상 흐름에서 activePlan은 항상 있어야
+  // 함. null로 떨어지는 케이스는 race 시작 흐름의 set 누락 (FIX E 경고 로그가 추적).
+  const inPitDurationMs = (activePlan?.recovery.durationSec ?? 60) * 1000;
+
+  // FIX E: race 진입 시 activePlan이 null이면 회복 시간이 60초 fallback으로 가버림.
+  // Xcode Console.app 또는 react-native log-ios로 확인 가능 — race 시작 흐름의
+  // setActivePlan 누락 위치 추적용.
+  useEffect(() => {
+    if (isRunning && !activePlan) {
+      console.warn(
+        '[RunningScreen] CRITICAL: race started but activePlan is null. ' +
+        'Recovery will fallback to 60s. Check race start flow.',
+      );
+    }
+  }, [isRunning, activePlan]);
 
   useEffect(() => {
     if (pitTimerRef.current) {
@@ -291,9 +303,19 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     if (pitPhase === 'boxbox') {
       playSound('boxbox');
       hapticTimer = setTimeout(() => doubleImpact(), 400);
+      // FIX G: boxbox alert도 isPaused 연동 → 잔여 시간 추적용 ref 초기화.
+      pitTimerRemainingMsRef.current = BOXBOX_ALERT_MS;
+      pitTimerStartedAtRef.current = Date.now();
       pitTimerRef.current = setTimeout(() => {
         closeBoxBox();
-        setPitPhase('inPit');
+        // FIX F: 마지막 랩이면 회복 스킵 → 바로 work 복귀 (none).
+        // useRunning의 isFinalLap 분기가 boxbox 안 띄우고 finish 직행하는 게 정상이지만,
+        // 마지막 사이클 직전 boxbox가 뜨고 그 사이 isFinalLap 트리거된 케이스 안전망.
+        if (useRunStore.getState().isFinalLap) {
+          setPitPhase('none');
+        } else {
+          setPitPhase('inPit');
+        }
       }, BOXBOX_ALERT_MS);
     } else if (pitPhase === 'inPit') {
       // 잔여 시간 초기화 (isPaused 연동 useEffect에서 사용)
@@ -306,6 +328,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     } else if (pitPhase === 'fullPush') {
       playSound('fullPush');
       hapticTimer = setTimeout(() => doubleImpact(), 400);
+      // FIX G: fullPush alert도 isPaused 연동.
+      pitTimerRemainingMsRef.current = FULL_PUSH_ALERT_MS;
+      pitTimerStartedAtRef.current = Date.now();
       pitTimerRef.current = setTimeout(() => {
         closeBoxBox();
         setPitPhase('none');
@@ -321,14 +346,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     };
   }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase, inPitDurationMs]);
 
-  // isPaused 연동: inPit 타이머 일시정지/재개
+  // FIX G: isPaused 연동 — boxbox/inPit/fullPush 모두 일시정지/재개. 잔여 시간 보존.
   //
-  // 주의: pitPhase도 deps에 포함 — pitPhase가 'inPit'으로 바뀔 때 이 effect가 실행되지만,
+  // 주의: pitPhase도 deps에 포함 — pitPhase가 새 phase로 바뀔 때 이 effect가 실행되지만,
   // 그 시점에는 pitPhase effect가 먼저 타이머를 시작해 pitTimerRef.current != null.
   // resume 분기의 `if (pitTimerRef.current === null)` 가드가 중복 타이머 시작을 막음.
   // (pitPhase effect와 순서: pitPhase effect → isPaused effect 순으로 실행 보장)
   useEffect(() => {
-    if (pitPhase !== 'inPit') return;
+    if (pitPhase !== 'inPit' && pitPhase !== 'boxbox' && pitPhase !== 'fullPush') return;
     if (isPaused) {
       // 타이머 중지 + 잔여 시간 갱신
       if (pitTimerRef.current) {
@@ -339,16 +364,28 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       }
     } else {
       // 일시정지에서 재개: pitTimerRef가 null일 때만 시작 (pause가 타이머를 지운 경우).
-      // pitPhase='inPit' 전환 시에는 pitPhase effect가 이미 타이머를 시작했으므로 스킵.
+      // pitPhase 전환 시에는 pitPhase effect가 이미 타이머를 시작했으므로 스킵.
       if (pitTimerRef.current === null) {
         pitTimerStartedAtRef.current = Date.now();
         pitTimerRef.current = setTimeout(() => {
-          setPitPhase('fullPush');
-          setBoxBoxActive(true);
+          if (pitPhase === 'boxbox') {
+            closeBoxBox();
+            if (useRunStore.getState().isFinalLap) {
+              setPitPhase('none');
+            } else {
+              setPitPhase('inPit');
+            }
+          } else if (pitPhase === 'inPit') {
+            setPitPhase('fullPush');
+            setBoxBoxActive(true);
+          } else if (pitPhase === 'fullPush') {
+            closeBoxBox();
+            setPitPhase('none');
+          }
         }, pitTimerRemainingMsRef.current);
       }
     }
-  }, [isPaused, pitPhase, setBoxBoxActive, setPitPhase]);
+  }, [isPaused, pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase]);
 
   return (
     <View style={styles.container}>
@@ -586,7 +623,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         onVisibilityChange={handleVisibilityChange}
       />
 
-      {/* ── BG event 진단 패널 (DEV 빌드만, 임시) ──
+      {/* ── BG event 진단 패널 — TestFlight에서도 표시 (출시 직전 제거 예정) ──
        *  카운터는 module-level mutable이라 RN re-render를 트리거 안 함.
        *  diagTick state를 1초마다 갱신해 최신 값 표시 강제. */}
       <BgEventDiagPanel />
@@ -597,20 +634,30 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 function BgEventDiagPanel() {
   const [, setDiagTick] = useState(0);
   useEffect(() => {
-    if (!__DEV__) return;
     const id = setInterval(() => setDiagTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
-  if (!__DEV__) return null;
   return (
-    <View style={{ position: 'absolute', top: 60, right: 8, padding: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4 }} pointerEvents="none">
-      <Text style={{ color: '#fff', fontSize: 9 }}>call:{gpsDiag.bgEventCallCount}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>null:{gpsDiag.bgEventPlanNull}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>bb:{gpsDiag.bgEventBoxBoxFired}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>fp:{gpsDiag.bgEventFullPushFired}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>nr:{gpsDiag.bgEventWorkNotReady}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>nw:{gpsDiag.bgEventNotWorkPhase}</Text>
-      <Text style={{ color: '#fff', fontSize: 9 }}>q:{gpsDiag.bgEventQualifying}</Text>
+    <View
+      style={{
+        position: 'absolute',
+        top: 100,
+        right: 8,
+        zIndex: 9999,
+        padding: 8,
+        backgroundColor: 'rgba(255,0,0,0.75)',
+        borderRadius: 6,
+      }}
+      pointerEvents="none"
+    >
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>BG EVENTS</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>call: {gpsDiag.bgEventCallCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>null: {gpsDiag.bgEventPlanNull}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bb: {gpsDiag.bgEventBoxBoxFired}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>fp: {gpsDiag.bgEventFullPushFired}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>nr: {gpsDiag.bgEventWorkNotReady}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>nw: {gpsDiag.bgEventNotWorkPhase}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>q: {gpsDiag.bgEventQualifying}</Text>
     </View>
   );
 }
