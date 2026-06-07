@@ -45,8 +45,9 @@ const STAT_VALUE_LINE_HEIGHT = 36;
 const CONTROL_BUTTON_SIZE = 76;
 const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
-const BOXBOX_ALERT_MS = 4000;
-const FULL_PUSH_ALERT_MS = 4000;
+// 묶음 2: BOXBOX_ALERT_MS / FULL_PUSH_ALERT_MS / pitTimerRef / inPitDurationMs 제거.
+// alert phase 타이밍은 background plan의 lastFiredAtMs + 4초 ALERT_MS로 derive됨
+// (useRunning polling). RunningScreen은 사운드·진동만 발화.
 // 묶음 1b-LA 보완: inpit-*.png → *-white.png rename 후속. 변수명은 inPit 시각 분기
 // 의도를 유지 위해 그대로. 사용처(loop 안 inPit 분기)는 손대지 않음.
 const IN_PIT_PLAY_BUTTON = require('../../assets/control-buttons/play-white.png');
@@ -123,10 +124,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     setBoxBoxActive,
     setPitPhase,
   } = useRunStore();
-  const pitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // isPaused 연동: inPit 타이머 잔여시간 추적
-  const pitTimerRemainingMsRef = useRef<number>(0);
-  const pitTimerStartedAtRef = useRef<number>(0);
+  // 묶음 2: pitTimer ref 3개 제거 — setTimeout 분기 자체 폐기. plan-driven polling이
+  // pitPhase/boxBoxActive를 store에 sync.
   const backgroundOpacity = useRef(new Animated.Value(1)).current;
 
   const handleVisibilityChange = useCallback((v: boolean) => {
@@ -269,9 +268,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     onPaceSample?.(paceS);
   }, [paceS, onPaceSample]);
 
-  // activePlan 기반 회복 시간. fallback 60초 — 정상 흐름에서 activePlan은 항상 있어야
-  // 함. null로 떨어지는 케이스는 race 시작 흐름의 set 누락 (FIX E 경고 로그가 추적).
-  const inPitDurationMs = (activePlan?.recovery.durationSec ?? 60) * 1000;
+  // 묶음 2: inPitDurationMs 변수 제거. background plan.recoveryDurationMs가 single source.
 
   // FIX E: race 진입 시 activePlan이 null이면 회복 시간이 60초 fallback으로 가버림.
   // Xcode Console.app 또는 react-native log-ios로 확인 가능 — race 시작 흐름의
@@ -285,100 +282,22 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     }
   }, [isRunning, activePlan]);
 
+  // 묶음 2: pitPhase setTimeout 3개 분기 + isPaused 연동 effect 모두 제거.
+  // pitPhase는 useRunning의 polling이 plan(background single source)에서 derive해
+  // store에 set. RunningScreen은 phase 변화 시 사운드·진동만 발화.
   useEffect(() => {
-    if (pitTimerRef.current) {
-      clearTimeout(pitTimerRef.current);
-      pitTimerRef.current = null;
-    }
-
-    let hapticTimer: ReturnType<typeof setTimeout> | null = null;
-
     if (pitPhase === 'boxbox') {
       playSound('boxbox');
-      hapticTimer = setTimeout(() => doubleImpact(), 400);
-      // FIX G: boxbox alert도 isPaused 연동 → 잔여 시간 추적용 ref 초기화.
-      pitTimerRemainingMsRef.current = BOXBOX_ALERT_MS;
-      pitTimerStartedAtRef.current = Date.now();
-      pitTimerRef.current = setTimeout(() => {
-        closeBoxBox();
-        // FIX F: 마지막 랩이면 회복 스킵 → 바로 work 복귀 (none).
-        // useRunning의 isFinalLap 분기가 boxbox 안 띄우고 finish 직행하는 게 정상이지만,
-        // 마지막 사이클 직전 boxbox가 뜨고 그 사이 isFinalLap 트리거된 케이스 안전망.
-        if (useRunStore.getState().isFinalLap) {
-          setPitPhase('none');
-        } else {
-          setPitPhase('inPit');
-        }
-      }, BOXBOX_ALERT_MS);
-    } else if (pitPhase === 'inPit') {
-      // 잔여 시간 초기화 (isPaused 연동 useEffect에서 사용)
-      pitTimerRemainingMsRef.current = inPitDurationMs;
-      pitTimerStartedAtRef.current = Date.now();
-      pitTimerRef.current = setTimeout(() => {
-        setPitPhase('fullPush');
-        setBoxBoxActive(true);
-      }, inPitDurationMs);
-    } else if (pitPhase === 'fullPush') {
+      const haptic = setTimeout(() => doubleImpact(), 400);
+      return () => clearTimeout(haptic);
+    }
+    if (pitPhase === 'fullPush') {
       playSound('fullPush');
-      hapticTimer = setTimeout(() => doubleImpact(), 400);
-      // FIX G: fullPush alert도 isPaused 연동.
-      pitTimerRemainingMsRef.current = FULL_PUSH_ALERT_MS;
-      pitTimerStartedAtRef.current = Date.now();
-      pitTimerRef.current = setTimeout(() => {
-        closeBoxBox();
-        setPitPhase('none');
-      }, FULL_PUSH_ALERT_MS);
+      const haptic = setTimeout(() => doubleImpact(), 400);
+      return () => clearTimeout(haptic);
     }
-
-    return () => {
-      if (pitTimerRef.current) {
-        clearTimeout(pitTimerRef.current);
-        pitTimerRef.current = null;
-      }
-      if (hapticTimer) clearTimeout(hapticTimer);
-    };
-  }, [pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase, inPitDurationMs]);
-
-  // FIX G: isPaused 연동 — boxbox/inPit/fullPush 모두 일시정지/재개. 잔여 시간 보존.
-  //
-  // 주의: pitPhase도 deps에 포함 — pitPhase가 새 phase로 바뀔 때 이 effect가 실행되지만,
-  // 그 시점에는 pitPhase effect가 먼저 타이머를 시작해 pitTimerRef.current != null.
-  // resume 분기의 `if (pitTimerRef.current === null)` 가드가 중복 타이머 시작을 막음.
-  // (pitPhase effect와 순서: pitPhase effect → isPaused effect 순으로 실행 보장)
-  useEffect(() => {
-    if (pitPhase !== 'inPit' && pitPhase !== 'boxbox' && pitPhase !== 'fullPush') return;
-    if (isPaused) {
-      // 타이머 중지 + 잔여 시간 갱신
-      if (pitTimerRef.current) {
-        clearTimeout(pitTimerRef.current);
-        pitTimerRef.current = null;
-        const elapsed = Date.now() - pitTimerStartedAtRef.current;
-        pitTimerRemainingMsRef.current = Math.max(0, pitTimerRemainingMsRef.current - elapsed);
-      }
-    } else {
-      // 일시정지에서 재개: pitTimerRef가 null일 때만 시작 (pause가 타이머를 지운 경우).
-      // pitPhase 전환 시에는 pitPhase effect가 이미 타이머를 시작했으므로 스킵.
-      if (pitTimerRef.current === null) {
-        pitTimerStartedAtRef.current = Date.now();
-        pitTimerRef.current = setTimeout(() => {
-          if (pitPhase === 'boxbox') {
-            closeBoxBox();
-            if (useRunStore.getState().isFinalLap) {
-              setPitPhase('none');
-            } else {
-              setPitPhase('inPit');
-            }
-          } else if (pitPhase === 'inPit') {
-            setPitPhase('fullPush');
-            setBoxBoxActive(true);
-          } else if (pitPhase === 'fullPush') {
-            closeBoxBox();
-            setPitPhase('none');
-          }
-        }, pitTimerRemainingMsRef.current);
-      }
-    }
-  }, [isPaused, pitPhase, closeBoxBox, setBoxBoxActive, setPitPhase]);
+    return undefined;
+  }, [pitPhase]);
 
   return (
     <View style={styles.container}>

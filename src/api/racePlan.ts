@@ -53,6 +53,26 @@ export type ActiveRacePlan = {
    * race: 예약된 fullPush 발화 시각. qualifying: 항상 null.
    */
   nextFullPushAtMs: number | null;
+
+  /**
+   * 묶음 2: alert 단계 동기화 필드.
+   * background가 발화한 직후 foreground polling이 'boxbox'/'fullPush' alert phase를
+   * derive할 수 있게 표시. 발화 후 4초(ALERT_MS) 이내면 alert phase로 표시.
+   */
+  lastFiredAt: 'boxbox' | 'fullPush' | null;
+  lastFiredAtMs: number | null;
+
+  /**
+   * 묶음 2: lap segment timing 필드.
+   * background에서 lap/pit segment의 duration·distM 계산용. foreground RAF에서
+   * 추적하던 lapStartKmRef/lapStartMsRef를 background로 이전.
+   * - workStartedAtMs / workStartedAtKm: 직전 회복 종료(또는 race 시작) 시점
+   * - pitStartedAtMs / pitStartedAtKm: 직전 boxbox 발화 시점
+   */
+  workStartedAtMs: number;
+  workStartedAtKm: number;
+  pitStartedAtMs: number | null;
+  pitStartedAtKm: number | null;
 };
 
 export function getActiveRacePlan(): ActiveRacePlan | null {

@@ -189,17 +189,28 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       recoveryDurationMs: 0,
       mode: 'qualifying',
     }));
-    setActiveRacePlan({
-      mode: 'qualifying',
-      isRunning: true,
-      startedAtMs: Date.now(),
-      intervalKm: 1,
-      recoveryDurationMs: 0,
-      maxReps: 1,
-      lastBoxBoxAtKm: 0,
-      completedReps: 0,
-      nextFullPushAtMs: null,
-    });
+    {
+      const nowMs = Date.now();
+      setActiveRacePlan({
+        mode: 'qualifying',
+        isRunning: true,
+        startedAtMs: nowMs,
+        intervalKm: 1,
+        recoveryDurationMs: 0,
+        maxReps: 1,
+        lastBoxBoxAtKm: 0,
+        completedReps: 0,
+        nextFullPushAtMs: null,
+        // 묶음 2: qualifying은 boxbox/fullPush 분기 안 탐. lap timing 필드는 race 전용
+        // 이지만 ActiveRacePlan 타입을 단일화 유지하기 위해 null/now로 채움.
+        lastFiredAt: null,
+        lastFiredAtMs: null,
+        workStartedAtMs: nowMs,
+        workStartedAtKm: 0,
+        pitStartedAtMs: null,
+        pitStartedAtKm: null,
+      });
+    }
   }, [phase]);
 
   // Dev-only: simulate distance increasing over time (1km in 30s)

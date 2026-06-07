@@ -56,6 +56,10 @@ import {
   updateActiveRacePlan,
   type ActiveRacePlan,
 } from '../api/racePlan';
+import { appendRaceLapEntry, getRaceLapLog } from '../api/raceLapLog';
+import { updateLiveActivity, getCurrentActivityId } from './liveActivity';
+import { useAppStore } from '../store/appStore';
+import { CIRCUITS } from '../config/circuits';
 
 /**
  * Background race event check — distance 누적 직후 호출.
@@ -102,19 +106,43 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   }
 
   // ── RACE mode ──────────────────────────────────────────────────────────────
-  // (1) 예약된 fullPush 시점 도래
+  // 묶음 2: trigger 발화 + plan 업데이트 + lap entry push + LA update 모두 여기서.
+  // foreground useRunning checkBoxBox는 폐기 (UI는 polling으로 sync).
+
+  // (1) 예약된 fullPush 시점 도래 → 회복 종료 → 다음 work 시작
   if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
     try { await playSound('fullPush'); } catch {}
     gpsDiag.bgEventFullPushFired++;
-    // FIX D: 회복 종료 시점을 다음 work 측정 시작점으로 갱신.
-    // foreground의 workStartKmRef는 회복 종료 시 distKm로 갱신되므로 background도
-    // 동일하게 currentAccum으로 맞춤. 안 그러면 background workKm 계산에 회복 거리가
-    // 그대로 누적되어 박스박스 발화 시점이 일찍/늦게 어긋남.
     const accumAtFullPush = readAccum();
+
+    // 회복 segment lap entry push (type='pit')
+    if (plan.pitStartedAtMs != null && plan.pitStartedAtKm != null) {
+      const pitDistM = Math.max(0, Math.round((accumAtFullPush - plan.pitStartedAtKm) * 1000));
+      const pitDurationSec = Math.max(0.1, (now - plan.pitStartedAtMs) / 1000);
+      const idx = getRaceLapLog().length;
+      appendRaceLapEntry({
+        idx,
+        type: 'pit',
+        distM: pitDistM,
+        durationSec: pitDurationSec,
+        paceS: null,
+      });
+    }
+
+    // work 측정 시작점 갱신 + alert 표시 timestamp + work timing 시작
     plan = updateActiveRacePlan({
       nextFullPushAtMs: null,
       lastBoxBoxAtKm: accumAtFullPush,
+      lastFiredAt: 'fullPush',
+      lastFiredAtMs: now,
+      workStartedAtMs: now,
+      workStartedAtKm: accumAtFullPush,
+      pitStartedAtMs: null,
+      pitStartedAtKm: null,
     }) ?? plan;
+
+    // LA update — pitPhase='fullPush' (잠금 중 alert 표시 갱신)
+    await fireLAUpdate(plan, accumAtFullPush, now, 'fullPush').catch(() => {});
   }
 
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
@@ -124,17 +152,74 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
     if (workKm >= plan.intervalKm) {
       try { await playSound('boxbox'); } catch {}
       gpsDiag.bgEventBoxBoxFired++;
-      updateActiveRacePlan({
+
+      // work segment lap entry push (type='lap')
+      const distM = Math.max(0, Math.round((currentAccum - plan.workStartedAtKm) * 1000));
+      const durationSec = Math.max(0.1, (now - plan.workStartedAtMs) / 1000);
+      const paceS = distM > 0 ? durationSec / (distM / 1000) : null;
+      const idx = getRaceLapLog().length;
+      appendRaceLapEntry({
+        idx,
+        type: 'lap',
+        distM,
+        durationSec,
+        paceS: paceS != null && isFinite(paceS) ? Math.round(paceS) : null,
+      });
+
+      // plan 업데이트: 박스박스 발화 + 회복 예약 + pit timing 시작
+      plan = updateActiveRacePlan({
         lastBoxBoxAtKm: currentAccum,
         completedReps: plan.completedReps + 1,
         nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
-      });
+        lastFiredAt: 'boxbox',
+        lastFiredAtMs: now,
+        pitStartedAtMs: now,
+        pitStartedAtKm: currentAccum,
+      }) ?? plan;
+
+      // LA update — pitPhase='boxbox' (잠금 중 alert 표시)
+      await fireLAUpdate(plan, currentAccum, now, 'boxbox').catch(() => {});
     } else {
       gpsDiag.bgEventWorkNotReady++;
     }
   } else if (plan.nextFullPushAtMs != null) {
     gpsDiag.bgEventNotWorkPhase++;
   }
+}
+
+/**
+ * 묶음 2: background에서 LA update 호출.
+ * Apple ActivityKit은 background에서도 update 허용. expo-modules-core AsyncFunction
+ * 호출 자체는 RN JS context에서 자유롭게 가능 — locationTask callback도 동일 context.
+ * paceS/elapsedMs는 plan + readAccum 기반으로 계산. selectedCircuitId + CIRCUITS로
+ * prog 계산.
+ */
+async function fireLAUpdate(
+  plan: ActiveRacePlan,
+  distKm: number,
+  now: number,
+  pitPhase: 'boxbox' | 'fullPush',
+): Promise<void> {
+  const id = getCurrentActivityId();
+  if (!id) return;
+  const elapsedMs = Math.max(0, now - plan.startedAtMs);
+  const paceS = distKm > 0 ? Math.round(elapsedMs / 1000 / distKm) : 0;
+  const selectedCircuitId = useAppStore.getState().selectedCircuitId;
+  const circuitKm = CIRCUITS.find((c) => c.id === selectedCircuitId)?.distanceKm ?? 0;
+  const prog = circuitKm > 0 ? Math.min(distKm / circuitKm, 1) : 0;
+  // tire 정보는 background에 없으므로 store 또는 'medium' 폴백.
+  const tire = (useAppStore.getState() as { tire?: 'soft' | 'medium' | 'hard' | 'wet' }).tire ?? 'medium';
+  await updateLiveActivity(id, {
+    distKm,
+    elapsedMs,
+    paceS,
+    sector: 'red',
+    tire,
+    pitPhase,
+    prog,
+    isPaused: false,
+    mode: 'race',
+  });
 }
 
 export const BACKGROUND_LOCATION_TASK = 'pit-run-background-location';
