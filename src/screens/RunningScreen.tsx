@@ -491,7 +491,6 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         <CircuitMap
           progress={prog}
           startColor={isInPitTheme ? PALETTE.grey : displayTheme.start}
-          endColor={isInPitTheme ? PALETTE.white : displayTheme.end}
           path={circuitPath}
           accentColor={isInPitTheme ? PALETTE.grey : displayTheme.start}
           overlays={activeCircuit?.overlays}

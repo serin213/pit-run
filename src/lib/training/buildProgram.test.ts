@@ -21,8 +21,9 @@ describe('buildProgram', () => {
 
     // intervalM = max(400, min(1200, round(600*1.0))) = 600
     expect(result.intervals.distanceM).toBe(600);
-    // rawReps = 6 * 0.8 * 1.0 * 1.0 = 4.8 → maxFitReps 제약으로 4
-    expect(result.intervals.reps).toBe(4);
+    // rawReps = 6 * 0.8 * 1.0 * 1.0 = 4.8. 묶음 1a recovery max 180으로 줄면서
+    // expectedCycleKm 작아짐 → maxFitReps 늘어 5 됨.
+    expect(result.intervals.reps).toBe(5);
     // hardPace ≈ 351 (intervalKm 0.6 기준 Riegel)
     expect(result.intervals.hardPace).toBeGreaterThanOrEqual(340);
     expect(result.intervals.hardPace).toBeLessThanOrEqual(360);

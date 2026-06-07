@@ -73,7 +73,9 @@ export const MAX_INTERVAL_M = 1200;
 // 안 내려가게 절대 하한.
 export const ABSOLUTE_MIN_INTERVAL_M = 300;
 export const MIN_REPS = 4;
-export const RECOVERY_BOUNDS_SEC = { min: 60, max: 240 };
+// 묶음 1a: max 240→180s. 240s(4분) 회복은 인터벌 트레이닝 표준 대비 너무 길어
+// race 한 사이클이 늘어지고 사용자 체감 페이스 감각이 깨짐.
+export const RECOVERY_BOUNDS_SEC = { min: 60, max: 180 };
 
 export const PROGRESSION: { factor: number; label: string }[] = [
   { factor: 1.00, label: 'BASE' },

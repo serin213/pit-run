@@ -24,7 +24,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
-import { calcRaceRank, percentileToPNumber } from '../lib/ranking/calcRank';
+import { calcRaceRank, percentileToPNumber, buildUnrankedResult } from '../lib/ranking/calcRank';
 import type { Tire as RankTire } from '../lib/ranking/types';
 import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
@@ -257,7 +257,9 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       selectedTire === 'wet' ? 'medium' : (selectedTire as RankTire);
     const plannedReps = activePlan?.intervals.reps ?? 0;
     if (plannedReps <= 0) return null;
-    return calcRaceRank({
+    // 묶음 1a (FIX 3-3): poolGradeCount 미스매치 진단 — userRankInGradePool > poolGradeCount면
+    // calcRaceRank가 throw. 어떤 입력이 들어가는지 로그로 추적해 root cause 파악.
+    const rankInput = {
       userHardAveragePaceSec: totalPaceS,
       userGrade: qualifyingResult.grade,
       circuitId: circuit.id,
@@ -269,7 +271,26 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       poolGradeCount: 0,
       userRankInPool: null,
       userRankInGradePool: 1,
-    });
+    };
+    console.warn('[calcRank input]', JSON.stringify({
+      userRankInGradePool: rankInput.userRankInGradePool,
+      poolGradeCount: rankInput.poolGradeCount,
+      userRankInPool: rankInput.userRankInPool,
+      poolTotalCount: rankInput.poolTotalCount,
+    }));
+    // 묶음 1a (FIX 3-1): try-catch fallback. calcRaceRank의 assertion(line 258, 261)이
+    // throw하면 화면 전체가 깨지는 대신 UNRANKED 결과 표시 + 경고 로그.
+    try {
+      return calcRaceRank(rankInput);
+    } catch (e) {
+      console.warn('[ResultScreen] calcRank failed, using UNRANKED:', e);
+      const unranked = buildUnrankedResult();
+      return {
+        globalRank: unranked,
+        gradeRank: unranked,
+        isLocked: true,
+      };
+    }
   })();
 
   // 다음 등급 정보 (동기 계산)

@@ -12,7 +12,8 @@ type Rect = { minX: number; minY: number; maxX: number; maxY: number };
 interface Props {
   progress: number;
   startColor?: string;
-  endColor?: string;
+  // 묶음 1a: endColor 제거 — gradient 폐기로 더 이상 사용 안 함.
+  // 호출부에서 옛 prop을 전달해도 무시되도록 [legacy] 표시 없이 그냥 미정의.
   path?: string;
   accentColor?: string;
   overlays?: Array<{ d: string; fill: 'accent' | 'light' }>;
@@ -43,32 +44,8 @@ function getTotalLength(path: string) {
   return getPathProps(path).getTotalLength();
 }
 
-function lerp(a: number, b: number, t: number) {
-  return Math.round(a + (b - a) * t);
-}
-
-function toHex(v: number) {
-  return v.toString(16).padStart(2, '0').toUpperCase();
-}
-
-function parseHexColor(hex: string) {
-  const normalized = hex.replace('#', '');
-  return {
-    r: Number.parseInt(normalized.slice(0, 2), 16),
-    g: Number.parseInt(normalized.slice(2, 4), 16),
-    b: Number.parseInt(normalized.slice(4, 6), 16),
-  };
-}
-
-function colorAt(startHex: string, endHex: string, t: number) {
-  const clamped = Math.max(0, Math.min(1, t));
-  const start = parseHexColor(startHex);
-  const end = parseHexColor(endHex);
-  const r = lerp(start.r, end.r, clamped);
-  const g = lerp(start.g, end.g, clamped);
-  const b = lerp(start.b, end.b, clamped);
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
+// 묶음 1a: gradient 보간 함수들 (lerp, toHex, parseHexColor, colorAt) 제거.
+// 단일 색상 두 Path 패턴으로 전환.
 
 /**
  * Find the path length closest to a given point, searching only within [searchMin, searchMax].
@@ -247,7 +224,6 @@ export default function CircuitMap({
   dotColor,
   progress,
   startColor = PALETTE.yellow,
-  endColor = '#FC8A27',
   path = CIRCUIT_PATH,
   accentColor,
   overlays,
@@ -269,40 +245,20 @@ export default function CircuitMap({
 
   const hasAnchors = startRect != null && checkerFlagCenter != null;
 
-  // FIX 1: closed path는 전체 길이 만큼 진행 가능. anchor 유무 무관.
-  // startLen은 gradient 시작 offset일 뿐, 진행 거리 자체는 항상 p*totalLength.
-  // gradientSegments 안에서 gap % totalLength로 wrap 그리기.
+  // closed path 전체 길이 만큼 진행 가능. anchor 유무 무관.
   const activeLen = p * totalLength;
-  const drawn = Math.max(2, activeLen);
 
-  // Total gradient span for color interpolation (backtrack + active range)
-  const totalSpan = totalLength;
-
-
-  const gradientSegments = useMemo(() => {
-    const count = Math.max(36, Math.min(220, Math.ceil(drawn / 6)));
-    const segLen = drawn / count;
-    const gapOffset = hasAnchors ? startLen : 0;
-    const out: Array<{ color: string; gap: number; len: number; wrap?: boolean }> = [];
-
-    for (let i = 0; i < count; i += 1) {
-      const rawGap = gapOffset + i * segLen;
-      const gap = rawGap % totalLength;
-      const colorT = count <= 1 ? 0 : i / (count - 1);
-      out.push({
-        color: colorAt(startColor, endColor, colorT),
-        gap,
-        len: segLen,
-      });
-    }
-
-    return out;
-  }, [drawn, endColor, hasAnchors, startColor, startLen, totalSpan]);
+  // 묶음 1a: wrap-around 판정 — startLen + activeLen이 totalLength를 넘으면
+  // 두 segment(끝까지 + 시작부터)로 분리 그리기. 정상 케이스는 단일 segment.
+  const wrapsAround = hasAnchors && startLen + activeLen > totalLength;
+  // 단일 active 색상 — accentColor 우선, 없으면 startColor.
+  const activeColor = accentColor ?? startColor;
+  const inactiveColor = 'rgba(255,255,255,0.08)';
 
   const dotPoint = useMemo(() => {
     if (!dotColor) return null;
     const pathProps = getPathProps(path);
-    // FIX 1: closed path wrap-around — startLen에서 출발해 p*total만큼 진행하면
+    // closed path wrap-around — startLen에서 출발해 p*total만큼 진행하면
     // total 경계 넘는 케이스 % totalLength로 처리.
     const dotLen = hasAnchors ? (startLen + p * totalLength) % totalLength : p * totalLength;
     return pathProps.getPointAtLength(dotLen);
@@ -311,7 +267,14 @@ export default function CircuitMap({
   return (
     <View style={styles.wrap}>
       <Svg width="100%" height="100%" viewBox={`0 0 ${vbW} ${vbH}`} preserveAspectRatio="xMidYMid meet">
-        <Path d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeMiterlimit={10} />
+        {/* 회색 트랙 전체 */}
+        <Path
+          d={path}
+          fill="none"
+          stroke={inactiveColor}
+          strokeWidth={sw}
+          strokeMiterlimit={10}
+        />
         {overlays?.map((o, i) => (
           <Path
             key={`overlay-${i}`}
@@ -319,19 +282,54 @@ export default function CircuitMap({
             fill={o.fill === 'accent' ? (accentColor ?? startColor) : PALETTE.white}
           />
         ))}
-        {[...gradientSegments].reverse().map((seg, idx) => (
+
+        {/* 진행분: anchor 없으면 단순 dashoffset 0, 있으면 startLen부터 시작 */}
+        {!wrapsAround && hasAnchors && activeLen > 0 && (
           <Path
-            key={`seg-${idx}`}
             d={path}
-            fill="none"
-            stroke={seg.color}
+            stroke={activeColor}
             strokeWidth={sw}
-            strokeMiterlimit={10}
-            strokeLinecap="butt"
-            strokeLinejoin="round"
-            strokeDasharray={`0 ${seg.gap} ${seg.len + 0.2} ${totalLength}`}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${activeLen} ${totalLength}`}
+            strokeDashoffset={-startLen}
           />
-        ))}
+        )}
+        {!wrapsAround && !hasAnchors && activeLen > 0 && (
+          <Path
+            d={path}
+            stroke={activeColor}
+            strokeWidth={sw}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${activeLen} ${totalLength}`}
+          />
+        )}
+
+        {/* 진행분 wrap: [startLen → totalLength] + [0 → 잔여] 두 segment */}
+        {wrapsAround && (
+          <>
+            <Path
+              d={path}
+              stroke={activeColor}
+              strokeWidth={sw}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${totalLength - startLen} ${totalLength}`}
+              strokeDashoffset={-startLen}
+            />
+            <Path
+              d={path}
+              stroke={activeColor}
+              strokeWidth={sw}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${(startLen + activeLen) - totalLength} ${totalLength}`}
+              strokeDashoffset={0}
+            />
+          </>
+        )}
+
         {dotPoint && dotColor ? (
           <>
             <Circle cx={dotPoint.x} cy={dotPoint.y} r={8} fill={dotColor} fillOpacity={0.5} />
