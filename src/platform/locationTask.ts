@@ -141,8 +141,12 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       pitStartedAtKm: null,
     }) ?? plan;
 
-    // LA update — pitPhase='fullPush' (잠금 중 alert 표시 갱신)
-    await fireLAUpdate(plan, accumAtFullPush, now, 'fullPush').catch(() => {});
+    // LA update — pitPhase='none' (잠금 중 work 단계로 즉시 전환).
+    // 사용자 사양 B-3-2: fullPush 발화 직후 LA를 work phase로. RN UI alert 'fullPush'는
+    // foreground polling(useRunning)의 derivePitPhaseFromPlan이 4초 동안 표시.
+    await fireLAUpdate(plan, accumAtFullPush, now, 'none').catch((e) => {
+      console.warn('[locationTask] LA update (fullPush) failed:', e);
+    });
   }
 
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
@@ -177,8 +181,12 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         pitStartedAtKm: currentAccum,
       }) ?? plan;
 
-      // LA update — pitPhase='boxbox' (잠금 중 alert 표시)
-      await fireLAUpdate(plan, currentAccum, now, 'boxbox').catch(() => {});
+      // LA update — pitPhase='inPit' (잠금 중 회복 단계로 즉시 전환).
+      // 사용자 사양 B-3-1: boxbox 발화 직후 LA를 회복 phase로. RN UI alert 'boxbox'는
+      // foreground polling이 4초 동안 표시 (잠금 해제 시점에 alert 사운드만 들림).
+      await fireLAUpdate(plan, currentAccum, now, 'inPit').catch((e) => {
+        console.warn('[locationTask] LA update (boxbox) failed:', e);
+      });
     } else {
       gpsDiag.bgEventWorkNotReady++;
     }
@@ -198,7 +206,7 @@ async function fireLAUpdate(
   plan: ActiveRacePlan,
   distKm: number,
   now: number,
-  pitPhase: 'boxbox' | 'fullPush',
+  pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed',
 ): Promise<void> {
   const id = getCurrentActivityId();
   if (!id) return;

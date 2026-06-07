@@ -261,6 +261,7 @@ export const useRunStore = create<RunState>((set, get) => ({
   closeBoxBox: () => set({ boxBoxActive: false }),
   setBoxBoxActive: (active) => set({ boxBoxActive: active }),
   setPitPhase: (phase) => set({ pitPhase: phase }),
-  pushLap: (entry) => set((s) => ({ lapLog: [...s.lapLog, entry] })),
-  setFinalLap: (v) => set({ isFinalLap: v }),
+  // 묶음 2 보완: implicit any 방지 위해 명시적 타입.
+  pushLap: (entry: LapEntry) => set((s: RunState) => ({ lapLog: [...s.lapLog, entry] })),
+  setFinalLap: (v: boolean) => set({ isFinalLap: v }),
 }));
