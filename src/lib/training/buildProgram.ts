@@ -65,7 +65,13 @@ export const RIEGEL_EXPONENT = 0.06;
 export const EASY_PACE_FACTOR = 1.30;
 export const WALK_THRESHOLD_SEC = 540;
 export const MIN_HARD_DISTANCE_KM = 1.0;
-export const MIN_INTERVAL_M = 100;
+// FIX 4: 일반 인터벌 표준 범위 (400~1200m). circuit.baseIntervalM이 표준 안에
+// 들어와도 tire/grade factor에 의한 곱이 한쪽으로 튈 수 있어 clamp.
+export const MIN_INTERVAL_M = 400;
+export const MAX_INTERVAL_M = 1200;
+// 역산 분기에서 cyclesFit이 MIN_REPS(4) 못 채울 때만 사용. 그래도 300m 이하로는
+// 안 내려가게 절대 하한.
+export const ABSOLUTE_MIN_INTERVAL_M = 300;
 export const MIN_REPS = 4;
 export const RECOVERY_BOUNDS_SEC = { min: 60, max: 240 };
 
@@ -125,9 +131,11 @@ export function buildProgram(
   const cycle = PROGRESSION[sessionCount % 4];
 
   // 2단계: 인터벌 거리
+  // FIX 4: MIN/MAX 양쪽 clamp — tire.distance factor가 1.2(hard)면 long-circuit이
+  // 더 길게, 0.8(soft)면 더 짧게. 양 끝 모두 표준 범위 밖으로 안 가게.
   let intervalM = Math.max(
     MIN_INTERVAL_M,
-    Math.round(circuit.baseIntervalM * t.distance),
+    Math.min(MAX_INTERVAL_M, Math.round(circuit.baseIntervalM * t.distance)),
   );
   let intervalKm = intervalM / 1000;
 
@@ -165,8 +173,10 @@ export function buildProgram(
     //   MIN_REPS × intervalKm × (1 + recoveryFactor) ≤ distanceKm
     //   ⟹ intervalKm ≤ distanceKm / (MIN_REPS × (1 + recoveryFactor))
     const recoveryFactor = (hardPace * t.recovery) / recoveryPace;
+    // FIX 4: 역산해도 ABSOLUTE_MIN_INTERVAL_M(300m) 아래로 안 내려감.
+    // 정상 흐름의 MIN_INTERVAL_M(400)은 역산 케이스에선 너무 빡빡해서 별도 하한.
     const maxIntervalM = Math.max(
-      MIN_INTERVAL_M,
+      ABSOLUTE_MIN_INTERVAL_M,
       Math.floor((circuit.distanceKm / MIN_REPS / (1 + recoveryFactor)) * 1000),
     );
 

@@ -204,7 +204,11 @@ export function getCircuitPointAtProgress(
   if (startRect && checkerFlagCenter) {
     const total = props.getTotalLength();
     const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    return props.getPointAtLength(startLen + p * (total - startLen));
+    // FIX 1: closed path는 startLen에서 시작해서 p×total만큼 진행. wrap-around.
+    // 기존 (startLen + p*(total-startLen))는 잘못 — total 위치에서 멈춰 finish line
+    // 직전까지만 그려짐. 실제 서킷은 closed loop이라 다시 startLen으로 돌아옴.
+    const targetLen = (startLen + p * total) % total;
+    return props.getPointAtLength(targetLen);
   }
 
   return props.getPointAtLength(p * props.getTotalLength());
@@ -224,7 +228,8 @@ export function getCircuitTangentAtProgress(
   let len: number;
   if (startRect && checkerFlagCenter) {
     const { startLen } = getAnchorLengths(path, startRect, checkerFlagCenter);
-    len = startLen + p * (total - startLen);
+    // FIX 1: closed path wrap-around (getCircuitPointAtProgress와 동일 패턴).
+    len = (startLen + p * total) % total;
   } else {
     len = p * total;
   }
@@ -264,8 +269,10 @@ export default function CircuitMap({
 
   const hasAnchors = startRect != null && checkerFlagCenter != null;
 
-  // Forward gradient: startLen → startLen + p*(endLen-startLen)
-  const activeLen = hasAnchors ? p * (totalLength - startLen) : p * totalLength;
+  // FIX 1: closed path는 전체 길이 만큼 진행 가능. anchor 유무 무관.
+  // startLen은 gradient 시작 offset일 뿐, 진행 거리 자체는 항상 p*totalLength.
+  // gradientSegments 안에서 gap % totalLength로 wrap 그리기.
+  const activeLen = p * totalLength;
   const drawn = Math.max(2, activeLen);
 
   // Total gradient span for color interpolation (backtrack + active range)
@@ -295,7 +302,9 @@ export default function CircuitMap({
   const dotPoint = useMemo(() => {
     if (!dotColor) return null;
     const pathProps = getPathProps(path);
-    const dotLen = hasAnchors ? startLen + p * (totalLength - startLen) : p * totalLength;
+    // FIX 1: closed path wrap-around — startLen에서 출발해 p*total만큼 진행하면
+    // total 경계 넘는 케이스 % totalLength로 처리.
+    const dotLen = hasAnchors ? (startLen + p * totalLength) % totalLength : p * totalLength;
     return pathProps.getPointAtLength(dotLen);
   }, [dotColor, path, p, totalLength, startLen, hasAnchors]);
 

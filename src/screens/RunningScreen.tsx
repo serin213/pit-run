@@ -637,6 +637,9 @@ function BgEventDiagPanel() {
     const id = setInterval(() => setDiagTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+  // FIX 5: race 시작 직후 plan 핵심값 확인용. iKm/reps/recS를 같이 표시해서
+  // 잘못된 baseIntervalM 또는 grade factor로 인터벌이 너무 짧은 케이스 식별 가능.
+  const plan = useAppStore.getState().activePlan;
   return (
     <View
       style={{
@@ -658,6 +661,15 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>nr: {gpsDiag.bgEventWorkNotReady}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>nw: {gpsDiag.bgEventNotWorkPhase}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>q: {gpsDiag.bgEventQualifying}</Text>
+      <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
+        iKm: {plan?.intervals.distanceM != null ? (plan.intervals.distanceM / 1000).toFixed(2) : '?'}
+      </Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>
+        reps: {plan?.intervals.reps ?? '?'}
+      </Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>
+        recS: {plan?.recovery.durationSec ?? '?'}
+      </Text>
     </View>
   );
 }

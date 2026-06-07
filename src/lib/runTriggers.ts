@@ -19,8 +19,14 @@ export function shouldTriggerBoxBox(params: {
   distKm: number;
   workStartKm: number;
   intervalKm: number;
+  /** FIX 8: 최종 랩 진입 후엔 boxbox 사이클 절대 시작 안 함. true면 즉시 false 반환. */
+  isFinalLap?: boolean;
 }): boolean {
-  const { phase, triggerCount, maxReps, distKm, workStartKm, intervalKm } = params;
+  const { phase, triggerCount, maxReps, distKm, workStartKm, intervalKm, isFinalLap } = params;
+  // FIX 8: 최종 랩 진입했으면 회복 사이클 시작 금지 — 사용자가 끝까지 work로 달려야.
+  // useRunning의 isFinalLap 분기가 boxbox 안 띄우는 게 정상이지만, 경계 케이스
+  // (회복 종료 직후 final lap 트리거)에서 한 사이클 더 발화 가능 → 여기서 차단.
+  if (isFinalLap === true) return false;
   if (phase !== 'none') return false;
   if (triggerCount >= maxReps) return false;
   return distKm - workStartKm >= intervalKm;

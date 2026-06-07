@@ -181,6 +181,14 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
     if (phase !== 'qualifying') return;
     if (racePlanSetRef.current) return;
     racePlanSetRef.current = true;
+    // FIX 2: qualifying 시작 시점 plan 값 진단 로그.
+    console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
+      intervalKm: 1,
+      lastBoxBoxAtKm: 0,
+      maxReps: 1,
+      recoveryDurationMs: 0,
+      mode: 'qualifying',
+    }));
     setActiveRacePlan({
       mode: 'qualifying',
       isRunning: true,

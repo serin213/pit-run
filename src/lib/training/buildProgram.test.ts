@@ -6,7 +6,9 @@ import {
   type User,
 } from './buildProgram';
 
-const MODENA: Circuit = { id: 'modena', distanceKm: 5, baseIntervalM: 200, baseReps: 8 };
+// FIX 4: 일반 인터벌 표준 (400~1200m)에 맞춘 픽스처. 이전 200은 새 MIN_INTERVAL_M(400)에
+// 막히면서 clamp 비교 의미 없어짐. 600은 중거리 표준 중앙.
+const MODENA: Circuit = { id: 'modena', distanceKm: 5, baseIntervalM: 600, baseReps: 6 };
 
 describe('buildProgram', () => {
   it('F2 user + Modena + medium → correct base program', () => {
@@ -17,18 +19,17 @@ describe('buildProgram', () => {
     };
     const result = buildProgram(user, MODENA, 'medium');
 
-    expect(result.intervals.distanceM).toBe(200);
-    expect(result.intervals.reps).toBe(6);
-    // hardPace should be around 334 (5:34/km)
-    // distanceFactor for 0.2km, paceFloor 0.94: speedupRange = 0.06, factor = 1 - 0.06 * 0.8 = 0.952
-    // hardPace = round(360 * 0.952 * 1.00) = round(342.72) = 343
-    // The spec says "334초 근처" so let's allow some range
-    expect(result.intervals.hardPace).toBeGreaterThanOrEqual(330);
-    expect(result.intervals.hardPace).toBeLessThanOrEqual(350);
+    // intervalM = max(400, min(1200, round(600*1.0))) = 600
+    expect(result.intervals.distanceM).toBe(600);
+    // rawReps = 6 * 0.8 * 1.0 * 1.0 = 4.8 → maxFitReps 제약으로 4
+    expect(result.intervals.reps).toBe(4);
+    // hardPace ≈ 351 (intervalKm 0.6 기준 Riegel)
+    expect(result.intervals.hardPace).toBeGreaterThanOrEqual(340);
+    expect(result.intervals.hardPace).toBeLessThanOrEqual(360);
     expect(result.recovery.mode).toBe('jog');
     expect(result.cyclePhase).toBe('BASE');
-    // expectedCycleDistanceM should be positive
-    expect(result.totals.expectedCycleDistanceM).toBeGreaterThan(200);
+    // expectedCycleDistanceM > intervalM (work + recovery 합산)
+    expect(result.totals.expectedCycleDistanceM).toBeGreaterThan(600);
   });
 
   it('F3 user + Modena + medium → walk recovery (easyPace > 540)', () => {
@@ -44,7 +45,7 @@ describe('buildProgram', () => {
     expect(result.recovery.label).toBe('WALK');
   });
 
-  it('F1 Champion + Modena + soft → PEAK cycle, distanceM 160', () => {
+  it('F1 Champion + Modena + soft → PEAK cycle, distanceM 480', () => {
     const user: User = {
       trainingBasePace: 210,
       grade: 'f1_champion',
@@ -54,14 +55,10 @@ describe('buildProgram', () => {
 
     // sessionCount 2 % 4 = 2 → PEAK
     expect(result.cyclePhase).toBe('PEAK');
-    // intervalM = max(100, round(200 * 0.80)) = max(100, 160) = 160
-    expect(result.intervals.distanceM).toBe(160);
-    // reps: rawReps = 8 * 1.2 * 1.25 * 1.10 = 13.2
-    // clampReps(13.2, 160, {min:5,max:14}, 1.10)
-    // targetVolumeKm = 1.0 * 1.10 = 1.1, minForVolume = ceil(1100/160) = ceil(6.875) = 7
-    // rounded = 13, effectiveMin = max(5,7) = 7, result = max(7, min(14, 13)) = 13
-    // maxFitReps for 5km ≥ 13 (expectedCycleKm ≈ 0.38), so reps = 13
-    expect(result.intervals.reps).toBe(13);
+    // FIX 4 픽스처: intervalM = max(400, min(1200, round(600 * 0.80))) = 480
+    expect(result.intervals.distanceM).toBe(480);
+    // reps는 새 픽스처에서 maxFitReps + repsBounds 영향으로 5
+    expect(result.intervals.reps).toBe(5);
   });
 
   it('totalSessionCount undefined → no crash, BASE cycle', () => {
@@ -100,7 +97,7 @@ describe('buildProgram', () => {
     }
   });
 
-  it('min interval distance: baseIntervalM 50 + soft → intervalM >= 100', () => {
+  it('min interval distance: baseIntervalM 50 + soft → intervalM >= 400 (FIX 4 clamp)', () => {
     const user: User = {
       trainingBasePace: 360,
       grade: 'f2',
@@ -109,8 +106,8 @@ describe('buildProgram', () => {
     const circuit: Circuit = { id: 'tiny', distanceKm: 3, baseIntervalM: 50, baseReps: 10 };
     const result = buildProgram(user, circuit, 'soft');
 
-    // intervalM = max(100, round(50 * 0.80)) = max(100, 40) = 100
-    expect(result.intervals.distanceM).toBeGreaterThanOrEqual(100);
+    // FIX 4: intervalM = max(400, min(1200, round(50 * 0.80))) = max(400, 40) = 400
+    expect(result.intervals.distanceM).toBeGreaterThanOrEqual(400);
   });
 
   it('short circuit → intervalM reduced so MIN_REPS fit', () => {

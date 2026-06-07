@@ -222,6 +222,15 @@ export function useRunning(options: UseRunningOptions = {}) {
       : TIRES[initialTire].boxBoxDistKm;
     const recoveryDurationMsInit = (activePlan?.recovery.durationSec ?? 8) * 1000;
     const maxRepsInit = activePlan ? activePlan.intervals.reps : Number.MAX_SAFE_INTEGER;
+    // FIX 2: race 시작 시점 plan 값 진단 로그 — 잘못된 intervalKm/maxReps/recovery로
+    // 박스박스가 너무 일찍/늦게 발화하는 케이스 추적용.
+    console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
+      intervalKm: intervalKmInit,
+      lastBoxBoxAtKm: 0,
+      maxReps: maxRepsInit,
+      recoveryDurationMs: recoveryDurationMsInit,
+      mode: 'race',
+    }));
     setActiveRacePlan({
       mode: 'race',
       isRunning: true,
@@ -309,6 +318,14 @@ export function useRunning(options: UseRunningOptions = {}) {
       // nextFullPushAtMs를 clear해서 background가 새 boxbox 발화 준비.
       const planAtPitEnd = getActiveRacePlan();
       if (planAtPitEnd) {
+        // FIX 2: phase-transition plan 갱신 진단.
+        console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
+          intervalKm: planAtPitEnd.intervalKm,
+          lastBoxBoxAtKm: distKm,
+          maxReps: planAtPitEnd.maxReps,
+          recoveryDurationMs: planAtPitEnd.recoveryDurationMs,
+          mode: planAtPitEnd.mode,
+        }));
         setActiveRacePlan({
           ...planAtPitEnd,
           lastBoxBoxAtKm: distKm,
@@ -402,6 +419,14 @@ export function useRunning(options: UseRunningOptions = {}) {
       const planNow = getActiveRacePlan();
       if (planNow) {
         const recMs = planNow.recoveryDurationMs;
+        // FIX 2: boxbox 발화 후 plan 갱신 진단.
+        console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
+          intervalKm: planNow.intervalKm,
+          lastBoxBoxAtKm: distKm,
+          maxReps: planNow.maxReps,
+          recoveryDurationMs: planNow.recoveryDurationMs,
+          mode: planNow.mode,
+        }));
         setActiveRacePlan({
           ...planNow,
           lastBoxBoxAtKm: distKm,
