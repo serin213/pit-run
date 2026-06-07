@@ -179,12 +179,13 @@ export function useRunning(options: UseRunningOptions = {}) {
   useEffect(() => {
     const id = activityIdRef.current;
     if (!id) return;
-    const { distKm, elapsedMs, paceS, sector, tire, prog } = useRunStore.getState();
+    const { distKm, elapsedMs, paceS, tire, prog } = useRunStore.getState();
     updateLiveActivity(id, {
       distKm,
       elapsedMs: Math.round(elapsedMs),
       paceS: Math.round(paceS),
-      sector,
+      // 묶음 1b: sector 시스템 제거 후 Swift LA API 보존을 위해 'yellow' 고정 전달.
+      sector: 'yellow',
       tire,
       pitPhase,
       prog,
@@ -254,13 +255,14 @@ export function useRunning(options: UseRunningOptions = {}) {
         const id = activityIdRef.current;
         if (id && ts - lastLAUpdateRef.current >= LA_UPDATE_INTERVAL_MS) {
           lastLAUpdateRef.current = ts;
-          const { distKm, elapsedMs, paceS, sector, tire, pitPhase: phase, prog } =
+          const { distKm, elapsedMs, paceS, tire, pitPhase: phase, prog } =
             useRunStore.getState();
           updateLiveActivity(id, {
             distKm,
             elapsedMs: Math.round(elapsedMs),
             paceS: Math.round(paceS),
-            sector,
+            // 묶음 1b: sector 시스템 제거 후 Swift LA API 보존을 위해 'yellow' 고정.
+            sector: 'yellow',
             tire,
             pitPhase: phase,
             prog,

@@ -39,5 +39,6 @@ export const COLORS = {
   },
 } as const;
 
-export type SectorColor = keyof typeof COLORS.sector;
+// 묶음 1b: SectorColor 타입 제거. teamColor로 통일. COLORS.sector 객체는 잔재
+// 정리를 미루기 위해 유지 (다음 단계에서 별도 제거).
 export type TireType = keyof typeof COLORS.tire;

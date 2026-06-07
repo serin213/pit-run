@@ -37,17 +37,8 @@ import { endAllLiveActivities } from '../platform/liveActivity';
 const FW = 402;
 const FH = 874;
 
-const BTN_BG = {
-  yellow: '#FFDD94',
-  purple: '#B850FF',
-  green: PALETTE.green,
-} as const;
-
-const BTN_ICON = {
-  yellow: PALETTE.yellow,
-  purple: '#C26AFF',
-  green: PALETTE.green,
-} as const;
+// 묶음 1b: BTN_BG/BTN_ICON sector 키 룩업 객체 제거. controlBgColor / controlIconColor는
+// isInPitTheme + teamColor 기반으로 인라인 계산.
 
 const PACE_FIT_SAMPLE = '99\'59"';
 const STAT_VALUE_LINE_HEIGHT = 36;
@@ -115,7 +106,6 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     distKm,
     elapsedMs,
     paceS,
-    sector,
     prog,
     isRunning,
     isPaused,
@@ -130,7 +120,6 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     closeBoxBox,
     setBoxBoxActive,
     setPitPhase,
-    setSector,
   } = useRunStore();
   const pitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // isPaused 연동: inPit 타이머 잔여시간 추적
@@ -175,12 +164,13 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     startRun();
   }, [startRun]);
 
-  const cfg = COLORS.sector[sector];
-  // 바텀싯이 떠있는 동안(pitPhase !== 'none')에는 항상 inPit 테마
+  // 묶음 1b: sector 시스템 제거. accent는 teamColor(profile.nameTagAccentColor) 우선,
+  // 미설정 시 PALETTE.yellow 폴백. 바텀싯이 떠있는 동안(pitPhase !== 'none')은 inPit 테마.
+  const teamColor = storeProfile?.nameTagAccentColor ?? PALETTE.yellow;
   const isInPitTheme = pitPhase !== 'none';
   const displayTheme = isInPitTheme
     ? { start: PALETTE.white, end: '#CBCBCC' }
-    : { start: cfg.start, end: cfg.end };
+    : { start: teamColor, end: teamColor };
   const circuitLabel = activeCircuit?.displayName ?? 'Shanghai';
   const circuitKm = activeCircuit?.distanceKm ?? CIRCUIT_KM;
   const circuitPath = activeCircuit?.trackPath;
@@ -267,8 +257,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const nameTagLeft = circuitLeft + circuitOffsetX + circuitPoint.x * circuitScale - nameTagW / 2;
   const nameTagTop = circuitTop + circuitOffsetY + circuitPoint.y * circuitScale - nameTagH / 2;
 
-  const controlBgColor = BTN_BG[sector];
-  const controlIconColor = BTN_ICON[sector];
+  // 묶음 1b: sector 키 룩업 → teamColor 단일화. pit in 회색 처리는 isInPitTheme 기준.
+  const controlBgColor = isInPitTheme ? PALETTE.grey : teamColor;
+  const controlIconColor = isInPitTheme ? PALETTE.white : teamColor;
   const statusTextColor = isInPitTheme || isPaused ? PALETTE.white : topTheme.text;
   const statusTextOpacity = isInPitTheme || isPaused ? 0.7 : 1;
 
@@ -524,15 +515,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
           >
             <Text style={styles.debugBoxBoxTxt}>BOX BOX</Text>
           </Pressable>
-          <Pressable onPress={() => setSector('yellow')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.yellow }]}>
-            <Text style={styles.debugSectorTxt}>Y</Text>
-          </Pressable>
-          <Pressable onPress={() => setSector('purple')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.purple }]}>
-            <Text style={styles.debugSectorTxt}>P</Text>
-          </Pressable>
-          <Pressable onPress={() => setSector('green')} style={[styles.debugSectorBtn, { backgroundColor: BTN_BG.green }]}>
-            <Text style={styles.debugSectorTxt}>G</Text>
-          </Pressable>
+          {/* 묶음 1b: sector 전환 디버그 버튼 3개 (Y/P/G) 제거 — sector 시스템 폐기 */}
         </View>
       )}
 
@@ -590,14 +573,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
               {isInPitTheme ? (
                 <Image source={IN_PIT_STOP_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
-                <StopButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
+                <StopButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
               )}
             </Pressable>
             <Pressable onPress={resumeRun}>
               {isInPitTheme ? (
                 <Image source={IN_PIT_PLAY_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
-                <PlayButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
+                <PlayButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
               )}
             </Pressable>
           </>
@@ -606,7 +589,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             {isInPitTheme ? (
               <Image source={IN_PIT_PAUSE_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
             ) : (
-              <PauseButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} sector={sector} />
+              <PauseButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
             )}
           </Pressable>
         )}
@@ -771,22 +754,7 @@ const styles = StyleSheet.create({
     lineHeight: 11,
     includeFontPadding: false,
   },
-  debugSectorBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  debugSectorTxt: {
-    color: COLORS.bg,
-    fontFamily: 'Formula1-Bold',
-    fontSize: 11,
-    lineHeight: 12,
-    includeFontPadding: false,
-  },
+  // 묶음 1b: debugSectorBtn/Txt 스타일 제거 — sector 전환 디버그 버튼 폐기.
   inPitControlButton: {
     width: CONTROL_BUTTON_SIZE,
     height: CONTROL_BUTTON_SIZE,

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TireType, SectorColor } from '../constants/colors';
+import type { TireType } from '../constants/colors';
 import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from './appStore';
@@ -29,8 +29,7 @@ interface RunState {
   paceS: number;
   prog: number; // 서킷 진행률 0~1
 
-  // 섹터/타이어
-  sector: SectorColor;
+  // 타이어 (묶음 1b: sector 색상 시스템 제거, teamColor로 통일됨)
   tire: TireType;
 
   // 히스토리
@@ -65,7 +64,6 @@ interface RunState {
   /** GPS 실측 거리 추가 (km). background task에서 필터링된 누적값 delta. */
   addGpsDistance: (km: number) => void;
   setGpsEnabled: (enabled: boolean) => void;
-  setSector: (sector: SectorColor) => void;
   setTire: (tire: TireType) => void;
   triggerBoxBox: () => void;
   closeBoxBox: () => void;
@@ -82,7 +80,6 @@ const INITIAL_STATE = {
   elapsedMs: 0,
   paceS: BASE_PACE_S,
   prog: 0,
-  sector: 'yellow' as SectorColor,
   tire: 'medium' as TireType,
   paceHistory: [],
   lastRecordDist: 0,
@@ -125,7 +122,6 @@ export const useRunStore = create<RunState>((set, get) => ({
       isRunning: true,
       isPaused: false,
       tire: get().tire,
-      sector: get().sector,
       tyreLog: [{ tire: get().tire, startDist: 0, endDist: 0 }],
       // race 시작 시점에 1회 생성 — ResultScreen이 re-mount되어도 동일 식별자
       // 사용 → upsert(onConflict:'id')로 DB 중복 차단.
@@ -146,7 +142,6 @@ export const useRunStore = create<RunState>((set, get) => ({
     set({
       ...INITIAL_STATE,
       tire: get().tire,
-      sector: get().sector,
       tyreLog: [{ tire: get().tire, startDist: 0, endDist: 0 }],
     }),
 
@@ -250,8 +245,6 @@ export const useRunStore = create<RunState>((set, get) => ({
   },
 
   setGpsEnabled: (enabled) => set({ gpsEnabled: enabled }),
-
-  setSector: (sector) => set({ sector }),
 
   setTire: (tire) => {
     const { distKm, tyreLog } = get();
