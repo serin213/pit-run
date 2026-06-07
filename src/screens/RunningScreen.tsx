@@ -573,14 +573,14 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
               {isInPitTheme ? (
                 <Image source={IN_PIT_STOP_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
-                <StopButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
+                <StopButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} teamColor={teamColor} />
               )}
             </Pressable>
             <Pressable onPress={resumeRun}>
               {isInPitTheme ? (
                 <Image source={IN_PIT_PLAY_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
               ) : (
-                <PlayButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
+                <PlayButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} teamColor={teamColor} />
               )}
             </Pressable>
           </>
@@ -589,7 +589,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             {isInPitTheme ? (
               <Image source={IN_PIT_PAUSE_BUTTON} style={styles.inPitControlButton} resizeMode="contain" />
             ) : (
-              <PauseButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} useImage />
+              <PauseButton color={controlIconColor} bgColor={controlBgColor} size={CONTROL_BUTTON_SIZE} teamColor={teamColor} />
             )}
           </Pressable>
         )}

@@ -280,20 +280,28 @@ private struct CircuitMapView: View {
 private let BG_COLOR = Color(hex: "#17171C")
 private let GREY     = Color(hex: "#666666")
 
-// Sector palette — mirrors src/constants/colors.ts PALETTE
-private func sectorColor(_ sector: String) -> Color {
-    switch sector {
-    case "yellow": return Color(hex: "#FCB827")
-    case "green":  return Color(hex: "#59B345")
-    case "purple": return Color(hex: "#8528C5")
-    default:       return Color(hex: "#FCB827")
+// 묶음 1b-LA: sector palette 폐기. teamColor (hex) → asset name 매핑.
+// PALETTE 9색 — pink/red/orange/yellow/green/teal/blue/purple/white.
+// hex 매칭 실패 시 'yellow' 폴백.
+private func teamColorName(_ hex: String) -> String {
+    switch hex.uppercased() {
+    case "#E03A8A": return "pink"
+    case "#E03A3E": return "red"
+    case "#FF8716": return "orange"
+    case "#FCB827": return "yellow"
+    case "#59B345": return "green"
+    case "#04CBBA": return "teal"
+    case "#3F5CFF": return "blue"
+    case "#8528C5": return "purple"
+    case "#FFFFFF": return "white"
+    default:        return "yellow"
     }
 }
 
-/// Theme accent: sector color normally, white when in pit.
-/// Mirrors RunningScreen.tsx `isInPitTheme ? PALETTE.white : sectorTheme` pattern.
-private func themeColor(sector: String, inPit: Bool) -> Color {
-    inPit ? Color.white : sectorColor(sector)
+/// Theme accent: teamColor hex 그대로 (inPit 시 white).
+/// Mirrors RunningScreen.tsx `isInPitTheme ? PALETTE.white : teamColor` pattern.
+private func themeColor(teamColor: String, inPit: Bool) -> Color {
+    inPit ? Color.white : Color(hex: teamColor)
 }
 
 // MARK: - Bar Ratios
@@ -308,13 +316,15 @@ private let BAR_RATIOS: [CGFloat] = [
 private struct LockNormalView: View {
     let circuitId: String
     let prog: Double
-    let sector: String
+    let sector: String  // 묶음 1b-LA: 호환성 위해 prop 잔존, 색상 결정엔 미사용
+    let teamColor: String
     let distKm: Double
     let paceS: Int
     let inPit: Bool
 
     var body: some View {
-        let color = themeColor(sector: sector, inPit: inPit)
+        // 묶음 1b-LA: sector 대신 teamColor 사용. inPit 시 white 분기 유지.
+        let color = themeColor(teamColor: teamColor, inPit: inPit)
         let info = CIRCUIT_DATA[circuitId] ?? CIRCUIT_DATA["spa"]!
 
         HStack(alignment: .top, spacing: 0) {
@@ -613,6 +623,7 @@ struct PitRunLiveActivityView: View {
                         circuitId: context.attributes.circuitId,
                         prog: state.prog,
                         sector: state.sector,
+                        teamColor: context.attributes.teamColor,
                         distKm: state.distKm,
                         paceS: state.paceS,
                         inPit: true
@@ -622,6 +633,7 @@ struct PitRunLiveActivityView: View {
                         circuitId: context.attributes.circuitId,
                         prog: state.prog,
                         sector: state.sector,
+                        teamColor: context.attributes.teamColor,
                         distKm: state.distKm,
                         paceS: state.paceS,
                         inPit: false
@@ -648,7 +660,7 @@ struct PitRunLiveActivity: Widget {
             let isRedTheme = state.mode == "warmup" || state.mode == "qualifying"
             let accentColor: Color = isRedTheme
                 ? Color.white
-                : themeColor(sector: state.sector, inPit: pitMode)
+                : themeColor(teamColor: context.attributes.teamColor, inPit: pitMode)
 
             let leftBtn: String
             let rightBtn: String
@@ -660,8 +672,10 @@ struct PitRunLiveActivity: Widget {
                 leftBtn  = isPaused ? "inpit-play" : "inpit-pause"
                 rightBtn = "inpit-stop"
             } else {
-                leftBtn  = isPaused ? "play-\(state.sector)" : "pause-\(state.sector)"
-                rightBtn = "stop-\(state.sector)"
+                // 묶음 1b-LA: state.sector → teamColorName(teamColor) 매핑.
+                let teamName = teamColorName(context.attributes.teamColor)
+                leftBtn  = isPaused ? "play-\(teamName)" : "pause-\(teamName)"
+                rightBtn = "stop-\(teamName)"
             }
 
             return DynamicIsland {

@@ -438,7 +438,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         distKm: 1,
         elapsedMs: oneKmMs,
         paceS: Math.round(result.paceSecPerKm),
-        sector: 'green',
+        // 묶음 1b-LA: LA color는 attributes.teamColor가 결정. state.sector는 dummy
+        // 'yellow' 통일 (Swift LockNormalView에서 색상 결정엔 미사용, 호환성 prop).
+        sector: 'yellow',
         tire: 'soft',
         pitPhase: 'completed',
         prog: 1,

@@ -7,15 +7,15 @@ interface Props {
   color: string;
   bgColor?: string;
   size?: number;
-  /** 묶음 1b: 이미지 아이콘 사용 여부. true면 PNG 아이콘(yellow), false/생략이면 SVG 색상화. */
-  useImage?: boolean;
+  /** 묶음 1b-LA: hex teamColor 전달 시 PNG 자산(9색 매핑) 사용. */
+  teamColor?: string;
 }
 
-export default function PlayButton({ color, bgColor, size = 76, useImage }: Props) {
-  if (useImage) {
+export default function PlayButton({ color, bgColor, size = 76, teamColor }: Props) {
+  if (teamColor) {
     return (
       <Image
-        source={getControlButtonImageSource('play')}
+        source={getControlButtonImageSource('play', teamColor)}
         style={{ width: size, height: size }}
         resizeMode="contain"
       />
