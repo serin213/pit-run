@@ -166,8 +166,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   }, [startRun]);
 
   // 묶음 1b: sector 시스템 제거. accent는 teamColor(profile.nameTagAccentColor) 우선,
-  // 미설정 시 PALETTE.yellow 폴백. 바텀싯이 떠있는 동안(pitPhase !== 'none')은 inPit 테마.
-  const teamColor = storeProfile?.nameTagAccentColor ?? PALETTE.yellow;
+  // 미설정 시 PALETTE.red 폴백 (Swift teamColorName / RN HEX_TO_NAME / LA payload
+  // 전체 일관성). 바텀싯이 떠있는 동안(pitPhase !== 'none')은 inPit 테마.
+  const teamColor = storeProfile?.nameTagAccentColor ?? PALETTE.red;
   const isInPitTheme = pitPhase !== 'none';
   const displayTheme = isInPitTheme
     ? { start: PALETTE.white, end: '#CBCBCC' }

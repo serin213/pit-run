@@ -16,11 +16,8 @@ export const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 
 export const COLORS = {
   bg: '#17171C',
-  sector: {
-    yellow: { start: PALETTE.yellow, end: '#FC8A27', glow: 'rgba(252,184,39,0.62)' },
-    purple: { start: PALETTE.purple, end: '#B328C5', glow: 'rgba(190,78,255,0.62)' },
-    green:  { start: PALETTE.green,  end: '#28C584', glow: 'rgba(89,179,69,0.62)'  },
-  },
+  // 잔재 정리: COLORS.sector 객체 제거 — 묶음 1a (gradient 폐기) + 1b (sector 시스템
+  // 제거) 이후 dead code. grep으로 호출처 0건 확인.
   tire: {
     soft:   PALETTE.red,
     medium: PALETTE.yellow,
@@ -39,6 +36,6 @@ export const COLORS = {
   },
 } as const;
 
-// 묶음 1b: SectorColor 타입 제거. teamColor로 통일. COLORS.sector 객체는 잔재
-// 정리를 미루기 위해 유지 (다음 단계에서 별도 제거).
+// 묶음 1b: SectorColor 타입 제거. teamColor로 통일. COLORS.sector dead 객체는
+// 잔재 정리에서 제거됨.
 export type TireType = keyof typeof COLORS.tire;

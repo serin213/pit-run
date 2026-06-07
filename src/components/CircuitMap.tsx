@@ -223,7 +223,8 @@ export default function CircuitMap({
   strokeWidth: sw = 5,
   dotColor,
   progress,
-  startColor = PALETTE.yellow,
+  // 잔재 정리: fallback yellow → red (Swift/RN/LA 일관). 호출부에서 override 됨.
+  startColor = PALETTE.red,
   path = CIRCUIT_PATH,
   accentColor,
   overlays,
