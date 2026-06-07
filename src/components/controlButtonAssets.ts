@@ -72,6 +72,6 @@ export function getControlButtonImageSource(
   action: ControlAction,
   teamColor: string,
 ): ImageSourcePropType {
-  const name = HEX_TO_NAME[teamColor.toUpperCase()] ?? 'yellow';
+  const name = HEX_TO_NAME[teamColor.toUpperCase()] ?? 'red';
   return ASSETS[name][action];
 }

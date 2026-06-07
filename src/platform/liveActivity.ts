@@ -24,7 +24,9 @@ export interface LiveActivityState {
   distKm: number;
   elapsedMs: number;
   paceS: number;
-  sector: 'yellow' | 'purple' | 'green';
+  // 묶음 1b-LA 보완: sector 시스템 폐기 후 LA payload 호환성 prop. Swift 측 색상
+  // 결정엔 무관 (teamColor가 결정). dummy 값(예: 'red' 폴백 통일)만 들어옴.
+  sector: string;
   tire: 'soft' | 'medium' | 'hard' | 'wet';
   pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
   prog: number;

@@ -294,7 +294,7 @@ private func teamColorName(_ hex: String) -> String {
     case "#3F5CFF": return "blue"
     case "#8528C5": return "purple"
     case "#FFFFFF": return "white"
-    default:        return "yellow"
+    default:        return "red"
     }
 }
 
@@ -669,8 +669,10 @@ struct PitRunLiveActivity: Widget {
                 leftBtn  = isPaused ? "play-red" : "pause-red"
                 rightBtn = "stop-red"
             } else if pitMode {
-                leftBtn  = isPaused ? "inpit-play" : "inpit-pause"
-                rightBtn = "inpit-stop"
+                // 묶음 1b-LA 보완: Asset Catalog imageset이 white-*로 rename됨에 따라
+                // string도 정합되게 갱신. inPit 시각 분기 의도는 유지.
+                leftBtn  = isPaused ? "play-white" : "pause-white"
+                rightBtn = "stop-white"
             } else {
                 // 묶음 1b-LA: state.sector → teamColorName(teamColor) 매핑.
                 let teamName = teamColorName(context.attributes.teamColor)

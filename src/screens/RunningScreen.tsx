@@ -47,9 +47,11 @@ const CONTROLS_TOP_SPACING = 20;
 const CONTROLS_BOTTOM_SPACING = 32;
 const BOXBOX_ALERT_MS = 4000;
 const FULL_PUSH_ALERT_MS = 4000;
-const IN_PIT_PLAY_BUTTON = require('../../assets/control-buttons/inpit-play.png');
-const IN_PIT_STOP_BUTTON = require('../../assets/control-buttons/inpit-stop.png');
-const IN_PIT_PAUSE_BUTTON = require('../../assets/control-buttons/inpit-pause.png');
+// 묶음 1b-LA 보완: inpit-*.png → *-white.png rename 후속. 변수명은 inPit 시각 분기
+// 의도를 유지 위해 그대로. 사용처(loop 안 inPit 분기)는 손대지 않음.
+const IN_PIT_PLAY_BUTTON = require('../../assets/control-buttons/play-white.png');
+const IN_PIT_STOP_BUTTON = require('../../assets/control-buttons/stop-white.png');
+const IN_PIT_PAUSE_BUTTON = require('../../assets/control-buttons/pause-white.png');
 
 
 export default function RunningScreen({ navigation }: NavRunningScreenProps) {
