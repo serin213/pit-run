@@ -536,9 +536,11 @@ function BgEventDiagPanel() {
     const id = setInterval(() => setDiagTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
-  // FIX 5: race 시작 직후 plan 핵심값 확인용. iKm/reps/recS를 같이 표시해서
-  // 잘못된 baseIntervalM 또는 grade factor로 인터벌이 너무 짧은 케이스 식별 가능.
-  const plan = useAppStore.getState().activePlan;
+  // 외출① 보완: useAppStore.getState() (non-reactive snapshot) → reactive subscribe로 전환.
+  // 기존 패턴은 mount 시점 1회만 plan 캡처 → race 시작 후 setActivePlan 호출돼도 패널이
+  // 다시 mount되지 않으면 영원히 "?" 표시. activePlan을 reactive로 subscribe하면 store
+  // 갱신 즉시 re-render → 정상값 표시.
+  const activePlan = useAppStore((s) => s.activePlan);
   return (
     <View
       style={{
@@ -561,13 +563,13 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>nw: {gpsDiag.bgEventNotWorkPhase}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>q: {gpsDiag.bgEventQualifying}</Text>
       <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
-        iKm: {plan?.intervals.distanceM != null ? (plan.intervals.distanceM / 1000).toFixed(2) : '?'}
+        iKm: {activePlan?.intervals.distanceM != null ? (activePlan.intervals.distanceM / 1000).toFixed(2) : '?'}
       </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>
-        reps: {plan?.intervals.reps ?? '?'}
+        reps: {activePlan?.intervals.reps ?? '?'}
       </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>
-        recS: {plan?.recovery.durationSec ?? '?'}
+        recS: {activePlan?.recovery.durationSec ?? '?'}
       </Text>
     </View>
   );

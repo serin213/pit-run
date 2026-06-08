@@ -291,7 +291,6 @@ export default function CircuitMap({
             stroke={activeColor}
             strokeWidth={sw}
             fill="none"
-            strokeLinecap="round"
             strokeDasharray={`${activeLen} ${totalLength}`}
             strokeDashoffset={-startLen}
           />
@@ -302,7 +301,6 @@ export default function CircuitMap({
             stroke={activeColor}
             strokeWidth={sw}
             fill="none"
-            strokeLinecap="round"
             strokeDasharray={`${activeLen} ${totalLength}`}
           />
         )}
@@ -315,8 +313,7 @@ export default function CircuitMap({
               stroke={activeColor}
               strokeWidth={sw}
               fill="none"
-              strokeLinecap="round"
-              strokeDasharray={`${totalLength - startLen} ${totalLength}`}
+                strokeDasharray={`${totalLength - startLen} ${totalLength}`}
               strokeDashoffset={-startLen}
             />
             <Path
@@ -324,8 +321,7 @@ export default function CircuitMap({
               stroke={activeColor}
               strokeWidth={sw}
               fill="none"
-              strokeLinecap="round"
-              strokeDasharray={`${(startLen + activeLen) - totalLength} ${totalLength}`}
+                strokeDasharray={`${(startLen + activeLen) - totalLength} ${totalLength}`}
               strokeDashoffset={0}
             />
           </>
