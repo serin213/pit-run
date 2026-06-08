@@ -644,6 +644,35 @@ struct PitRunLiveActivityView: View {
     }
 }
 
+// MARK: - Static views (ContentState 의존성 분리)
+//
+// 외출① 보완: ActivityKit이 ContentState 변경 시 dynamicIsland closure 전체를
+// re-evaluate. closure 안에 Image("race-flag")가 직접 박혀있으면 view tree diff에
+// 휘말려 SwiftUI implicit fade-in/transition 자동 발동 (iOS 17+ 동작).
+// 정적 view를 별도 View struct로 추출하면 SwiftUI가 "변화 없는 view"로 인식,
+// re-evaluate 시에도 transition 적용 안 함.
+// 음악/배달/타이머 등 정적 로고를 사용하는 LA의 표준 패턴
+// (Apple 공식 Emoji Rangers 샘플의 Avatar 추출 참고).
+
+struct StaticRaceFlag: View {
+    var body: some View {
+        Image("race-flag")
+            .renderingMode(.original)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 24, height: 24)
+    }
+}
+
+struct StaticRaceFlagMinimal: View {
+    var body: some View {
+        Image("race-flag")
+            .renderingMode(.original)
+            .resizable()
+            .scaledToFit()
+    }
+}
+
 // MARK: - Widget Configuration
 
 struct PitRunLiveActivity: Widget {
@@ -728,18 +757,7 @@ struct PitRunLiveActivity: Widget {
                     EmptyView()
                 }
             } compactLeading: {
-                Image("race-flag")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-                    // 빌드 47 시도 .contentTransition(.identity) 무효 — SwiftUI의
-                    // contentTransition은 SF Symbol/Text에만 적용, Asset Image에는
-                    // 영향 없음. ActivityKit이 state update할 때 view tree 전체에
-                    // .smooth animation을 자동 적용하므로 transaction으로 명시 차단.
-                    .transaction { transaction in
-                        transaction.animation = nil
-                    }
+                StaticRaceFlag()
             } compactTrailing: {
                 // warmup/qualifying: n'nn" 시간 (warmup=카운트다운, qualifying=경과).
                 // race: distKm.
@@ -753,13 +771,7 @@ struct PitRunLiveActivity: Widget {
                         .foregroundStyle(Color.white)
                 }
             } minimal: {
-                Image("race-flag")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .transaction { transaction in
-                        transaction.animation = nil
-                    }
+                StaticRaceFlagMinimal()
             }
         }
     }
