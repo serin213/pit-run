@@ -84,6 +84,21 @@ const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
 let boxboxTriggerInFlight = false;
 let fullPushTriggerInFlight = false;
 
+// LA push 5초 throttle. iOS ActivityKit은 너무 자주 update하면 budget 소진 후
+// 영구 throttle/drop 가능 (Apple Developer Forum thread 731715, 776031 확인).
+// NSSupportsLiveActivitiesFrequentUpdates: true 설정되어 있지만 안전 마진 추가.
+// phase transition (boxbox/fullPush)은 즉시 push하고 이 throttle 무시.
+let lastLAPushTime = 0;
+const LA_PUSH_MIN_INTERVAL_MS = 5000;
+
+// foreground useRunning.ts의 derivePitPhaseFromPlan과 동일 로직.
+// background callback이 매번 plan에서 phase derive하기 위함.
+// boxbox/fullPush trigger와 별개로 일반 거리 갱신용 LA push에 사용.
+function derivePitPhaseFromPlan(plan: ActiveRacePlan, now: number): 'none' | 'inPit' {
+  if (plan.nextFullPushAtMs != null && plan.nextFullPushAtMs > now) return 'inPit';
+  return 'none';
+}
+
 async function maybeFireBackgroundRaceEvents(): Promise<void> {
   gpsDiag.bgEventCallCount++;
   let plan = getActiveRacePlan();
@@ -157,6 +172,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       await fireLAUpdate(plan, accumAtFullPush, now, 'none').catch((e) => {
         console.warn('[locationTask] LA update (fullPush) failed:', e);
       });
+      lastLAPushTime = now;
     } finally {
       fullPushTriggerInFlight = false;
     }
@@ -202,6 +218,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         await fireLAUpdate(plan, currentAccum, now, 'inPit').catch((e) => {
           console.warn('[locationTask] LA update (boxbox) failed:', e);
         });
+        lastLAPushTime = now;
       } finally {
         boxboxTriggerInFlight = false;
       }
@@ -210,6 +227,20 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
     }
   } else if (plan.nextFullPushAtMs != null) {
     gpsDiag.bgEventNotWorkPhase++;
+  }
+
+  // 외출① 보완: 매 callback마다 일반 거리 갱신용 LA push (5초 throttle).
+  // 잠금 중 LA distance/elapsedMs/prog 멈춤 + 잠금 풀 때 점프 문제 해결.
+  // boxbox/fullPush 발화 시점엔 위에서 이미 fireLAUpdate + lastLAPushTime 업데이트했으니
+  // 이 조건 자연스럽게 skip.
+  const elapsedSinceLastPush = now - lastLAPushTime;
+  if (elapsedSinceLastPush >= LA_PUSH_MIN_INTERVAL_MS) {
+    const currentAccum = readAccum();
+    const phase = derivePitPhaseFromPlan(plan, now);
+    await fireLAUpdate(plan, currentAccum, now, phase).catch((e) => {
+      console.warn('[locationTask] LA update (regular) failed:', e);
+    });
+    lastLAPushTime = now;
   }
 }
 
