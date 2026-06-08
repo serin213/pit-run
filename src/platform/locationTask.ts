@@ -77,6 +77,13 @@ import { CIRCUITS } from '../config/circuits';
  */
 const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
 
+// background callback async race condition 방지.
+// iOS Core Location이 잠금 중 GPS fix burst를 보낼 때 같은 stale plan으로
+// 중복 trigger 발화 가능 (Apple Forum thread 729387 확인).
+// await playSound 진행 중 다른 callback이 들어와도 flag로 차단.
+let boxboxTriggerInFlight = false;
+let fullPushTriggerInFlight = false;
+
 async function maybeFireBackgroundRaceEvents(): Promise<void> {
   gpsDiag.bgEventCallCount++;
   let plan = getActiveRacePlan();
@@ -110,84 +117,95 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // foreground useRunning checkBoxBox는 폐기 (UI는 polling으로 sync).
 
   // (1) 예약된 fullPush 시점 도래 → 회복 종료 → 다음 work 시작
-  if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs) {
-    try { await playSound('fullPush'); } catch {}
-    gpsDiag.bgEventFullPushFired++;
-    const accumAtFullPush = readAccum();
+  // 외출① 보완: atomic guard (fullPushTriggerInFlight) + plan-first 순서로 async race 차단.
+  if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs && !fullPushTriggerInFlight) {
+    fullPushTriggerInFlight = true;
+    try {
+      const accumAtFullPush = readAccum();
 
-    // 회복 segment lap entry push (type='pit')
-    if (plan.pitStartedAtMs != null && plan.pitStartedAtKm != null) {
-      const pitDistM = Math.max(0, Math.round((accumAtFullPush - plan.pitStartedAtKm) * 1000));
-      const pitDurationSec = Math.max(0.1, (now - plan.pitStartedAtMs) / 1000);
-      const idx = getRaceLapLog().length;
-      appendRaceLapEntry({
-        idx,
-        type: 'pit',
-        distM: pitDistM,
-        durationSec: pitDurationSec,
-        paceS: null,
+      // (1) plan 동기 update 먼저 — 다른 callback이 새 plan 보고 자연스럽게 조건 미달
+      plan = updateActiveRacePlan({
+        nextFullPushAtMs: null,
+        lastBoxBoxAtKm: accumAtFullPush,
+        lastFiredAt: 'fullPush',
+        lastFiredAtMs: now,
+        workStartedAtMs: now,
+        workStartedAtKm: accumAtFullPush,
+        pitStartedAtMs: null,
+        pitStartedAtKm: null,
+      }) ?? plan;
+
+      // (2) await playSound (이제 race-safe)
+      try { await playSound('fullPush'); } catch {}
+      gpsDiag.bgEventFullPushFired++;
+
+      // (3) 회복 segment lap entry push (type='pit')
+      if (plan.pitStartedAtMs != null && plan.pitStartedAtKm != null) {
+        const pitDistM = Math.max(0, Math.round((accumAtFullPush - plan.pitStartedAtKm) * 1000));
+        const pitDurationSec = Math.max(0.1, (now - plan.pitStartedAtMs) / 1000);
+        const idx = getRaceLapLog().length;
+        appendRaceLapEntry({
+          idx,
+          type: 'pit',
+          distM: pitDistM,
+          durationSec: pitDurationSec,
+          paceS: null,
+        });
+      }
+
+      // (4) LA update — pitPhase='none' (잠금 중 work 단계로 즉시 전환).
+      await fireLAUpdate(plan, accumAtFullPush, now, 'none').catch((e) => {
+        console.warn('[locationTask] LA update (fullPush) failed:', e);
       });
+    } finally {
+      fullPushTriggerInFlight = false;
     }
-
-    // work 측정 시작점 갱신 + alert 표시 timestamp + work timing 시작
-    plan = updateActiveRacePlan({
-      nextFullPushAtMs: null,
-      lastBoxBoxAtKm: accumAtFullPush,
-      lastFiredAt: 'fullPush',
-      lastFiredAtMs: now,
-      workStartedAtMs: now,
-      workStartedAtKm: accumAtFullPush,
-      pitStartedAtMs: null,
-      pitStartedAtKm: null,
-    }) ?? plan;
-
-    // LA update — pitPhase='none' (잠금 중 work 단계로 즉시 전환).
-    // 사용자 사양 B-3-2: fullPush 발화 직후 LA를 work phase로. RN UI alert 'fullPush'는
-    // foreground polling(useRunning)의 derivePitPhaseFromPlan이 4초 동안 표시.
-    await fireLAUpdate(plan, accumAtFullPush, now, 'none').catch((e) => {
-      console.warn('[locationTask] LA update (fullPush) failed:', e);
-    });
   }
 
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
+  // 외출① 보완: atomic guard + plan-first 순서.
   if (plan.nextFullPushAtMs == null && plan.completedReps < plan.maxReps) {
     const currentAccum = readAccum();
     const workKm = currentAccum - plan.lastBoxBoxAtKm;
-    if (workKm >= plan.intervalKm) {
-      try { await playSound('boxbox'); } catch {}
-      gpsDiag.bgEventBoxBoxFired++;
+    if (workKm >= plan.intervalKm && !boxboxTriggerInFlight) {
+      boxboxTriggerInFlight = true;
+      try {
+        // (1) plan 동기 update 먼저
+        plan = updateActiveRacePlan({
+          lastBoxBoxAtKm: currentAccum,
+          completedReps: plan.completedReps + 1,
+          nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
+          lastFiredAt: 'boxbox',
+          lastFiredAtMs: now,
+          pitStartedAtMs: now,
+          pitStartedAtKm: currentAccum,
+        }) ?? plan;
 
-      // work segment lap entry push (type='lap')
-      const distM = Math.max(0, Math.round((currentAccum - plan.workStartedAtKm) * 1000));
-      const durationSec = Math.max(0.1, (now - plan.workStartedAtMs) / 1000);
-      const paceS = distM > 0 ? durationSec / (distM / 1000) : null;
-      const idx = getRaceLapLog().length;
-      appendRaceLapEntry({
-        idx,
-        type: 'lap',
-        distM,
-        durationSec,
-        paceS: paceS != null && isFinite(paceS) ? Math.round(paceS) : null,
-      });
+        // (2) await playSound
+        try { await playSound('boxbox'); } catch {}
+        gpsDiag.bgEventBoxBoxFired++;
 
-      // plan 업데이트: 박스박스 발화 + 회복 예약 + pit timing 시작
-      plan = updateActiveRacePlan({
-        lastBoxBoxAtKm: currentAccum,
-        completedReps: plan.completedReps + 1,
-        nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
-        lastFiredAt: 'boxbox',
-        lastFiredAtMs: now,
-        pitStartedAtMs: now,
-        pitStartedAtKm: currentAccum,
-      }) ?? plan;
+        // (3) work segment lap entry push (type='lap')
+        const distM = Math.max(0, Math.round((currentAccum - plan.workStartedAtKm) * 1000));
+        const durationSec = Math.max(0.1, (now - plan.workStartedAtMs) / 1000);
+        const paceS = distM > 0 ? durationSec / (distM / 1000) : null;
+        const idx = getRaceLapLog().length;
+        appendRaceLapEntry({
+          idx,
+          type: 'lap',
+          distM,
+          durationSec,
+          paceS: paceS != null && isFinite(paceS) ? Math.round(paceS) : null,
+        });
 
-      // LA update — pitPhase='inPit' (잠금 중 회복 단계로 즉시 전환).
-      // 사용자 사양 B-3-1: boxbox 발화 직후 LA를 회복 phase로. RN UI alert 'boxbox'는
-      // foreground polling이 4초 동안 표시 (잠금 해제 시점에 alert 사운드만 들림).
-      await fireLAUpdate(plan, currentAccum, now, 'inPit').catch((e) => {
-        console.warn('[locationTask] LA update (boxbox) failed:', e);
-      });
-    } else {
+        // (4) LA update — pitPhase='inPit' (잠금 중 회복 단계로 즉시 전환).
+        await fireLAUpdate(plan, currentAccum, now, 'inPit').catch((e) => {
+          console.warn('[locationTask] LA update (boxbox) failed:', e);
+        });
+      } finally {
+        boxboxTriggerInFlight = false;
+      }
+    } else if (workKm < plan.intervalKm) {
       gpsDiag.bgEventWorkNotReady++;
     }
   } else if (plan.nextFullPushAtMs != null) {

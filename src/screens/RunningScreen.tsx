@@ -283,17 +283,12 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     }
   }, [isRunning, activePlan]);
 
-  // 묶음 2: pitPhase setTimeout 3개 분기 + isPaused 연동 effect 모두 제거.
-  // pitPhase는 useRunning의 polling이 plan(background single source)에서 derive해
-  // store에 set. RunningScreen은 phase 변화 시 사운드·진동만 발화.
+  // 외출① 보완: 사운드는 background(locationTask.ts)에서만 발화 (잠금 중에도 정상
+  // 작동 확인됨). foreground에서 중복 호출하면 audio session이 같은 sound key seekTo(0)
+  // + play로 첫 사운드를 자르고 다시 재시작 → 사용자가 비정상으로 인식. playSound 제거.
+  // haptic은 foreground에서만 발동 (잠금 중 진동 의미 없음, 풀스크린 시각 보조).
   useEffect(() => {
-    if (pitPhase === 'boxbox') {
-      playSound('boxbox');
-      const haptic = setTimeout(() => doubleImpact(), 400);
-      return () => clearTimeout(haptic);
-    }
-    if (pitPhase === 'fullPush') {
-      playSound('fullPush');
+    if (pitPhase === 'boxbox' || pitPhase === 'fullPush') {
       const haptic = setTimeout(() => doubleImpact(), 400);
       return () => clearTimeout(haptic);
     }
