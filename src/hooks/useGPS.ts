@@ -11,7 +11,7 @@ import {
   getAccumulatedKm,
   clearBackgroundCoords,
 } from '../platform/locationTask';
-import { gpsDiag } from '../platform/gpsDiag';
+import { gpsDiag, laDiag } from '../platform/gpsDiag';
 import {
   startBackgroundActivitySession,
   stopBackgroundActivitySession,
@@ -110,6 +110,12 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       // 한 번에 들어와 화면이 "점프 업데이트"되는 현상 발생.
       // 'active' 이벤트 발생 즉시 drain → 점프 폭 최소화 (1초 → 즉시).
       appStateSubscription = AppState.addEventListener('change', (state) => {
+        // FIX 7-4: 잠금/언락 transition 추적 (Console.app 없이 사후 분석용).
+        if (state !== laDiag.lastLockState) {
+          laDiag.lockTransitions++;
+          laDiag.lastLockState = state;
+        }
+
         if (state === 'active') drainAccum();
         // 'background' — 사용자가 swipe kill 직전 발생할 수 있음 (보장 X).
         // race가 종료된 상태라면 background task도 같이 정리. swipe kill로

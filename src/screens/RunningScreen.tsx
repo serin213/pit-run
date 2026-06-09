@@ -30,7 +30,7 @@ import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
-import { gpsDiag } from '../platform/gpsDiag';
+import { gpsDiag, laDiag } from '../platform/gpsDiag';
 import { doubleImpact, successLong } from '../platform/haptics';
 import { endAllLiveActivities } from '../platform/liveActivity';
 
@@ -562,6 +562,12 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>nr: {gpsDiag.bgEventWorkNotReady}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>nw: {gpsDiag.bgEventNotWorkPhase}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>q: {gpsDiag.bgEventQualifying}</Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>LA</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>tried: {laDiag.pushTried}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>ok: {laDiag.pushOk}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>fail: {laDiag.pushFail}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
         iKm: {activePlan?.intervals.distanceM != null ? (activePlan.intervals.distanceM / 1000).toFixed(2) : '?'}
       </Text>

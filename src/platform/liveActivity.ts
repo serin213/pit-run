@@ -10,6 +10,7 @@
  * Activity.request()를 거부하는 문제를 회피).
  */
 
+import { laDiag } from './gpsDiag';
 import {
   startActivity as nativeStart,
   updateActivity as nativeUpdate,
@@ -84,6 +85,8 @@ export async function updateLiveActivity(
   activityId: string,
   state: LiveActivityState,
 ): Promise<void> {
+  laDiag.pushTried++;
+  laDiag.lastPushAt = Date.now();
   try {
     await nativeUpdate(activityId, {
       distKm: state.distKm,
@@ -96,7 +99,10 @@ export async function updateLiveActivity(
       isPaused: state.isPaused,
       mode: state.mode,
     });
+    laDiag.pushOk++;
   } catch (e) {
+    laDiag.pushFail++;
+    laDiag.lastErrorMsg = String(e).slice(0, 200);
     if (__DEV__) console.warn(`${LA_TAG} update threw`, e);
   }
 }

@@ -57,6 +57,16 @@ export const gpsDiag = {
   bgEventNotWorkPhase: 0,
 };
 
+export const laDiag = {
+  pushTried: 0,
+  pushOk: 0,
+  pushFail: 0,
+  lastPushAt: 0,           // timestamp (Date.now())
+  lastErrorMsg: '',
+  lockTransitions: 0,      // 잠금/언락 transition 횟수
+  lastLockState: 'active', // 'active' | 'background' | 'inactive'
+};
+
 export function resetGpsDiag(): void {
   // useGPS 사이클 카운터만 reset. defineCalled / earlyReg 등 module-load 관련은
   // 한 번만 결정되므로 reset 대상이 아님.
