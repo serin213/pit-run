@@ -25,8 +25,8 @@ import {
 import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
 import { stopBackgroundLocationTask } from '../platform/locationTask';
 
-// Live Activity는 초당 1회로 throttle (ActivityKit 권고)
-const LA_UPDATE_INTERVAL_MS = 1000;
+// FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
+// background fireLAUpdate가 5초 throttle로 단일 source 담당.
 // 묶음 2: alert phase 유지 ms — background가 lastFiredAtMs를 patch하면 이 시간 안에
 // foreground polling이 alert phase로 derive. locationTask.ts의 BOXBOX_ALERT_MS와 동일.
 const ALERT_MS = 4000;
@@ -55,7 +55,7 @@ export function useRunning(options: UseRunningOptions = {}) {
   const lastTsRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const activityIdRef = useRef<string | null>(null);
-  const lastLAUpdateRef = useRef<number>(0);
+  // FIX 6-4: lastLAUpdateRef 제거 (RAF LA push 폐기 후 미사용).
   const finalLapFiredRef = useRef(false);
   const finishFiredRef = useRef(false);
   const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,25 +187,10 @@ export function useRunning(options: UseRunningOptions = {}) {
         tick(dt);
         // 묶음 2: checkBoxBox 호출 폐기 — trigger는 background single source.
         checkFinish();
-
-        // throttled Live Activity update — 포그라운드 distance/pace 동기화.
-        const id = activityIdRef.current;
-        if (id && ts - lastLAUpdateRef.current >= LA_UPDATE_INTERVAL_MS) {
-          lastLAUpdateRef.current = ts;
-          const { distKm, elapsedMs, paceS, tire, pitPhase: phase, prog } =
-            useRunStore.getState();
-          updateLiveActivity(id, {
-            distKm,
-            elapsedMs: Math.round(elapsedMs),
-            paceS: Math.round(paceS),
-            sector: 'red',
-            tire,
-            pitPhase: phase,
-            prog,
-            isPaused,
-            mode: 'race',
-          });
-        }
+        // FIX 6-4: foreground RAF의 LA push 제거. LA는 background fireLAUpdate가 단일
+        // source. 두 source(background ACCUM + foreground store.distKm)에서 LA push 시
+        // timing 차이로 stale 가능. background fireLAUpdate가 모든 callback에서 5초
+        // throttle로 push (외출① 보완 commit 2). foreground RAF는 store/UI 갱신만 담당.
       }
       if (isPaused) lastTsRef.current = null;
       else lastTsRef.current = ts;
