@@ -459,6 +459,11 @@ export async function startBackgroundLocationTask(): Promise<void> {
   try {
     await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
       accuracy: Location.Accuracy.BestForNavigation,
+      // 외출② 보완: activityType 'Fitness' 명시. iOS 기본 'Other'는 잠금/background
+      // 시 power management로 GPS callback 강하게 throttle → 외출②에서 timeInterval
+      // 1000 설정인데 실제 callback 3.4초 평균 + 평균 페이스 11'53"로 매우 느림.
+      // 'Fitness'는 운동 추적 우선순위라 잠금 중에도 callback 빈도 + 정확도 유지.
+      activityType: Location.LocationActivityType.Fitness,
       timeInterval: 1000,
       distanceInterval: 1,
       foregroundService: {
