@@ -65,7 +65,7 @@ public class PitRunLiveActivityModule: Module {
                 prog: 0, isPaused: false,
                 mode: mode
             )
-            let content = ActivityContent(state: initialState, staleDate: nil)
+            let content = ActivityContent(state: initialState, staleDate: Date().addingTimeInterval(60))
             let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
 
             do {
@@ -114,7 +114,11 @@ public class PitRunLiveActivityModule: Module {
                 isPaused:  state["isPaused"]  as? Bool   ?? false,
                 mode:      state["mode"]      as? String ?? "race"
             )
-            let content = ActivityContent(state: newState, staleDate: nil)
+            // FIX 7-3: staleDate 60초 후로 설정. iOS가 stale 시점이 지나면 LA를 자동
+            // refresh 트리거 (시스템 hint) → 잠금 중 background runtime이 일시 throttle
+            // 돼도 다음 update 보장. CLBackgroundActivitySession과 같이 효과 강화.
+            let staleDate = Date().addingTimeInterval(60)
+            let content = ActivityContent(state: newState, staleDate: staleDate)
 
             Task {
                 await activity.update(content)
