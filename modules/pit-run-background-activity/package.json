@@ -1,0 +1,8 @@
+{
+  "name": "pit-run-background-activity",
+  "version": "1.0.0",
+  "description": "CLBackgroundActivitySession bridge for Pit Run (iOS 17+)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "private": true
+}
