@@ -240,8 +240,10 @@ export function useRunning(options: UseRunningOptions = {}) {
 
       if (state.pitPhase !== derivedPhase && state.pitPhase !== 'completed') {
         patch.pitPhase = derivedPhase;
-        // alert phase 또는 회복 중엔 BoxBoxSheet 표시
-        patch.boxBoxActive = derivedPhase !== 'none';
+        // 외출② 보완: alert phase ('boxbox', 'fullPush') 4초 윈도우에만 BoxBoxSheet 표시.
+        // 회복 시간(180초) 동안 inPit phase는 트랙 + IN PIT 헤더로 별도 표시.
+        // 기존 'derivedPhase !== none'은 inPit에서도 true → 회복 내내 바텀싯 안 닫힘.
+        patch.boxBoxActive = derivedPhase === 'boxbox' || derivedPhase === 'fullPush';
       }
       // lapLog는 background이 길이만 늘림. 길이 비교로만 sync.
       if (lapLog.length !== state.lapLog.length) {
