@@ -254,18 +254,35 @@ private struct CircuitMapView: View {
             // Unrun portion of track (white 50%)
             ctx.stroke(fullPath, with: .color(.white.opacity(0.5)), style: style)
 
-            // Trail from startFrac → endFrac (mirrors running screen: startLen + p·(total - startLen))
+            // FIX 6-3: RN CircuitMap.tsx의 wrap-around 공식과 통일.
+            // 기존 공식 (startFrac + p * (1 - startFrac))은 prog 1.0 = path 끝.
+            // RN의 공식은 (startLen + p * total) % total로 wrap-around: prog 1.0 = 한 바퀴
+            // 돌아 startLen 복귀. 같은 prog 값에서 RN이 LA의 2.03배 길이 색칠되는 시각
+            // 차이 발생 (시뮬레이션 확정). closed-loop circuit이라 prog 매핑을 path 전체
+            // 길이로.
             let startFrac = info.startFrac
             let p = CGFloat(max(0, min(1, prog)))
-            let endFrac = startFrac + p * (1 - startFrac)
-            if endFrac > startFrac {
-                let trail = fullPath.trimmedPath(from: startFrac, to: endFrac)
-                ctx.stroke(trail, with: .color(lineColor), style: style)
+            let endFracRaw = startFrac + p
+
+            if endFracRaw <= 1.0 {
+                if endFracRaw > startFrac {
+                    let trail = fullPath.trimmedPath(from: startFrac, to: endFracRaw)
+                    ctx.stroke(trail, with: .color(lineColor), style: style)
+                }
+            } else {
+                let part1 = fullPath.trimmedPath(from: startFrac, to: 1.0)
+                ctx.stroke(part1, with: .color(lineColor), style: style)
+                let part2End = endFracRaw - 1.0
+                if part2End > 0 {
+                    let part2 = fullPath.trimmedPath(from: 0, to: part2End)
+                    ctx.stroke(part2, with: .color(lineColor), style: style)
+                }
             }
 
-            // Dot at runner's current position (= endFrac)
+            // Dot at runner's current position (wrap-around 적용)
             if showDot {
-                let dot = tx(ptAtFrac(segs, Double(endFrac)))
+                let dotFrac = endFracRaw <= 1.0 ? endFracRaw : endFracRaw - 1.0
+                let dot = tx(ptAtFrac(segs, Double(dotFrac)))
                 ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 8, y: dot.y - 8, width: 16, height: 16)),
                          with: .color(lineColor.opacity(0.5)))
                 ctx.fill(Path(ellipseIn: CGRect(x: dot.x - 4, y: dot.y - 4, width: 8, height: 8)),
