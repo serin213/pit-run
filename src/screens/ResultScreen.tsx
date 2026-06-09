@@ -24,7 +24,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
-import { calcRaceRank, percentileToPNumber, buildUnrankedResult } from '../lib/ranking/calcRank';
+import { calcRaceRank, percentileToPNumber, buildUnrankedResult, calcGradePercentileFromNormalDist } from '../lib/ranking/calcRank';
 import type { Tire as RankTire } from '../lib/ranking/types';
 import { CIRCUITS } from '../config/circuits';
 import { getCircuitTheme } from '../config/circuitThemes';
@@ -249,48 +249,30 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // completedAt: 화면이 마운트된 시각을 한 번만 캡처 (re-render 시 변하지 않음)
   const completedAtRef = useRef(Date.now());
 
-  // 베타 phase 1: 글로벌은 외부 분포로, 등급별은 유저 10명 미만이면 자동 UNRANKED.
+  // 외출③ 보완: Phase 1 — 등급별 정규분포로 percentile 계산.
+  // GRADE_TIERS의 등급 페이스 범위를 정규분포(mean=중앙값, stdDev=폭/4)로 가정.
+  // 같은 등급 러너들의 통계적 분포에서 사용자가 어느 percentile인지 산출.
+  // Phase 2 진입(앱 사용자 풀 10명 이상) 시 calcRaceRank로 교체. import는 보존.
   const raceRank = (() => {
     if (isHistoryMode || !qualifyingResult || !selectedTire || totalPaceS <= 0) return null;
-    // wet은 buildProgram/calcRaceRank 미지원이라 보수적으로 medium 매핑
-    const tireForRank: RankTire =
-      selectedTire === 'wet' ? 'medium' : (selectedTire as RankTire);
     const plannedReps = activePlan?.intervals.reps ?? 0;
     if (plannedReps <= 0) return null;
-    // 묶음 1a (FIX 3-3): poolGradeCount 미스매치 진단 — userRankInGradePool > poolGradeCount면
-    // calcRaceRank가 throw. 어떤 입력이 들어가는지 로그로 추적해 root cause 파악.
-    const rankInput = {
-      userHardAveragePaceSec: totalPaceS,
-      userGrade: qualifyingResult.grade,
-      circuitId: circuit.id,
-      tire: tireForRank,
-      completedAt: completedAtRef.current,
-      completedReps: plannedReps,  // Result 도달 = 완주로 간주
-      plannedReps,
-      poolTotalCount: 0,
-      poolGradeCount: 0,
-      userRankInPool: null,
-      userRankInGradePool: 1,
+
+    const gradePercentile = calcGradePercentileFromNormalDist(totalPaceS, qualifyingResult.grade);
+
+    return {
+      globalRank: {
+        isRanked: true,
+        percentile: gradePercentile,
+        pNumber: null,
+        totalInPool: 0,
+        phase: null,
+        displayLabel: '',
+        subLabel: null,
+      },
+      gradeRank: buildUnrankedResult(),
+      isLocked: false,
     };
-    console.warn('[calcRank input]', JSON.stringify({
-      userRankInGradePool: rankInput.userRankInGradePool,
-      poolGradeCount: rankInput.poolGradeCount,
-      userRankInPool: rankInput.userRankInPool,
-      poolTotalCount: rankInput.poolTotalCount,
-    }));
-    // 묶음 1a (FIX 3-1): try-catch fallback. calcRaceRank의 assertion(line 258, 261)이
-    // throw하면 화면 전체가 깨지는 대신 UNRANKED 결과 표시 + 경고 로그.
-    try {
-      return calcRaceRank(rankInput);
-    } catch (e) {
-      console.warn('[ResultScreen] calcRank failed, using UNRANKED:', e);
-      const unranked = buildUnrankedResult();
-      return {
-        globalRank: unranked,
-        gradeRank: unranked,
-        isLocked: true,
-      };
-    }
   })();
 
   // 다음 등급 정보 (동기 계산)
