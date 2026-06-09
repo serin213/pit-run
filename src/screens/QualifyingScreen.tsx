@@ -194,6 +194,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       setActiveRacePlan({
         mode: 'qualifying',
         isRunning: true,
+        isPaused: false,
         startedAtMs: nowMs,
         intervalKm: 1,
         recoveryDurationMs: 0,

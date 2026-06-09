@@ -165,6 +165,7 @@ export function useRunning(options: UseRunningOptions = {}) {
     setActiveRacePlan({
       mode: 'race',
       isRunning: true,
+      isPaused: false,
       startedAtMs: nowMs,
       intervalKm: intervalKmInit,
       recoveryDurationMs: recoveryDurationMsInit,

@@ -109,6 +109,11 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 끝난 상태가 가능. cleanupStaleBackgroundTask가 부팅 시 isRunning을 false로
   // 패치하거나 plan을 지워주지만, 그 사이 발화하는 한 사이클을 막기 위한 가드.
   if (!plan.isRunning) { gpsDiag.bgEventPlanNull++; return; }
+  // 외출② 보완: pause 중에는 trigger 발화 + lap log push + LA update 모두 skip.
+  // distance 누적 자체는 background callback의 Layer 5에서 계속됨 — resume 후 그대로
+  // 사용. pause 의도는 "trigger 발화 중단" + "사용자가 직접 끝낸 race에서 박스박스/
+  // 풀푸시 추가 발화 차단".
+  if (plan.isPaused) { gpsDiag.bgEventPlanNull++; return; }
 
   const now = Date.now();
 

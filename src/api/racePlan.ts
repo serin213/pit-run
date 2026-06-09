@@ -34,6 +34,15 @@ export type ActiveRacePlan = {
    * - cleanupStaleBackgroundTask에서 false로 명시적 patch 가능
    */
   isRunning: boolean;
+  /**
+   * 외출② 보완: foreground pause 상태 동기화 필드.
+   * background callback이 pause 중에 trigger 발화하지 않도록 가드.
+   * - pauseRun 액션이 updateActiveRacePlan({ isPaused: true }) 호출
+   * - resumeRun 액션이 updateActiveRacePlan({ isPaused: false }) 호출
+   * - background maybeFireBackgroundRaceEvents 진입 시 plan.isPaused 가드
+   * - 시작 시 false
+   */
+  isPaused: boolean;
   /** race/qualifying 시작 시각 (Date.now()) — 진단 용도 */
   startedAtMs: number;
   /** race: 한 work 사이클 거리. qualifying: 완료 거리(1km). */

@@ -3,6 +3,7 @@ import type { TireType } from '../constants/colors';
 import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from './appStore';
+import { updateActiveRacePlan } from '../api/racePlan';
 
 export interface TyreSegment {
   tire: TireType;
@@ -129,11 +130,18 @@ export const useRunStore = create<RunState>((set, get) => ({
       raceStartedAt: new Date().toISOString(),
     }),
 
-  pauseRun: () =>
-    set({ isPaused: true }),
+  // 외출② 보완: pause/resume 시 background plan에도 isPaused patch.
+  // background callback의 maybeFireBackgroundRaceEvents가 plan.isPaused 가드 →
+  // pause 시점의 GPS callback에서 박스박스 추가 발화 차단.
+  pauseRun: () => {
+    set({ isPaused: true });
+    updateActiveRacePlan({ isPaused: true });
+  },
 
-  resumeRun: () =>
-    set({ isPaused: false }),
+  resumeRun: () => {
+    set({ isPaused: false });
+    updateActiveRacePlan({ isPaused: false });
+  },
 
   stopRun: () =>
     set({ isRunning: false, isPaused: true }),
