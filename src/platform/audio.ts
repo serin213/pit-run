@@ -64,9 +64,11 @@ export async function preloadSounds(keys: SoundKey[]): Promise<void> {
 export async function playSound(key: SoundKey): Promise<void> {
   await ensureMode();
   const p = getPlayer(key);
-  try {
-    p.seekTo(0);
-  } catch {}
+  // FIX 6-5: seekTo(0) 제거. expo-audio github issues #38550/#39232/#26079에서
+  // seekTo + play 패턴이 iOS에서 두 번 재생 또는 crash 보고 다수. 외출③의 박스박스
+  // 두 번 발화 패턴과 정확히 일치.
+  // 사운드 짧고 짧은 간격 재호출 흔치 않음 (다음 trigger까지 최소 0.4km).
+  // 재생 완료 후 자동으로 처음으로 돌아감 (expo-audio 기본 동작).
   try {
     p.play();
   } catch {}
