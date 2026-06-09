@@ -43,6 +43,9 @@ export const gpsDiag = {
   lastTaskWriteTs: 0,
   startError: '' as string,
 
+  // CLBackgroundActivitySession 상태 (FIX 7-2)
+  bgSessionActive: false as boolean,
+
   // maybeFireBackgroundRaceEvents 가드 진단 — FIX 4
   bgEventCallCount: 0,
   bgEventPlanNull: 0,

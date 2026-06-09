@@ -38,6 +38,7 @@
     "expo-web-browser": "~55.0.16",
     "lottie-react-native": "^7.3.6",
     "pit-run-haptics": "file:./modules/pit-run-haptics",
+    "pit-run-background-activity": "file:./modules/pit-run-background-activity",
     "pit-run-live-activity": "file:./modules/pit-run-live-activity",
     "react": "19.2.0",
     "react-dom": "19.2.0",

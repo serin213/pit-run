@@ -12,6 +12,11 @@ import {
   clearBackgroundCoords,
 } from '../platform/locationTask';
 import { gpsDiag } from '../platform/gpsDiag';
+import {
+  startBackgroundActivitySession,
+  stopBackgroundActivitySession,
+  isBackgroundActivitySupported,
+} from '../platform/backgroundActivity';
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -58,6 +63,21 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       clearBackgroundCoords();
       lastAppliedAccumRef.current = 0;
       setGpsEnabled(true);
+
+      // FIX 7-2: CLBackgroundActivitySession 시작 (iOS 17+).
+      // foreground에서만 시작 가능 — useGPS는 RunningScreen mount 시점에 호출되므로 OK.
+      // 잠금 중 background runtime을 시스템에 명시적으로 요청. LA update 안정성 향상.
+      // iOS 16에서는 isSupported() false라 startSession이 false 반환 (무영향).
+      if (isBackgroundActivitySupported()) {
+        try {
+          const ok = await startBackgroundActivitySession();
+          gpsDiag.bgSessionActive = ok;
+          if (!ok) console.warn('[useGPS] startBackgroundActivitySession returned false');
+        } catch (e) {
+          console.warn('[useGPS] startBackgroundActivitySession failed:', e);
+          gpsDiag.bgSessionActive = false;
+        }
+      }
 
       try {
         await startBackgroundLocationTask();
@@ -112,6 +132,10 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       if (pollInterval) clearInterval(pollInterval);
       if (appStateSubscription) appStateSubscription.remove();
       stopBackgroundLocationTask();
+      // FIX 7-2: CLBackgroundActivitySession 종료. race 종료 시 시스템에 background
+      // runtime 해제 신호. battery 보호 + 다음 race 시작 시 fresh 시작 보장.
+      stopBackgroundActivitySession().catch(() => {});
+      gpsDiag.bgSessionActive = false;
       setGpsEnabled(false);
     };
   }, [enabled, setGpsEnabled]);
