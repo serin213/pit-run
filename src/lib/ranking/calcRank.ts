@@ -6,6 +6,8 @@ import type {
   RaceRankInput,
   RaceRankResult,
 } from './types';
+import type { Grade } from '../../types/qualifying';
+import { GRADE_TIERS } from '../grading/calcGrade';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -75,6 +77,61 @@ export function calcGlobalPercentileFromDistribution(paceSec: number): number {
 
   // 도달 불가 (경계 처리로 커버됨)
   return last.percentile;
+}
+
+/**
+ * 외출③ 보완: 등급별 정규분포 기반 percentile 계산.
+ *
+ * Phase 1 (앱 사용자 풀 부족): 같은 등급 러너들의 페이스 분포를 GRADE_TIERS의
+ * 페이스 범위(minPaceSec, maxPaceSec)를 기반으로 정규분포로 가정.
+ * - 평균: (min + max) / 2
+ * - 표준편차: (max - min) / 4  (3-sigma rule, 등급 범위가 ±2σ 안에 들어감)
+ *
+ * 사용자의 race 페이스가 그 정규분포의 CDF상 어느 percentile인지 산출.
+ * 페이스가 빠를수록 (작을수록) percentile 작음 = 상위.
+ *
+ * maxPaceSec === null (최하위 등급 f3)인 경우 minPaceSec 기준으로 폭을 가정해서
+ * 정규분포 계산. fallback 0.5.
+ *
+ * @param userPaceSec - 사용자 평균 페이스 (초/km)
+ * @param userGrade - 사용자 grade
+ * @returns 0~1 사이 percentile (0 = 최상위, 1 = 최하위)
+ */
+export function calcGradePercentileFromNormalDist(
+  userPaceSec: number,
+  userGrade: Grade,
+): number {
+  const tier = GRADE_TIERS.find((t) => t.grade === userGrade);
+  if (!tier) return 0.5;
+
+  // maxPaceSec === null → 최하위 등급. minPaceSec + 120s(2분/km)를 max로 가정.
+  const effMax = tier.maxPaceSec ?? tier.minPaceSec + 120;
+  const mean = (tier.minPaceSec + effMax) / 2;
+  const stdDev = (effMax - tier.minPaceSec) / 4;
+
+  if (stdDev <= 0 || stdDev > 1000) return 0.5;
+
+  const z = (userPaceSec - mean) / stdDev;
+  return normalCDF(z);
+}
+
+/** 표준 정규분포 CDF (Abramowitz & Stegun 7.1.26 근사) */
+function normalCDF(z: number): number {
+  return 0.5 * (1 + erf(z / Math.sqrt(2)));
+}
+
+function erf(x: number): number {
+  const sign = x >= 0 ? 1 : -1;
+  const absX = Math.abs(x);
+  const a1 =  0.254829592;
+  const a2 = -0.284496736;
+  const a3 =  1.421413741;
+  const a4 = -1.453152027;
+  const a5 =  1.061405429;
+  const p  =  0.3275911;
+  const t = 1.0 / (1.0 + p * absX);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+  return sign * y;
 }
 
 /**
