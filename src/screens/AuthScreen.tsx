@@ -2,6 +2,7 @@ import { COLORS, PALETTE } from '../constants/colors';
 import { LETTER_SPACING } from '../constants/typography';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -19,7 +20,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useSafeTop } from '../hooks/useSafeTop';
-import { signIn } from '../platform/auth';
+import { signIn, signOut } from '../platform/auth';
 import { openInAppBrowser } from '../platform/webBrowser';
 import { useAuthStore } from '../store/authStore';
 import { useDevMode } from '../lib/devMode';
@@ -102,16 +103,41 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    let cancelled = false;
     (async () => {
       try {
         const profile = await fetchProfile();
+        if (cancelled) return;
+        // FIX 8-2: fetchProfile은 PGRST116(no rows)을 null로 반환.
+        // null = 진짜 신규 사용자 → ProfileSetup.
+        // throw = 네트워크/RLS 에러 → ProfileSetup으로 가면 위험
+        //   (사용자가 새 닉네임 입력 완료 시 UPSERT가 기존 profile 덮어씀).
         const hasProfile = !!profile?.display_name;
         navigation.replace(hasProfile ? 'Home' : 'ProfileSetup');
-      } catch {
-        // 프로필 조회 실패 시 안전하게 ProfileSetup으로
-        navigation.replace('ProfileSetup');
+      } catch (e) {
+        if (cancelled) return;
+        Alert.alert(
+          '연결 오류',
+          '프로필을 불러올 수 없습니다. 네트워크 상태를 확인해주세요.',
+          [
+            {
+              text: '다시 시도',
+              onPress: () => {
+                setError('네트워크 오류 — 앱을 재시작하거나 다시 시도해주세요');
+              },
+            },
+            {
+              text: '로그아웃',
+              style: 'destructive',
+              onPress: async () => {
+                try { await signOut(); } catch {}
+              },
+            },
+          ]
+        );
       }
     })();
+    return () => { cancelled = true; };
   }, [isAuthenticated, navigation]);
 
   const handleSignIn = async (provider: 'apple' | 'google') => {

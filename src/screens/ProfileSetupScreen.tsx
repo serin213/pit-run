@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { getDriverCode } from '../utils/driverCode';
 import { radius } from '../constants/radius';
@@ -9,6 +9,7 @@ import { useAppStore } from '../store/appStore';
 import { useSupabaseProfile } from '../hooks/useSupabaseProfile';
 import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
+import { fetchProfile } from '../api/profiles';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 import { useProfileValidation } from '../hooks/useProfileValidation';
 import { COLORS, PALETTE, PREVIEW_DEFAULT_COLOR } from '../constants/colors';
@@ -20,6 +21,24 @@ const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
   const { setProfile } = useAppStore();
   const { save } = useSupabaseProfile();
+
+  useEffect(() => {
+    // FIX 8-2: AuthScreen에서 네트워크 fail로 잘못 들어왔을 가능성 방지.
+    // 이미 DB에 profile이 있는 사용자가 여기 들어오면 즉시 Home으로.
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await fetchProfile();
+        if (cancelled) return;
+        if (existing?.display_name) {
+          navigation.replace('Home');
+        }
+      } catch {
+        // fail이면 신규로 진행
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [navigation]);
   const { width: windowW } = useWindowDimensions();
   const contentWidth = Math.max(0, windowW - 40);
   const ctaContainerH = CTA_AREA_HEIGHT;
