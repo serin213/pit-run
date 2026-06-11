@@ -1,6 +1,6 @@
 import { COLORS, PALETTE } from '../constants/colors';
 import { LETTER_SPACING } from '../constants/typography';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState, useCallback } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
@@ -57,6 +57,7 @@ import {
   endAllLiveActivities,
   getCurrentActivityId,
 } from '../platform/liveActivity';
+import { gpsDiag } from '../platform/gpsDiag';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -629,6 +630,9 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         </Pressable>
       )}
 
+      {/* GPS diag panel — qualifying phase only */}
+      {phase === 'qualifying' && <GpsDiagPanel />}
+
       {/* Retire confirm overlay */}
       {showRetireConfirm && (
         <ConfirmSheet
@@ -648,6 +652,42 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
+
+function GpsDiagPanel() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 500);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: 100,
+        right: 8,
+        zIndex: 9999,
+        padding: 6,
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        borderRadius: 6,
+      }}
+      pointerEvents="none"
+    >
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginBottom: 2 }}>GPS</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>tick: {gpsDiag.tick}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>started: {gpsDiag.taskStarted ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>fg: {gpsDiag.fgPerm ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bg: {gpsDiag.bgPerm ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>acc: {gpsDiag.acceptCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>skip: {gpsDiag.distSkipCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>last: {gpsDiag.lastDist != null ? gpsDiag.lastDist.toFixed(4) : '—'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>km: {gpsDiag.totalAccumulatedKm.toFixed(3)}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
+      {gpsDiag.startError ? (
+        <Text style={{ color: '#f66', fontSize: 10 }}>err: {gpsDiag.startError.slice(0, 60)}</Text>
+      ) : null}
+    </View>
+  );
+}
 
 type IntroScreenProps = {
   windowW: number;
