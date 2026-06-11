@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, Text, View } from 'react-native';
+import { AppState, StatusBar, Text, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,14 +8,31 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef, syncTabFromRoute } from './src/navigation/navigationRef';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { flushPendingEvents } from './src/lib/analytics/raceEvents';
+import { flushAllPendingMutations } from './src/api/pendingFlush';
+import { useAuthStore } from './src/store/authStore';
 
 const FONT_LOAD_TIMEOUT_MS = 5000;
 
 export default function App() {
+  const { isAuthenticated } = useAuthStore();
+
   // 앱 시작 시 이전 세션에서 전송 못 한 analytics 이벤트 flush
   useEffect(() => {
     flushPendingEvents().catch(() => {});
   }, []);
+
+  // FIX 9-3: background → active 전환 시 pending mutations flush.
+  // useSyncOnLogin은 로그인 시 1회만 실행되므로, 이후 background/foreground
+  // 반복 시에는 여기서 flush해야 pending queue가 비워짐.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && isAuthenticated) {
+        flushAllPendingMutations().catch(() => {});
+        flushPendingEvents().catch(() => {});
+      }
+    });
+    return () => sub.remove();
+  }, [isAuthenticated]);
 
   const [fontsLoaded, fontError] = useFonts({
     'Formula1-Black': require('./assets/fonts/Formula1-Black.ttf'),

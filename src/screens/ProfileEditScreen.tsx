@@ -68,6 +68,32 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
   const previewNumber = normalizedNumber || '00';
   const previewColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
 
+  // FIX 9-3: handleSave 함수로 추출 — Alert 재시도 버튼에서 재호출 가능하도록.
+  const handleSave = async () => {
+    const finalColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
+    try {
+      await save({
+        display_name: trimmedName,
+        race_number: normalizedNumber,
+        accent_color: finalColor,
+      });
+      setProfile({
+        displayName: trimmedName,
+        raceNumber: normalizedNumber,
+        nameTagAccentColor: finalColor,
+      });
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert(
+        '저장 실패',
+        '네트워크 상태를 확인해주세요.',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '다시 시도', onPress: () => handleSave() },
+        ]
+      );
+    }
+  };
 
   return (
     <View style={[styles.root, { paddingBottom: ctaContainerH }]}>
@@ -205,30 +231,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           height={ctaHeight}
           label="Confirm"
           enabled={canSubmit}
-          onPress={async () => {
-            const finalColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
-            try {
-              // FIX 8-1: DB upsert 먼저. 실패 시 MMKV 안 건드림.
-              // 기존 silent fail(.catch(() => {}))이 닉네임 sync 깨진 직접 원인.
-              await save({
-                display_name: trimmedName,
-                race_number: normalizedNumber,
-                accent_color: finalColor,
-              });
-              setProfile({
-                displayName: trimmedName,
-                raceNumber: normalizedNumber,
-                nameTagAccentColor: finalColor,
-              });
-              navigation.goBack();
-            } catch (e) {
-              Alert.alert(
-                '저장 실패',
-                '네트워크 상태를 확인하고 다시 시도해주세요.',
-                [{ text: '확인' }]
-              );
-            }
-          }}
+          onPress={handleSave}
         />
       </CtaFadeBackground>
 
