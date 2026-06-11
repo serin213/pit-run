@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
+  Alert,
   Animated,
   Pressable,
   ScrollView,
@@ -204,19 +205,29 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           height={ctaHeight}
           label="Confirm"
           enabled={canSubmit}
-          onPress={() => {
+          onPress={async () => {
             const finalColor = teamColor ?? PREVIEW_DEFAULT_COLOR;
-            setProfile({
-              displayName: trimmedName,
-              raceNumber: normalizedNumber,
-              nameTagAccentColor: finalColor,
-            });
-            save({
-              display_name: trimmedName,
-              race_number: normalizedNumber,
-              accent_color: finalColor,
-            }).catch(() => {});
-            navigation.goBack();
+            try {
+              // FIX 8-1: DB upsert 먼저. 실패 시 MMKV 안 건드림.
+              // 기존 silent fail(.catch(() => {}))이 닉네임 sync 깨진 직접 원인.
+              await save({
+                display_name: trimmedName,
+                race_number: normalizedNumber,
+                accent_color: finalColor,
+              });
+              setProfile({
+                displayName: trimmedName,
+                raceNumber: normalizedNumber,
+                nameTagAccentColor: finalColor,
+              });
+              navigation.goBack();
+            } catch (e) {
+              Alert.alert(
+                '저장 실패',
+                '네트워크 상태를 확인하고 다시 시도해주세요.',
+                [{ text: '확인' }]
+              );
+            }
           }}
         />
       </CtaFadeBackground>
