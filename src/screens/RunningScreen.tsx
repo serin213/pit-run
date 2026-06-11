@@ -31,6 +31,7 @@ import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
 import { gpsDiag, laDiag } from '../platform/gpsDiag';
+import { syncDiag } from '../api/saveDiag';
 import { doubleImpact, successLong } from '../platform/haptics';
 import { endAllLiveActivities } from '../platform/liveActivity';
 
@@ -568,6 +569,12 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>fail: {laDiag.pushFail}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>SYNC</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>profile: {syncDiag.profileOk ? '1' : '0'}{syncDiag.profileErr ? ` ${syncDiag.profileErr.slice(0, 20)}` : ''}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>qual: {syncDiag.qualifyingOk ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>actDts: {syncDiag.activityDatesOk ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>totalKm: {syncDiag.totalDistanceOk ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>flush: {syncDiag.flushOk ? '1' : '0'}</Text>
       <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
         iKm: {activePlan?.intervals.distanceM != null ? (activePlan.intervals.distanceM / 1000).toFixed(2) : '?'}
       </Text>
