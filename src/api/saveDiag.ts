@@ -20,6 +20,22 @@
 import { getPendingQueue } from './pendingSessions';
 import { getPendingQualifyingQueue, getPendingProfile } from './pendingMutations';
 
+export const syncDiag = {
+  profileOk: false,
+  profileErr: '',
+  qualifyingOk: false,
+  qualifyingErr: '',
+  qualifyingDatesOk: false,
+  qualifyingDatesErr: '',
+  activityDatesOk: false,
+  activityDatesErr: '',
+  totalDistanceOk: false,
+  totalDistanceErr: '',
+  flushOk: false,
+  flushErr: '',
+  lastSyncAt: 0,
+};
+
 export const saveDiag = {
   /** 마지막 mutation 시도 시점의 인증 상태 */
   isAuth: false,
