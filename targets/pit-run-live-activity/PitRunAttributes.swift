@@ -18,6 +18,11 @@ struct PitRunAttributes: ActivityAttributes {
         var isPaused: Bool
         // "race" | "qualifying" — UI 분기 (lock screen 전용 layout, expanded color)
         var mode: String
+        // FIX 10-B: timerInterval 전환 — push 0회로 iOS 자체 틱.
+        // timerStartMs: epoch ms 기준점 (qualifying/race 경과 기준).
+        // timerEndMs:   epoch ms 목표점 (warmup 카운트다운 목표).
+        var timerStartMs: Double?
+        var timerEndMs: Double?
     }
 
     var driverName: String

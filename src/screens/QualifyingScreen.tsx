@@ -271,11 +271,26 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
       profile.nameTagAccentColor,
       'qualifying',
       'warmup',
-    ).catch(() => {});
+    ).then((id) => {
+      if (!id) return;
+      // FIX 10-B: timerEndMs 세팅 — iOS가 카운트다운을 자체 틱.
+      updateLiveActivity(id, {
+        distKm: 0,
+        elapsedMs: warmupLeftSecRef.current * 1000,
+        paceS: 0,
+        sector: 'red',
+        tire: 'soft',
+        pitPhase: 'none',
+        prog: 0,
+        isPaused: false,
+        mode: 'warmup',
+        timerEndMs: Date.now() + warmupLeftSecRef.current * 1000,
+      });
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // warmup → qualifying 전환 시 LA mode를 즉시 update (interval 1초 기다리지 않게).
+  // warmup → qualifying 전환 시 LA mode를 즉시 update + timerStartMs 세팅 (FIX 10-B).
   const prevPhaseRef = useRef<Phase>(phase);
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -293,48 +308,13 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         prog: 0,
         isPaused: false,
         mode: 'qualifying',
+        timerStartMs: Date.now(), // iOS가 여기서부터 자체 틱
       });
     }
   }, [phase]);
 
-  // LA 주기적 업데이트. phase가 warmup/qualifying/retireConfirm일 때 활성.
-  const isLaActive = phase === 'warmup' || phase === 'qualifying' || phase === 'retireConfirm';
-  useEffect(() => {
-    if (!isLaActive) return;
-    const interval = setInterval(() => {
-      const id = getCurrentActivityId();
-      if (!id) return;
-      const p = phaseRef.current;
-      if (p === 'warmup') {
-        // warmup: elapsedMs = 남은 시간 ms
-        updateLiveActivity(id, {
-          distKm: 0,
-          elapsedMs: Math.max(0, warmupLeftSecRef.current * 1000),
-          paceS: 0,
-          sector: 'red',
-          tire: 'soft',
-          pitPhase: 'none',
-          prog: 0,
-          isPaused: false,
-          mode: 'warmup',
-        });
-      } else if (p === 'qualifying' || p === 'retireConfirm') {
-        const { elapsedMs, distKm } = trialStatsRef.current;
-        updateLiveActivity(id, {
-          distKm: 0,
-          elapsedMs: Math.round(elapsedMs),
-          paceS: 0,
-          sector: 'red',
-          tire: 'soft',
-          pitPhase: 'none',
-          prog: Math.max(0, Math.min(1, distKm)),
-          isPaused: false,
-          mode: 'qualifying',
-        });
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isLaActive]);
+  // FIX 10-B: LA 1초 setInterval 제거 — timerInterval 사용으로 push 불필요.
+  // phase 전환 시 1회 push (timerStartMs/timerEndMs 세팅)만 수행.
 
   const startWarmup = async () => {
     const granted = await ensurePermission();
@@ -374,6 +354,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         prog: 0,
         isPaused: false,
         mode: 'qualifying',
+        timerStartMs: Date.now(),
       });
     }
   };
@@ -682,6 +663,8 @@ function GpsDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>last: {gpsDiag.lastDist != null ? gpsDiag.lastDist.toFixed(4) : '—'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>km: {gpsDiag.totalAccumulatedKm.toFixed(3)}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>tw: {gpsDiag.taskWriteCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>ghost: {gpsDiag.ghostCleared}</Text>
       {gpsDiag.startError ? (
         <Text style={{ color: '#f66', fontSize: 10 }}>err: {gpsDiag.startError.slice(0, 60)}</Text>
       ) : null}

@@ -11,7 +11,7 @@ import {
   getAccumulatedKm,
   clearBackgroundCoords,
 } from '../platform/locationTask';
-import { gpsDiag, laDiag } from '../platform/gpsDiag';
+import { gpsDiag, laDiag, resetSessionDiag } from '../platform/gpsDiag';
 import {
   startBackgroundActivitySession,
   stopBackgroundActivitySession,
@@ -63,6 +63,8 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       clearBackgroundCoords();
       lastAppliedAccumRef.current = 0;
       setGpsEnabled(true);
+      // FIX 10-A: 세션 시작 시 진단 카운터 리셋 — 이전 세션 잔존값 오염 제거.
+      resetSessionDiag();
 
       // FIX 7-2: CLBackgroundActivitySession 시작 (iOS 17+).
       // foreground에서만 시작 가능 — useGPS는 RunningScreen mount 시점에 호출되므로 OK.

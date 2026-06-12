@@ -42,6 +42,9 @@ yarn-error.*
 # IPA는 코드가 아니라 빌드 산출물이라 git에 들어가면 안 됨.
 *.ipa
 /build-output/
+# Xcode archive & export 출력. ios/build/generated는 ReactCodegen 산출물로
+# 별도 관리하지만 ios/ 전체가 /ios로 gitignore되므로 이미 커버됨.
+ios/build/
 
 # Claude Code 워크트리 (git worktree add로 생성된 작업 사본). submodule이
 # 아니라 워크트리이므로 git index에 트래킹되면 안 됨. EAS 업로드 시

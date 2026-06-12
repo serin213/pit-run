@@ -141,8 +141,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   const isHistoryMode = !!historyData;
 
   const runStore = useRunStore();
-  const { distKm, elapsedMs, paceHistory, resetRun } = isHistoryMode
-    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], resetRun: () => {} }
+  const { distKm, elapsedMs, paceHistory, lapLog: rawLapLog, resetRun } = isHistoryMode
+    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], lapLog: [] as import('../types/run').LapEntry[], resetRun: () => {} }
     : runStore;
 
   const {
@@ -382,22 +382,46 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionsReady]);
 
-  // ─── Sector paces (1 entry per km) ────────────────────────────────────────
+  // ─── Lap-based paces (lapLog) or sector fallback ──────────────────────────
 
-  const sectorCount = Math.max(1, Math.floor(distKm));
+  // lapLog 기반 lap별 페이스 막대. work lap만 표시, pit은 구분 색상.
+  // lapLog 없거나 1개 이하면 기존 sectorPaces(균등 분할) 폴백.
+  const useLapLog = !isHistoryMode && rawLapLog.length > 1;
+
+  const sectorCount = useLapLog
+    ? rawLapLog.length
+    : Math.max(1, Math.floor(distKm));
 
   const sectorPaces = useMemo(() => {
     const fallback = totalPaceS > 0 ? totalPaceS : 300;
+    if (useLapLog) {
+      return rawLapLog.map((lap) =>
+        lap.paceS != null && lap.paceS > 0 ? lap.paceS : fallback
+      );
+    }
     if (paceHistory.length === 0) return Array<number>(sectorCount).fill(fallback);
     return Array.from({ length: sectorCount }, (_, i) =>
       paceHistory[i] ?? paceHistory[paceHistory.length - 1] ?? fallback,
     );
-  }, [paceHistory, sectorCount, totalPaceS]);
+  }, [useLapLog, rawLapLog, paceHistory, sectorCount, totalPaceS]);
 
-  const fastestSectorIdx = useMemo(
-    () => (sectorPaces.length > 0 ? sectorPaces.indexOf(Math.min(...sectorPaces)) : 0),
-    [sectorPaces],
-  );
+  // Fastest Lap: lapLog 모드에선 work lap 중 fastest만 하이라이트(보라색).
+  // 폴백 모드는 기존 로직 그대로.
+  const fastestSectorIdx = useMemo(() => {
+    if (useLapLog) {
+      let bestIdx = 0;
+      let bestPace = Infinity;
+      rawLapLog.forEach((lap, i) => {
+        if (lap.type === 'lap' && lap.paceS != null && lap.paceS < bestPace) {
+          bestPace = lap.paceS;
+          bestIdx = i;
+        }
+      });
+      return bestIdx;
+    }
+    return sectorPaces.length > 0 ? sectorPaces.indexOf(Math.min(...sectorPaces)) : 0;
+  }, [useLapLog, rawLapLog, sectorPaces]);
+
   const fastestPaceS = sectorPaces[fastestSectorIdx] ?? totalPaceS;
 
   // ─── Selected sector (default = fastest) ──────────────────────────────────
@@ -781,16 +805,26 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                 <View style={styles.chartArea}>
                   {/* Bars — BarItem handles Reanimated reveal per bar */}
                   <View style={styles.barsRow}>
-                    {sectorPaces.map((_, i) => (
-                      <BarItem
-                        key={i}
-                        index={i}
-                        barW={barW}
-                        isSelected={i === selectedSector}
-                        themeColor={topTheme.line}
-                        onPress={() => setSelectedSector(i)}
-                      />
-                    ))}
+                    {sectorPaces.map((_, i) => {
+                      const lap = useLapLog ? rawLapLog[i] : null;
+                      const isPit = lap?.type === 'pit';
+                      const isFastest = useLapLog && i === fastestSectorIdx && !isPit;
+                      const barColor = isFastest
+                        ? PALETTE.purple
+                        : isPit
+                        ? COLORS.bg  // pit lap: 배경색으로 거의 안 보이게
+                        : topTheme.line;
+                      return (
+                        <BarItem
+                          key={i}
+                          index={i}
+                          barW={barW}
+                          isSelected={i === selectedSector}
+                          themeColor={barColor}
+                          onPress={() => setSelectedSector(i)}
+                        />
+                      );
+                    })}
                   </View>
 
                   {/* Line + area + avg dashed — overlaid on bars */}

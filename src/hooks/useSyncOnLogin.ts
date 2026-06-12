@@ -14,6 +14,7 @@ import {
 } from '../api/pendingMutations';
 import { flushPendingEvents } from '../lib/analytics/raceEvents';
 import { syncDiag } from '../api/saveDiag';
+import { supabase } from '../api/client';
 
 /**
  * 로그인 성공 시 Supabase 데이터를 로컬 appStore로 동기화.
@@ -33,6 +34,20 @@ export function useSyncOnLogin() {
     flushPendingEvents().catch(() => {});
 
     (async () => {
+      // FIX 10-C: 서버 검증 — getUser()가 실패(네트워크 포함)하면 sync 전체 skip.
+      // RLS는 인증이 깨져도 에러 없이 빈 결과를 반환하므로
+      // "빈 결과 → setQualifyingResult(null)"로 grade를 지우는 버그 차단.
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) {
+          console.warn('[useSyncOnLogin] getUser failed or no user — skip sync:', error?.message);
+          return;
+        }
+      } catch (e) {
+        console.warn('[useSyncOnLogin] getUser threw — skip sync:', e);
+        return;
+      }
+
       // FIX 8-3: 각 sync를 개별 try-catch로 분리. 하나 실패해도 나머지 진행.
       // 기존 큰 try-catch는 초기 fetch가 throw하면 모든 후속 sync가 실행 안 됨.
 

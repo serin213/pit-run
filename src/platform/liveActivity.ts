@@ -37,6 +37,11 @@ export interface LiveActivityState {
   // warmup: elapsedMs는 "남은 ms" (카운트다운), prog 미사용.
   // attributes schema는 동일 — elapsedMs 의미만 mode별로 재해석.
   mode: LiveActivityMode;
+  // FIX 10-B: timerInterval 전환 — iOS 자체 틱 (push 0회).
+  // timerStartMs: epoch ms 경과 기준점 (qualifying/race).
+  // timerEndMs:   epoch ms 카운트다운 목표 (warmup).
+  timerStartMs?: number;
+  timerEndMs?: number;
 }
 
 let currentActivityId: string | null = null;
@@ -98,6 +103,8 @@ export async function updateLiveActivity(
       prog: state.prog,
       isPaused: state.isPaused,
       mode: state.mode,
+      timerStartMs: state.timerStartMs ?? null,
+      timerEndMs: state.timerEndMs ?? null,
     });
     laDiag.pushOk++;
   } catch (e) {

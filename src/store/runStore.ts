@@ -4,19 +4,14 @@ import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from './appStore';
 import { updateActiveRacePlan } from '../api/racePlan';
+import type { LapEntry } from '../types/run';
+
+export type { LapEntry };
 
 export interface TyreSegment {
   tire: TireType;
   startDist: number;
   endDist: number;
-}
-
-export interface LapEntry {
-  idx: number;
-  type: 'lap' | 'pit';
-  distM: number;
-  durationSec: number;
-  paceS: number | null;
 }
 
 interface RunState {

@@ -54,6 +54,7 @@ import { playSound } from './audio';
 import {
   getActiveRacePlan,
   updateActiveRacePlan,
+  clearActiveRacePlan,
   type ActiveRacePlan,
 } from '../api/racePlan';
 import { appendRaceLapEntry, getRaceLapLog } from '../api/raceLapLog';
@@ -457,9 +458,18 @@ export async function startBackgroundLocationTask(): Promise<void> {
   const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
   gpsDiag.taskRegistered = isRegistered;
 
+  // FIX 10-A: ghost-proof start.
+  // hasStartedLocationUpdatesAsync=true인 유령 task를 재사용하면 GPS 측정이
+  // 안 되거나 트리클(callback 2~3개/세션) 문제가 발생.
+  // isStarted=true면 먼저 stop하고 항상 fresh start. pre-stop 실패해도 진행.
   const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
-  gpsDiag.taskStarted = isStarted;
-  if (isStarted) return;
+  gpsDiag.taskStarted = false; // "이번 세션 fresh start 성공" 의미로 재정의
+  if (isStarted) {
+    gpsDiag.ghostCleared++;
+    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch((e) => {
+      gpsDiag.startError = 'pre-stop fail: ' + String(e).slice(0, 80);
+    });
+  }
 
   try {
     await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
@@ -491,7 +501,9 @@ export async function startBackgroundLocationTask(): Promise<void> {
 export async function stopBackgroundLocationTask(): Promise<void> {
   const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
   if (isStarted) {
-    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => {});
+    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch((e) => {
+      gpsDiag.startError = 'stop fail: ' + String(e).slice(0, 80);
+    });
   }
 }
 
@@ -520,9 +532,16 @@ export async function cleanupStaleBackgroundTask(): Promise<void> {
     const isStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
     if (!isStarted) return;
     const plan = getActiveRacePlan();
-    if (!plan) {
-      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => {});
+    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+    const isStale = plan && plan.startedAtMs
+      ? Date.now() - plan.startedAtMs > TWELVE_HOURS_MS
+      : false;
+    if (!plan || isStale) {
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch((e) => {
+        console.warn('[cleanupStaleBackgroundTask] stop fail:', e);
+      });
       clearBackgroundCoords();
+      if (isStale) clearActiveRacePlan();
     }
   } catch (e) {
     console.warn('[cleanupStaleBackgroundTask]', e);

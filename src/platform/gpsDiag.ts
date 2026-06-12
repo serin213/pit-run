@@ -46,6 +46,9 @@ export const gpsDiag = {
   // CLBackgroundActivitySession 상태 (FIX 7-2)
   bgSessionActive: false as boolean,
 
+  // FIX 10-A: ghost-proof start — pre-stop 실행 횟수
+  ghostCleared: 0,
+
   // maybeFireBackgroundRaceEvents 가드 진단 — FIX 4
   bgEventCallCount: 0,
   bgEventPlanNull: 0,
@@ -87,4 +90,29 @@ export function resetGpsDiag(): void {
   gpsDiag.taskWriteCount = 0;
   gpsDiag.lastTaskWriteTs = 0;
   gpsDiag.startError = '';
+}
+
+/**
+ * 세션 시작 시 측정 카운터만 리셋. fgPerm/bgPerm/enabled 등 권한·설정값은 유지.
+ * 세션 간 잔존값 오염 제거 목적 (검증 산책에서 이전 세션 수치가 누적되는 문제).
+ */
+export function resetSessionDiag(): void {
+  gpsDiag.taskWriteCount = 0;
+  gpsDiag.acceptCount = 0;
+  gpsDiag.distSkipCount = 0;
+  gpsDiag.accSkipCount = 0;
+  gpsDiag.nullCount = 0;
+  gpsDiag.totalAccumulatedKm = 0;
+  gpsDiag.lastDist = null;
+  gpsDiag.ghostCleared = 0;
+  gpsDiag.bgEventCallCount = 0;
+  gpsDiag.bgEventPlanNull = 0;
+  gpsDiag.bgEventQualifying = 0;
+  gpsDiag.bgEventFullPushFired = 0;
+  gpsDiag.bgEventBoxBoxFired = 0;
+  gpsDiag.bgEventWorkNotReady = 0;
+  gpsDiag.bgEventNotWorkPhase = 0;
+  laDiag.pushTried = 0;
+  laDiag.pushOk = 0;
+  laDiag.pushFail = 0;
 }

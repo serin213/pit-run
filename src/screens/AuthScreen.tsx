@@ -104,7 +104,9 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
-    (async () => {
+
+    // FIX 10-D: run 함수로 추출해 Alert "다시 시도"에서 실제 재호출.
+    const run = async () => {
       try {
         const profile = await fetchProfile();
         if (cancelled) return;
@@ -122,9 +124,7 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
           [
             {
               text: '다시 시도',
-              onPress: () => {
-                setError('네트워크 오류 — 앱을 재시작하거나 다시 시도해주세요');
-              },
+              onPress: () => { if (!cancelled) run(); },
             },
             {
               text: '로그아웃',
@@ -136,7 +136,9 @@ export default function AuthScreen({ navigation }: AuthScreenProps) {
           ]
         );
       }
-    })();
+    };
+
+    run();
     return () => { cancelled = true; };
   }, [isAuthenticated, navigation]);
 

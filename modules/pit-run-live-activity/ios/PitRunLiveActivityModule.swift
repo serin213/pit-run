@@ -17,6 +17,9 @@ struct PitRunAttributes: ActivityAttributes {
         // "race" | "qualifying" — 반드시 targets/.../PitRunAttributes.swift의
         // ContentState와 순서/이름/타입 동일.
         var mode: String
+        // FIX 10-B: timerInterval 전환용 epoch ms 기준점.
+        var timerStartMs: Double?
+        var timerEndMs: Double?
     }
     var driverName: String
     var teamColor: String
@@ -63,7 +66,8 @@ public class PitRunLiveActivityModule: Module {
                 distKm: 0, elapsedMs: 0, paceS: 0,
                 sector: "yellow", tire: "soft", pitPhase: "none",
                 prog: 0, isPaused: false,
-                mode: mode
+                mode: mode,
+                timerStartMs: nil, timerEndMs: nil
             )
             let content = ActivityContent(state: initialState, staleDate: Date().addingTimeInterval(60))
             let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
@@ -104,15 +108,17 @@ public class PitRunLiveActivityModule: Module {
             }
 
             let newState = PitRunAttributes.ContentState(
-                distKm:    state["distKm"]    as? Double ?? 0,
-                elapsedMs: state["elapsedMs"] as? Int    ?? 0,
-                paceS:     state["paceS"]     as? Int    ?? 0,
-                sector:    state["sector"]    as? String ?? "yellow",
-                tire:      state["tire"]      as? String ?? "soft",
-                pitPhase:  state["pitPhase"]  as? String ?? "none",
-                prog:      state["prog"]      as? Double ?? 0,
-                isPaused:  state["isPaused"]  as? Bool   ?? false,
-                mode:      state["mode"]      as? String ?? "race"
+                distKm:       state["distKm"]       as? Double ?? 0,
+                elapsedMs:    state["elapsedMs"]    as? Int    ?? 0,
+                paceS:        state["paceS"]        as? Int    ?? 0,
+                sector:       state["sector"]       as? String ?? "yellow",
+                tire:         state["tire"]         as? String ?? "soft",
+                pitPhase:     state["pitPhase"]     as? String ?? "none",
+                prog:         state["prog"]         as? Double ?? 0,
+                isPaused:     state["isPaused"]     as? Bool   ?? false,
+                mode:         state["mode"]         as? String ?? "race",
+                timerStartMs: state["timerStartMs"] as? Double,
+                timerEndMs:   state["timerEndMs"]   as? Double
             )
             // FIX 7-3: staleDate 60초 후로 설정. iOS가 stale 시점이 지나면 LA를 자동
             // refresh 트리거 (시스템 hint) → 잠금 중 background runtime이 일시 throttle

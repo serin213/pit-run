@@ -15,6 +15,48 @@ private extension Color {
     }
 }
 
+// MARK: - Timer helpers (FIX 10-B)
+/// epoch ms → Date
+private func dateFromMs(_ ms: Double) -> Date {
+    Date(timeIntervalSince1970: ms / 1000)
+}
+
+/// timerStartMs가 있으면 Text(timerInterval: start...distantFuture) 경과 타이머.
+/// timerEndMs가 있으면 Text(timerInterval: now...end, countsDown:true) 카운트다운.
+/// 둘 다 nil이면 formatQualTime(elapsedMs) 폴백.
+@ViewBuilder
+private func timerText(
+    timerStartMs: Double?,
+    timerEndMs: Double?,
+    elapsedMs: Int,
+    font: Font,
+    color: Color
+) -> some View {
+    if #available(iOS 16.0, *), let startMs = timerStartMs {
+        Text(timerInterval: dateFromMs(startMs)...Date.distantFuture, pauseTime: nil)
+            .font(font)
+            .foregroundStyle(color)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(minWidth: 44, alignment: .trailing)
+    } else if #available(iOS 16.0, *), let endMs = timerEndMs {
+        Text(timerInterval: Date.now...dateFromMs(endMs), countsDown: true, showsHours: false)
+            .font(font)
+            .foregroundStyle(color)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(minWidth: 44, alignment: .trailing)
+    } else {
+        Text(formatQualTime(elapsedMs))
+            .font(font)
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+    }
+}
+
 // MARK: - Formatters
 private func formatPace(_ s: Int) -> String {
     guard s > 0 else { return "--'--\"" }
@@ -534,10 +576,10 @@ private struct QualifyingProgressBar: View {
 private struct LockQualifyingView: View {
     let prog: Double
     let elapsedMs: Int
+    var timerStartMs: Double? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // LockNormalView의 서킷명과 동일 속성 (Formula1-Bold 15pt).
             Text("Qualifying")
                 .font(.custom("Formula1-Display-Bold", size: 15))
                 .foregroundStyle(Color.white)
@@ -545,11 +587,14 @@ private struct LockQualifyingView: View {
 
             Color.clear.frame(height: 20)
 
-            // 시간: LockNormalView의 큰 숫자(distance)와 동일 속성 (Formula1-Bold 30pt).
-            Text(formatQualTime(elapsedMs))
-                .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
-                .foregroundStyle(Color.white)
-                .lineLimit(1)
+            // FIX 10-B: timerInterval 경과 타이머.
+            timerText(
+                timerStartMs: timerStartMs,
+                timerEndMs: nil,
+                elapsedMs: elapsedMs,
+                font: .custom("Formula1-Display-Bold", size: 30).monospacedDigit(),
+                color: Color.white
+            )
 
             Color.clear.frame(height: 12)
 
@@ -567,6 +612,7 @@ private struct LockQualifyingView: View {
 // progress bar만 제거한 형태.
 private struct LockWarmupView: View {
     let elapsedMs: Int  // 남은 시간 (warmup countdown)
+    var timerEndMs: Double? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -577,12 +623,14 @@ private struct LockWarmupView: View {
 
             Color.clear.frame(height: 20)
 
-            // 카운트다운 시간 — formatQualTime는 단순 ms→"m'ss\"" 포맷이라
-            // warmup의 "남은 시간"도 동일 함수로 정상 표시.
-            Text(formatQualTime(elapsedMs))
-                .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
-                .foregroundStyle(Color.white)
-                .lineLimit(1)
+            // FIX 10-B: timerInterval 카운트다운.
+            timerText(
+                timerStartMs: nil,
+                timerEndMs: timerEndMs,
+                elapsedMs: elapsedMs,
+                font: .custom("Formula1-Display-Bold", size: 30).monospacedDigit(),
+                color: Color.white
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 24)
@@ -609,7 +657,7 @@ struct PitRunLiveActivityView: View {
             // 같은 race-only 상태가 없으므로 각각 전용 view 표시. race(default)만
             // 기존 pitPhase 분기 사용.
             if state.mode == "warmup" {
-                LockWarmupView(elapsedMs: state.elapsedMs)
+                LockWarmupView(elapsedMs: state.elapsedMs, timerEndMs: state.timerEndMs)
             } else if state.mode == "qualifying" {
                 // qualifying 완주(1km) 시점에 pitPhase='completed'로 update되면
                 // race와 동일하게 "Well done, mate" wave view 표시. 그 외엔
@@ -623,7 +671,7 @@ struct PitRunLiveActivityView: View {
                         LockWaveView(teamColor: teamClr, line1: "\u{201C}Well done, mate\u{201D}", line2: nil)
                     }
                 } else {
-                    LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs)
+                    LockQualifyingView(prog: state.prog, elapsedMs: state.elapsedMs, timerStartMs: state.timerStartMs)
                 }
             } else {
                 switch state.pitPhase {
@@ -745,15 +793,16 @@ struct PitRunLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if isRedTheme {
-                        // warmup/qualifying: 시간만 단일 텍스트. warmup은 카운트다운,
-                        // qualifying은 경과 시간. distKm은 둘 다 무의미.
-                        Text(formatQualTime(state.elapsedMs))
-                            .font(.custom("Formula1-Display-Bold", size: 26).monospacedDigit())
-                            .foregroundStyle(accentColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .padding(.trailing, 12)
-                            .frame(maxHeight: .infinity, alignment: .center)
+                        // warmup/qualifying: timerInterval 자체 틱 (FIX 10-B).
+                        timerText(
+                            timerStartMs: state.mode == "qualifying" ? state.timerStartMs : nil,
+                            timerEndMs:   state.mode == "warmup"     ? state.timerEndMs   : nil,
+                            elapsedMs: state.elapsedMs,
+                            font: .custom("Formula1-Display-Bold", size: 26).monospacedDigit(),
+                            color: accentColor
+                        )
+                        .padding(.trailing, 12)
+                        .frame(maxHeight: .infinity, alignment: .center)
                     } else {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text(String(format: "%.2f", state.distKm))
@@ -776,12 +825,16 @@ struct PitRunLiveActivity: Widget {
             } compactLeading: {
                 StaticRaceFlag()
             } compactTrailing: {
-                // warmup/qualifying: n'nn" 시간 (warmup=카운트다운, qualifying=경과).
+                // warmup/qualifying: timerInterval 자체 틱 (FIX 10-B).
                 // race: distKm.
                 if isRedTheme {
-                    Text(formatQualTime(state.elapsedMs))
-                        .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())
-                        .foregroundStyle(Color.white)
+                    timerText(
+                        timerStartMs: state.mode == "qualifying" ? state.timerStartMs : nil,
+                        timerEndMs:   state.mode == "warmup"     ? state.timerEndMs   : nil,
+                        elapsedMs: state.elapsedMs,
+                        font: .custom("Formula1-Display-Regular", size: 13).monospacedDigit(),
+                        color: Color.white
+                    )
                 } else {
                     Text(String(format: "%.2f", state.distKm))
                         .font(.custom("Formula1-Display-Regular", size: 13).monospacedDigit())

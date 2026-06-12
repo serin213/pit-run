@@ -555,7 +555,12 @@ function BgEventDiagPanel() {
       }}
       pointerEvents="none"
     >
-      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>BG EVENTS</Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>GPS</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>tw: {gpsDiag.taskWriteCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>acc: {gpsDiag.acceptCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>skip: {gpsDiag.distSkipCount}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>started: {gpsDiag.taskStarted ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 2 }}>BG EVENTS</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>call: {gpsDiag.bgEventCallCount}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>null: {gpsDiag.bgEventPlanNull}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bb: {gpsDiag.bgEventBoxBoxFired}</Text>

@@ -15,6 +15,8 @@ interface PitRunLiveActivityNative {
     prog: number;
     isPaused: boolean;
     mode: string;
+    timerStartMs: number | null;
+    timerEndMs: number | null;
   }): Promise<void>;
   endActivity(activityId: string): Promise<void>;
   endAllActivities(): Promise<void>;
@@ -86,6 +88,8 @@ export async function updateActivity(
     prog: number;
     isPaused: boolean;
     mode: string;
+    timerStartMs: number | null;
+    timerEndMs: number | null;
   }
 ): Promise<void> {
   const mod = getNativeModule();
