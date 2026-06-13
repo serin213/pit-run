@@ -57,7 +57,9 @@ import {
   endAllLiveActivities,
   getCurrentActivityId,
 } from '../platform/liveActivity';
-import { gpsDiag } from '../platform/gpsDiag';
+import { gpsDiag, cbLog } from '../platform/gpsDiag';
+import { debugGpsConfig } from '../platform/debugGpsConfig';
+import { isBackgroundActivitySupported } from '../platform/backgroundActivity';
 
 const WARMUP_ICON = require('../../assets/icons/qualifying-warmup-5ce716.png');
 const RUN_ICON = require('../../assets/icons/qualifying-run-756777.png');
@@ -634,8 +636,31 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
 // Sub-components
 // ─────────────────────────────────────────────
 
+function formatCbLogSummaryQ(): string {
+  if (cbLog.length === 0) return '—';
+  const now = Date.now();
+  let markerIdx = -1;
+  let markerKind: 'bg' | 'fg' = 'bg';
+  for (let i = cbLog.length - 1; i >= 0; i--) {
+    if (cbLog[i].k === 'bg' || cbLog[i].k === 'fg') {
+      markerIdx = i; markerKind = cbLog[i].k as 'bg' | 'fg'; break;
+    }
+  }
+  if (markerIdx === -1) return 'no marker';
+  const cbs = cbLog.slice(markerIdx + 1).filter((e) => e.k === 'cb');
+  const markerT = cbLog[markerIdx].t;
+  const gaps = cbs.map((e, i) => {
+    const prev = i === 0 ? markerT : cbs[i - 1].t;
+    return Math.round((e.t - prev) / 1000);
+  });
+  const lastCbT = cbs.length > 0 ? cbs[cbs.length - 1].t : markerT;
+  const silentSec = Math.round((now - lastCbT) / 1000);
+  return `${markerKind}→ ${gaps.length > 0 ? gaps.join(' ') : '(none)'} (${silentSec}s)`;
+}
+
 function GpsDiagPanel() {
   const [, setTick] = useState(0);
+  const [, forceRender] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 500);
     return () => clearInterval(id);
@@ -651,7 +676,6 @@ function GpsDiagPanel() {
         backgroundColor: 'rgba(0,0,0,0.72)',
         borderRadius: 6,
       }}
-      pointerEvents="none"
     >
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginBottom: 2 }}>GPS</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>tick: {gpsDiag.tick}</Text>
@@ -662,12 +686,24 @@ function GpsDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>skip: {gpsDiag.distSkipCount}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>last: {gpsDiag.lastDist != null ? gpsDiag.lastDist.toFixed(4) : '—'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>km: {gpsDiag.totalAccumulatedKm.toFixed(3)}</Text>
-      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>tw: {gpsDiag.taskWriteCount}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>ghost: {gpsDiag.ghostCleared}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bb: {gpsDiag.bgEventBoxBoxFired} fp: {gpsDiag.bgEventFullPushFired}</Text>
       {gpsDiag.startError ? (
         <Text style={{ color: '#f66', fontSize: 10 }}>err: {gpsDiag.startError.slice(0, 60)}</Text>
       ) : null}
+      {/* A/B 토글 — 다음 GPS 시작 시 적용 */}
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>A/B (next start)</Text>
+      <Pressable onPress={() => { debugGpsConfig.useFitnessActivityType = !debugGpsConfig.useFitnessActivityType; forceRender((n) => n + 1); }}>
+        <Text style={{ color: '#ff0', fontSize: 10 }}>AT:{debugGpsConfig.useFitnessActivityType ? 'Fitness' : 'Other'}</Text>
+      </Pressable>
+      <Pressable onPress={() => { debugGpsConfig.useBgSession = !debugGpsConfig.useBgSession; forceRender((n) => n + 1); }}>
+        <Text style={{ color: '#ff0', fontSize: 10 }}>bgSess:{debugGpsConfig.useBgSession ? 'on' : 'off'}</Text>
+      </Pressable>
+      {/* cbLog 요약 */}
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>CB</Text>
+      <Text style={{ color: '#aff', fontSize: 9 }} numberOfLines={2}>{formatCbLogSummaryQ()}</Text>
     </View>
   );
 }

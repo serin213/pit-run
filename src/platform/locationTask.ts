@@ -48,7 +48,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { COLORS } from '../constants/colors';
 import { getString, setString, remove } from './storage';
-import { gpsDiag } from './gpsDiag';
+import { gpsDiag, pushCbLog } from './gpsDiag';
 import { haversineKm, type LocationCoords } from './location';
 import { playSound } from './audio';
 import {
@@ -61,6 +61,7 @@ import { appendRaceLapEntry, getRaceLapLog } from '../api/raceLapLog';
 import { updateLiveActivity, getCurrentActivityId } from './liveActivity';
 import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
+import { debugGpsConfig } from './debugGpsConfig';
 
 /**
  * Background race event check — distance 누적 직후 호출.
@@ -123,12 +124,18 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 잠금/백그라운드 상태에서도 사운드 발화 — race와 동일 패턴.
   if (plan.mode === 'qualifying') {
     gpsDiag.bgEventQualifying++;
-    if (plan.completedReps === 0) {
-      const currentAccum = readAccum();
-      if (currentAccum >= plan.intervalKm) {
-        try { await playSound('qualifyingEnd'); } catch {}
-        updateActiveRacePlan({ completedReps: 1 });
-      }
+    const currentAccum = readAccum();
+    if (plan.completedReps === 0 && currentAccum >= plan.intervalKm) {
+      try { await playSound('qualifyingEnd'); } catch {}
+      plan = updateActiveRacePlan({ completedReps: 1 }) ?? plan;
+      await fireQualifyingLAUpdate(plan, currentAccum, now, true).catch(() => {});
+      lastLAPushTime = now;
+      return; // qualifying은 boxbox/fullPush 분기 안 탐
+    }
+    // 미완주: 5초 throttle로 LA prog 갱신
+    if (now - lastLAPushTime >= LA_PUSH_MIN_INTERVAL_MS) {
+      await fireQualifyingLAUpdate(plan, currentAccum, now, false).catch(() => {});
+      lastLAPushTime = now;
     }
     return; // qualifying은 boxbox/fullPush 분기 안 탐
   }
@@ -251,6 +258,38 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
 }
 
 /**
+ * Qualifying 모드 전용 LA update.
+ * fireLAUpdate 재사용 금지 — payload 의미가 다름 (prog = dist/1km, mode='qualifying').
+ *
+ * 주의: timerStartMs는 매 push마다 반드시 plan.startedAtMs를 재전송해야 한다.
+ * null로 보내면 Swift timerText가 formatQualTime 폴백 분기로 떨어져 timerInterval
+ * 자체 틱이 끊기고 잠금화면 타이머가 멈춰 보임.
+ */
+async function fireQualifyingLAUpdate(
+  plan: ActiveRacePlan,
+  distKm: number,
+  now: number,
+  completed: boolean,
+): Promise<void> {
+  const id = getCurrentActivityId();
+  if (!id) return;
+  const prog = Math.max(0, Math.min(1, distKm / plan.intervalKm));
+  const elapsedMs = Math.max(0, now - plan.startedAtMs);
+  await updateLiveActivity(id, {
+    distKm: 0,
+    elapsedMs,
+    paceS: 0,
+    sector: 'red',
+    tire: 'soft',
+    pitPhase: completed ? 'completed' : 'none',
+    prog,
+    isPaused: false,
+    mode: 'qualifying',
+    timerStartMs: plan.startedAtMs,
+  });
+}
+
+/**
  * 묶음 2: background에서 LA update 호출.
  * Apple ActivityKit은 background에서도 update 허용. expo-modules-core AsyncFunction
  * 호출 자체는 RN JS context에서 자유롭게 가능 — locationTask callback도 동일 context.
@@ -339,6 +378,7 @@ export function defineBackgroundLocationTask(): void {
 
       gpsDiag.taskWriteCount++;
       gpsDiag.lastTaskWriteTs = loc.timestamp;
+      pushCbLog('cb');
 
       // ── Layer 1: Validity gate ──────────────────────────────────────────────
       // Stale: iOS delivers a cached last-known-location on first callback which
@@ -478,7 +518,9 @@ export async function startBackgroundLocationTask(): Promise<void> {
       // 시 power management로 GPS callback 강하게 throttle → 외출②에서 timeInterval
       // 1000 설정인데 실제 callback 3.4초 평균 + 평균 페이스 11'53"로 매우 느림.
       // 'Fitness'는 운동 추적 우선순위라 잠금 중에도 callback 빈도 + 정확도 유지.
-      activityType: Location.LocationActivityType.Fitness,
+      activityType: debugGpsConfig.useFitnessActivityType
+        ? Location.LocationActivityType.Fitness
+        : Location.LocationActivityType.Other,
       timeInterval: 1000,
       distanceInterval: 1,
       foregroundService: {

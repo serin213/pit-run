@@ -11,12 +11,14 @@ import {
   getAccumulatedKm,
   clearBackgroundCoords,
 } from '../platform/locationTask';
-import { gpsDiag, laDiag, resetSessionDiag } from '../platform/gpsDiag';
+import { getActiveRacePlan } from '../api/racePlan';
+import { gpsDiag, laDiag, resetSessionDiag, pushCbLog } from '../platform/gpsDiag';
 import {
   startBackgroundActivitySession,
   stopBackgroundActivitySession,
   isBackgroundActivitySupported,
 } from '../platform/backgroundActivity';
+import { debugGpsConfig } from '../platform/debugGpsConfig';
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -70,7 +72,8 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       // foreground에서만 시작 가능 — useGPS는 RunningScreen mount 시점에 호출되므로 OK.
       // 잠금 중 background runtime을 시스템에 명시적으로 요청. LA update 안정성 향상.
       // iOS 16에서는 isSupported() false라 startSession이 false 반환 (무영향).
-      if (isBackgroundActivitySupported()) {
+      // debugGpsConfig.useBgSession=false 시 시작 스킵 (A/B 계측용).
+      if (isBackgroundActivitySupported() && debugGpsConfig.useBgSession) {
         try {
           const ok = await startBackgroundActivitySession();
           gpsDiag.bgSessionActive = ok;
@@ -118,15 +121,21 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
           laDiag.lastLockState = state;
         }
 
-        if (state === 'active') drainAccum();
+        if (state === 'active') { pushCbLog('fg'); drainAccum(); }
         // 'background' — 사용자가 swipe kill 직전 발생할 수 있음 (보장 X).
         // race가 종료된 상태라면 background task도 같이 정리. swipe kill로
         // useGPS cleanup이 실행되지 않을 가능성에 대비한 best-effort 방어선.
         // FIX 1(cleanupStaleBackgroundTask)이 다음 부팅 시 1차 방어, 이 분기가
         // 0차 방어.
         if (state === 'background') {
+          pushCbLog('bg');
           const { isRunning } = useRunStore.getState();
-          if (!isRunning) {
+          // isRunning은 race 전용 (RunningScreen startRun에서만 true).
+          // 퀄리파잉은 activeRacePlan.isRunning으로만 세션을 표시하므로
+          // isRunning만 확인하면 퀄리파잉 중 잠금 시 GPS task가 영구 종료됨.
+          // plan.isRunning이 true면 퀄리파잉 진행 중 — task 유지.
+          const plan = getActiveRacePlan();
+          if (!isRunning && !(plan && plan.isRunning)) {
             stopBackgroundLocationTask().catch(() => {});
           }
         }

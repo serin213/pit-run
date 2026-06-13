@@ -33,7 +33,9 @@ private func timerText(
     color: Color
 ) -> some View {
     if #available(iOS 16.0, *), let startMs = timerStartMs {
-        Text(timerInterval: dateFromMs(startMs)...Date.distantFuture, pauseTime: nil)
+        // countsDown 기본값이 true이므로 명시적으로 false 지정.
+        // 미지정 시 distantFuture(4001년)까지의 남은 시간(~1730만 시간)이 표시됨.
+        Text(timerInterval: dateFromMs(startMs)...Date.distantFuture, pauseTime: nil, countsDown: false)
             .font(font)
             .foregroundStyle(color)
             .monospacedDigit()

@@ -10,6 +10,14 @@
  * overlay에서 500ms force-render로 실시간 표시.
  */
 
+// ── 콜백 타임스탬프 링버퍼 (A/B 계측용) ──────────────────────────────────────
+export type CbLogEntry = { t: number; k: 'cb' | 'fg' | 'bg' };
+export const cbLog: CbLogEntry[] = [];
+export function pushCbLog(k: CbLogEntry['k']): void {
+  cbLog.push({ t: Date.now(), k });
+  if (cbLog.length > 60) cbLog.shift();
+}
+
 export const gpsDiag = {
   // useGPS hook
   enabled: false as boolean,

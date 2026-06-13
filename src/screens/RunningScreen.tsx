@@ -30,7 +30,9 @@ import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
-import { gpsDiag, laDiag } from '../platform/gpsDiag';
+import { gpsDiag, laDiag, cbLog } from '../platform/gpsDiag';
+import { debugGpsConfig } from '../platform/debugGpsConfig';
+import { isBackgroundActivitySupported } from '../platform/backgroundActivity';
 import { syncDiag } from '../api/saveDiag';
 import { doubleImpact, successLong } from '../platform/haptics';
 import { endAllLiveActivities } from '../platform/liveActivity';
@@ -531,8 +533,35 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   );
 }
 
+function formatCbLogSummary(): string {
+  if (cbLog.length === 0) return '—';
+  const now = Date.now();
+  // 마지막 bg or fg 마커 인덱스 탐색
+  let markerIdx = -1;
+  let markerKind: 'bg' | 'fg' = 'bg';
+  for (let i = cbLog.length - 1; i >= 0; i--) {
+    if (cbLog[i].k === 'bg' || cbLog[i].k === 'fg') {
+      markerIdx = i;
+      markerKind = cbLog[i].k as 'bg' | 'fg';
+      break;
+    }
+  }
+  if (markerIdx === -1) return 'no marker';
+  const cbs = cbLog.slice(markerIdx + 1).filter((e) => e.k === 'cb');
+  const markerT = cbLog[markerIdx].t;
+  const gaps = cbs.map((e, i) => {
+    const prev = i === 0 ? markerT : cbs[i - 1].t;
+    return Math.round((e.t - prev) / 1000);
+  });
+  const lastCbT = cbs.length > 0 ? cbs[cbs.length - 1].t : markerT;
+  const silentSec = Math.round((now - lastCbT) / 1000);
+  const gapsStr = gaps.length > 0 ? gaps.join(' ') : '(none)';
+  return `${markerKind}→ ${gapsStr} (${silentSec}s)`;
+}
+
 function BgEventDiagPanel() {
   const [, setDiagTick] = useState(0);
+  const [, forceRender] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setDiagTick((t) => t + 1), 1000);
     return () => clearInterval(id);
@@ -553,7 +582,6 @@ function BgEventDiagPanel() {
         backgroundColor: 'rgba(255,0,0,0.75)',
         borderRadius: 6,
       }}
-      pointerEvents="none"
     >
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>GPS</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>tw: {gpsDiag.taskWriteCount}</Text>
@@ -572,7 +600,7 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>tried: {laDiag.pushTried}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>ok: {laDiag.pushOk}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>fail: {laDiag.pushFail}</Text>
-      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {gpsDiag.bgSessionActive ? '1' : '0'}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>SYNC</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>profile: {syncDiag.profileOk ? '1' : '0'}{syncDiag.profileErr ? ` ${syncDiag.profileErr.slice(0, 20)}` : ''}</Text>
@@ -589,6 +617,17 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>
         recS: {activePlan?.recovery.durationSec ?? '?'}
       </Text>
+      {/* A/B 토글 — 다음 GPS 시작 시 적용 */}
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>A/B (next start)</Text>
+      <Pressable onPress={() => { debugGpsConfig.useFitnessActivityType = !debugGpsConfig.useFitnessActivityType; forceRender((n) => n + 1); }}>
+        <Text style={{ color: '#ff0', fontSize: 10 }}>AT:{debugGpsConfig.useFitnessActivityType ? 'Fitness' : 'Other'}</Text>
+      </Pressable>
+      <Pressable onPress={() => { debugGpsConfig.useBgSession = !debugGpsConfig.useBgSession; forceRender((n) => n + 1); }}>
+        <Text style={{ color: '#ff0', fontSize: 10 }}>bgSess:{debugGpsConfig.useBgSession ? 'on' : 'off'}</Text>
+      </Pressable>
+      {/* cbLog 요약 */}
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>CB</Text>
+      <Text style={{ color: '#aff', fontSize: 9 }} numberOfLines={2}>{formatCbLogSummary()}</Text>
     </View>
   );
 }
