@@ -23,7 +23,6 @@ import CircuitMap, {
   getCircuitTangentAtProgress,
 } from '../components/CircuitMap';
 import { CIRCUITS } from '../config/circuits';
-import { getCircuitTheme } from '../config/circuitThemes';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import { useDevMode } from '../lib/devMode';
@@ -179,10 +178,8 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const circuitLabel = activeCircuit?.displayName ?? 'Shanghai';
   const circuitKm = activeCircuit?.distanceKm ?? CIRCUIT_KM;
   const circuitPath = activeCircuit?.trackPath;
-  const topTheme =
-    isInPitTheme
-      ? { line: PALETTE.white, text: PALETTE.white }
-      : getCircuitTheme(circuitLabel);
+  // FIX 13-3: 국가명/서킷km/구분선 항상 흰색 — in-pit 분기 제거.
+  const topTheme = { line: PALETTE.white, text: PALETTE.white };
   const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : isFinalLap ? 'FINAL LAP' : 'RACING';
   const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
@@ -323,7 +320,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
             if (w > 0 && Math.abs(w - distRenderWidth) > 0.5) setDistRenderWidth(w);
             if (w > 0 && Math.abs(w - distanceWidth) > 0.5) setDistanceWidth(w);
           }}
-          style={[styles.dist, { color: displayTheme.start, fontSize: 120, lineHeight: distLineHeight, alignSelf: 'center' }]}
+          style={[styles.dist, { color: PALETTE.white, fontSize: 120, lineHeight: distLineHeight, alignSelf: 'center' }]}
         >
           {fmtDist(distKm)}
         </Text>
@@ -603,6 +600,9 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>
+        lockKm: {gpsDiag.lockEnterKm != null ? gpsDiag.lockEnterKm.toFixed(3) : '?'} → {gpsDiag.lockExitKm != null ? gpsDiag.lockExitKm.toFixed(3) : '?'}
+      </Text>
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>SYNC</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>profile: {syncDiag.profileOk ? '1' : '0'}{syncDiag.profileErr ? ` ${syncDiag.profileErr.slice(0, 20)}` : ''}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>qual: {syncDiag.qualifyingOk ? '1' : '0'}</Text>
@@ -625,6 +625,9 @@ function BgEventDiagPanel() {
       </Pressable>
       <Pressable onPress={() => { debugGpsConfig.useBgSession = !debugGpsConfig.useBgSession; forceRender((n) => n + 1); }}>
         <Text style={{ color: '#ff0', fontSize: 10 }}>bgSess:{debugGpsConfig.useBgSession ? 'on' : 'off'}</Text>
+      </Pressable>
+      <Pressable onPress={() => { debugGpsConfig.bgAudioMode = !debugGpsConfig.bgAudioMode; forceRender((n) => n + 1); }}>
+        <Text style={{ color: '#ff0', fontSize: 10 }}>bgAudio:{debugGpsConfig.bgAudioMode ? 'on' : 'off'}</Text>
       </Pressable>
       {/* cbLog 요약 */}
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>CB</Text>

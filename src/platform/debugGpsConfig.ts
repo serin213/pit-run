@@ -10,4 +10,5 @@
 export const debugGpsConfig = {
   useFitnessActivityType: true, // false → Location.LocationActivityType.Other
   useBgSession: true,           // false → CLBackgroundActivitySession 시작 스킵
+  bgAudioMode: true,            // false → setAudioModeAsync shouldPlayInBackground: false
 };

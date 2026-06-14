@@ -9,6 +9,7 @@
  */
 
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { debugGpsConfig } from './debugGpsConfig';
 
 export type SoundKey =
   | 'countdown'
@@ -28,20 +29,23 @@ const SOURCES: Record<SoundKey, number> = {
 };
 
 const players: Partial<Record<SoundKey, AudioPlayer>> = {};
-let modeConfigured = false;
+// FIX 2-A: bgAudioMode 토글 값으로 reconfigure 필요 여부 판단.
+// null = 미설정, 이후 마지막으로 적용한 shouldPlayInBackground 값.
+let modeConfiguredFor: boolean | null = null;
 
 async function ensureMode() {
-  if (modeConfigured) return;
-  modeConfigured = true;
+  const wantBg = debugGpsConfig.bgAudioMode;
+  if (modeConfiguredFor === wantBg) return;
   try {
     await setAudioModeAsync({
       playsInSilentMode: true,
       allowsRecording: false,
-      shouldPlayInBackground: true,
+      shouldPlayInBackground: wantBg,
       interruptionMode: 'mixWithOthers',
     });
+    modeConfiguredFor = wantBg;
   } catch {
-    modeConfigured = false;
+    modeConfiguredFor = null;
   }
 }
 

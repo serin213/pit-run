@@ -121,7 +121,11 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
           laDiag.lastLockState = state;
         }
 
-        if (state === 'active') { pushCbLog('fg'); drainAccum(); }
+        if (state === 'active') {
+          pushCbLog('fg');
+          gpsDiag.lockExitKm = getAccumulatedKm();
+          drainAccum();
+        }
         // 'background' — 사용자가 swipe kill 직전 발생할 수 있음 (보장 X).
         // race가 종료된 상태라면 background task도 같이 정리. swipe kill로
         // useGPS cleanup이 실행되지 않을 가능성에 대비한 best-effort 방어선.
@@ -129,6 +133,7 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
         // 0차 방어.
         if (state === 'background') {
           pushCbLog('bg');
+          gpsDiag.lockEnterKm = getAccumulatedKm();
           const { isRunning } = useRunStore.getState();
           // isRunning은 race 전용 (RunningScreen startRun에서만 true).
           // 퀄리파잉은 activeRacePlan.isRunning으로만 세션을 표시하므로

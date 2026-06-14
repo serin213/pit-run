@@ -61,6 +61,38 @@ private func timerText(
     }
 }
 
+/// FIX 1: compactTrailing 전용 — race compact의 distKm Text(font + foregroundStyle + lineLimit(1))와
+/// 동일한 단순 스타일. .frame(minWidth: 44) / .minimumScaleFactor(0.7) 없음 — DI 컴팩트 영역
+/// 과폭 방지. showsHours: false로 1시간 이상 표시 시에도 폭 고정.
+@ViewBuilder
+private func compactTimerText(
+    timerStartMs: Double?,
+    timerEndMs: Double?,
+    elapsedMs: Int,
+    font: Font,
+    color: Color
+) -> some View {
+    if #available(iOS 16.0, *), let startMs = timerStartMs {
+        let start = dateFromMs(startMs)
+        Text(timerInterval: start...start.addingTimeInterval(3600), pauseTime: nil, countsDown: false, showsHours: false)
+            .font(font)
+            .foregroundStyle(color)
+            .monospacedDigit()
+            .lineLimit(1)
+    } else if #available(iOS 16.0, *), let endMs = timerEndMs {
+        Text(timerInterval: Date.now...dateFromMs(endMs), countsDown: true, showsHours: false)
+            .font(font)
+            .foregroundStyle(color)
+            .monospacedDigit()
+            .lineLimit(1)
+    } else {
+        Text(formatQualTime(elapsedMs))
+            .font(font)
+            .foregroundStyle(color)
+            .lineLimit(1)
+    }
+}
+
 // MARK: - Formatters
 private func formatPace(_ s: Int) -> String {
     guard s > 0 else { return "--'--\"" }
@@ -832,7 +864,7 @@ struct PitRunLiveActivity: Widget {
                 // warmup/qualifying: timerInterval 자체 틱 (FIX 10-B).
                 // race: distKm.
                 if isRedTheme {
-                    timerText(
+                    compactTimerText(
                         timerStartMs: state.mode == "qualifying" ? state.timerStartMs : nil,
                         timerEndMs:   state.mode == "warmup"     ? state.timerEndMs   : nil,
                         elapsedMs: state.elapsedMs,
