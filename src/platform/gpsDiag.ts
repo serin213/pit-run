@@ -66,6 +66,13 @@ export const gpsDiag = {
   bgEventBoxBoxFired: 0,
   bgEventWorkNotReady: 0,
   bgEventNotWorkPhase: 0,
+
+  // FIX 12: 잠금 중 콜백 검증 카운터 (AppState !== 'active' 시 task 콜백 진입 횟수).
+  // 잠금 60초 후 ~60이면 distanceFilter 제거로 백그라운드 정지 해결 확정.
+  bgTw: 0,
+  // 잠금 중 LA push 검증 (background 상태에서 시도/성공 분리)
+  bgLaTried: 0,
+  bgLaOk: 0,
 };
 
 export const laDiag = {
@@ -120,6 +127,9 @@ export function resetSessionDiag(): void {
   gpsDiag.bgEventBoxBoxFired = 0;
   gpsDiag.bgEventWorkNotReady = 0;
   gpsDiag.bgEventNotWorkPhase = 0;
+  gpsDiag.bgTw = 0;
+  gpsDiag.bgLaTried = 0;
+  gpsDiag.bgLaOk = 0;
   laDiag.pushTried = 0;
   laDiag.pushOk = 0;
   laDiag.pushFail = 0;

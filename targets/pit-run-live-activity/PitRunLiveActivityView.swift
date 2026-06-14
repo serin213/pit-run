@@ -33,9 +33,11 @@ private func timerText(
     color: Color
 ) -> some View {
     if #available(iOS 16.0, *), let startMs = timerStartMs {
-        // countsDown 기본값이 true이므로 명시적으로 false 지정.
-        // 미지정 시 distantFuture(4001년)까지의 남은 시간(~1730만 시간)이 표시됨.
-        Text(timerInterval: dateFromMs(startMs)...Date.distantFuture, pauseTime: nil, countsDown: false)
+        // countsDown: false — 경과 타이머 (기본값 true면 distantFuture까지 남은 시간으로 표시됨).
+        // 상한 1시간: distantFuture 대신 start+3600초 → 컴팩트 DI에서 "59:59" 폭 기준으로 예약.
+        // distantFuture 사용 시 14자리 폭이 예약되어 컴팩트 영역이 과폭됨.
+        let start = dateFromMs(startMs)
+        Text(timerInterval: start...start.addingTimeInterval(3600), pauseTime: nil, countsDown: false)
             .font(font)
             .foregroundStyle(color)
             .monospacedDigit()

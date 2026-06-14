@@ -690,6 +690,7 @@ function GpsDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>tw: {gpsDiag.taskWriteCount}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>ghost: {gpsDiag.ghostCleared}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bb: {gpsDiag.bgEventBoxBoxFired} fp: {gpsDiag.bgEventFullPushFired}</Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>
       {gpsDiag.startError ? (
         <Text style={{ color: '#f66', fontSize: 10 }}>err: {gpsDiag.startError.slice(0, 60)}</Text>
       ) : null}

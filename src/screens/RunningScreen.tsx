@@ -602,6 +602,7 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>fail: {laDiag.pushFail}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>SYNC</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>profile: {syncDiag.profileOk ? '1' : '0'}{syncDiag.profileErr ? ` ${syncDiag.profileErr.slice(0, 20)}` : ''}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>qual: {syncDiag.qualifyingOk ? '1' : '0'}</Text>

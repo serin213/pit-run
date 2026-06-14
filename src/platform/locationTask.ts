@@ -44,6 +44,7 @@
  *   - mad-location-manager (maddevsio): GeoHash + Kalman (open source reference)
  */
 
+import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { COLORS } from '../constants/colors';
@@ -275,6 +276,8 @@ async function fireQualifyingLAUpdate(
   if (!id) return;
   const prog = Math.max(0, Math.min(1, distKm / plan.intervalKm));
   const elapsedMs = Math.max(0, now - plan.startedAtMs);
+  const isBg = AppState.currentState !== 'active';
+  if (isBg) gpsDiag.bgLaTried++;
   await updateLiveActivity(id, {
     distKm: 0,
     elapsedMs,
@@ -287,6 +290,7 @@ async function fireQualifyingLAUpdate(
     mode: 'qualifying',
     timerStartMs: plan.startedAtMs,
   });
+  if (isBg) gpsDiag.bgLaOk++;
 }
 
 /**
@@ -311,6 +315,8 @@ async function fireLAUpdate(
   const prog = circuitKm > 0 ? Math.min(distKm / circuitKm, 1) : 0;
   // tire 정보는 background에 없으므로 store 또는 'medium' 폴백.
   const tire = (useAppStore.getState() as { tire?: 'soft' | 'medium' | 'hard' | 'wet' }).tire ?? 'medium';
+  const isBg = AppState.currentState !== 'active';
+  if (isBg) gpsDiag.bgLaTried++;
   await updateLiveActivity(id, {
     distKm,
     elapsedMs,
@@ -322,6 +328,7 @@ async function fireLAUpdate(
     isPaused: false,
     mode: 'race',
   });
+  if (isBg) gpsDiag.bgLaOk++;
 }
 
 export const BACKGROUND_LOCATION_TASK = 'pit-run-background-location';
@@ -374,98 +381,106 @@ export function defineBackgroundLocationTask(): void {
         gpsDiag.startError = 'task-cb empty locations';
         return;
       }
-      const loc = locations[locations.length - 1];
 
+      // FIX 12: locations 배열 전체 순회 — iOS가 여러 샘플을 묶어서 줄 때 중간 점 손실 방지.
+      // distanceFilter 제거 후 콜백이 더 잦아져도 배열 길이는 1이 대부분이지만,
+      // 잠금 해제 직후 batch 도착 케이스에서 점프 완화 효과.
+      // 트리거 평가(maybeFireBackgroundRaceEvents)는 루프 후 1회만 — 중복 발화 방지.
       gpsDiag.taskWriteCount++;
-      gpsDiag.lastTaskWriteTs = loc.timestamp;
+      gpsDiag.lastTaskWriteTs = locations[locations.length - 1].timestamp;
       pushCbLog('cb');
+      // 잠금 중 콜백 검증 카운터 (FIX 12)
+      if (AppState.currentState !== 'active') gpsDiag.bgTw++;
 
-      // ── Layer 1: Validity gate ──────────────────────────────────────────────
-      // Stale: iOS delivers a cached last-known-location on first callback which
-      // can be minutes old. Reject anything > 10 s old.
-      const ageMs = Date.now() - loc.timestamp;
-      if (ageMs > MAX_STALE_MS) {
-        gpsDiag.distSkipCount++;
-        return;
+      for (const loc of locations) {
+        // ── Layer 1: Validity gate ────────────────────────────────────────────
+        // Stale: iOS delivers a cached last-known-location on first callback which
+        // can be minutes old. Reject anything > 10 s old.
+        const ageMs = Date.now() - loc.timestamp;
+        if (ageMs > MAX_STALE_MS) {
+          gpsDiag.distSkipCount++;
+          continue;
+        }
+        // Invalid fix: negative accuracy means no satellite fix at all.
+        if ((loc.coords.accuracy ?? -1) < 0) {
+          gpsDiag.distSkipCount++;
+          continue;
+        }
+
+        const coords: StoredCoords = {
+          latitude:  loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          altitude:  loc.coords.altitude,
+          accuracy:  loc.coords.accuracy,
+          speed:     loc.coords.speed,
+          timestamp: loc.timestamp,
+        };
+
+        // Keep LATEST_KEY for diagnostics (v1 compat) — 마지막 유효 좌표로 덮어씀
+        setString(LATEST_KEY, JSON.stringify(coords));
+
+        // ── Layer 2: PREV_KEY update (accuracy-gated) ────────────────────────
+        // 노이즈 fix가 baseline이 되어 다음 haversine을 망치는 v3 버그 fix.
+        // accuracy <= 50m 일 때만 PREV 업데이트. 그보다 나쁜 fix는 처리는 하되 PREV에
+        // 저장 안 함 → 다음 read는 여전히 마지막 양호한 위치를 baseline으로 사용.
+        const prev = readPrev();
+        if ((coords.accuracy ?? Infinity) <= PREV_ACCURACY_M) {
+          setString(PREV_KEY, JSON.stringify(coords));
+        }
+
+        if (!prev) continue; // first valid reading, no delta yet
+
+        const dist  = haversineKm(prev, coords);
+        const dtSec = (coords.timestamp - prev.timestamp) / 1000;
+
+        gpsDiag.lastDist = dist;
+
+        if (dtSec <= 0) continue;
+
+        // ── Layer 3: Distance quality gate ───────────────────────────────────
+        if ((coords.accuracy ?? 0) > MAX_ACCURACY_M) {
+          gpsDiag.distSkipCount++;
+          continue;
+        }
+
+        // ── Layer 4: Teleport filter (dt-aware) ──────────────────────────────
+        // 1 s gap → 10 m 허용, 5 s gap → 50 m 허용. 고정 임계값보다 long gap 후 정상
+        // 이동을 통째로 버리는 케이스 감소.
+        const impliedSpeedMs = (dist * 1000) / dtSec;
+        if (impliedSpeedMs > MAX_RUNNING_MS) {
+          gpsDiag.distSkipCount++;
+          continue;
+        }
+
+        // ── Layer 5: Distance accumulation (Doppler-OR-haversine) ────────────
+        // v3은 Doppler가 valid면 무조건 Doppler만 사용 → iOS가 speed=0을 자주 보내는
+        // 현실에서 그 segment 통째 누락. v4: Doppler가 신뢰할 만하면 Doppler, 그렇지
+        // 않지만 위치가 실제로 이동했으면 haversine. 둘 다 멈춤 신호일 때만 skip.
+        const dopplerSpeed = coords.speed ?? -1; // m/s; -1 = invalid on iOS
+        let deltaKm: number;
+
+        if (dopplerSpeed >= MIN_SPEED_MS) {
+          // (a) Doppler 신뢰할 만함 — 위성 carrier-shift 기반이라 positional noise에 독립적
+          deltaKm = (dopplerSpeed * dtSec) / 1000;
+        } else if (impliedSpeedMs >= MIN_SPEED_MS && dist >= MIN_DELTA_KM) {
+          // (b) Doppler가 0/약함이어도 위치 변화가 사람 보폭 이상 → 실제 이동.
+          //     iOS speed=0 케이스(샘플 직후, 약한 신호 등)를 누락하지 않게 해주는 핵심 분기.
+          deltaKm = dist;
+        } else {
+          // (c) Doppler 약함 + 위치도 거의 안 변함 → 정지 상태로 간주
+          gpsDiag.distSkipCount++;
+          continue;
+        }
+
+        // ── Accumulate ───────────────────────────────────────────────────────
+        const newAccum = readAccum() + deltaKm;
+        setString(ACCUM_KEY, String(newAccum));
+        gpsDiag.acceptCount++;
+        gpsDiag.totalAccumulatedKm = newAccum;
       }
-      // Invalid fix: negative accuracy means no satellite fix at all.
-      if ((loc.coords.accuracy ?? -1) < 0) {
-        gpsDiag.distSkipCount++;
-        return;
-      }
-
-      const coords: StoredCoords = {
-        latitude:  loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        altitude:  loc.coords.altitude,
-        accuracy:  loc.coords.accuracy,
-        speed:     loc.coords.speed,
-        timestamp: loc.timestamp,
-      };
-
-      // Keep LATEST_KEY for diagnostics (v1 compat)
-      setString(LATEST_KEY, JSON.stringify(coords));
-
-      // ── Layer 2: PREV_KEY update (accuracy-gated) ──────────────────────────
-      // 노이즈 fix가 baseline이 되어 다음 haversine을 망치는 v3 버그 fix.
-      // accuracy <= 50m 일 때만 PREV 업데이트. 그보다 나쁜 fix는 처리는 하되 PREV에
-      // 저장 안 함 → 다음 read는 여전히 마지막 양호한 위치를 baseline으로 사용.
-      const prev = readPrev();
-      if ((coords.accuracy ?? Infinity) <= PREV_ACCURACY_M) {
-        setString(PREV_KEY, JSON.stringify(coords));
-      }
-
-      if (!prev) return; // first valid reading, no delta yet
-
-      const dist  = haversineKm(prev, coords);
-      const dtSec = (coords.timestamp - prev.timestamp) / 1000;
-
-      gpsDiag.lastDist = dist;
-
-      if (dtSec <= 0) return;
-
-      // ── Layer 3: Distance quality gate ─────────────────────────────────────
-      if ((coords.accuracy ?? 0) > MAX_ACCURACY_M) {
-        gpsDiag.distSkipCount++;
-        return;
-      }
-
-      // ── Layer 4: Teleport filter (dt-aware) ────────────────────────────────
-      // 1 s gap → 10 m 허용, 5 s gap → 50 m 허용. 고정 임계값보다 long gap 후 정상
-      // 이동을 통째로 버리는 케이스 감소.
-      const impliedSpeedMs = (dist * 1000) / dtSec;
-      if (impliedSpeedMs > MAX_RUNNING_MS) {
-        gpsDiag.distSkipCount++;
-        return;
-      }
-
-      // ── Layer 5: Distance accumulation (Doppler-OR-haversine) ──────────────
-      // v3은 Doppler가 valid면 무조건 Doppler만 사용 → iOS가 speed=0을 자주 보내는
-      // 현실에서 그 segment 통째 누락. v4: Doppler가 신뢰할 만하면 Doppler, 그렇지
-      // 않지만 위치가 실제로 이동했으면 haversine. 둘 다 멈춤 신호일 때만 skip.
-      const dopplerSpeed = coords.speed ?? -1; // m/s; -1 = invalid on iOS
-      let deltaKm: number;
-
-      if (dopplerSpeed >= MIN_SPEED_MS) {
-        // (a) Doppler 신뢰할 만함 — 위성 carrier-shift 기반이라 positional noise에 독립적
-        deltaKm = (dopplerSpeed * dtSec) / 1000;
-      } else if (impliedSpeedMs >= MIN_SPEED_MS && dist >= MIN_DELTA_KM) {
-        // (b) Doppler가 0/약함이어도 위치 변화가 사람 보폭 이상 → 실제 이동.
-        //     iOS speed=0 케이스(샘플 직후, 약한 신호 등)를 누락하지 않게 해주는 핵심 분기.
-        deltaKm = dist;
-      } else {
-        // (c) Doppler 약함 + 위치도 거의 안 변함 → 정지 상태로 간주
-        gpsDiag.distSkipCount++;
-        return;
-      }
-
-      // ── Accumulate ─────────────────────────────────────────────────────────
-      const newAccum = readAccum() + deltaKm;
-      setString(ACCUM_KEY, String(newAccum));
-      gpsDiag.acceptCount++;
-      gpsDiag.totalAccumulatedKm = newAccum;
 
       // ── Background race event (boxbox / fullPush) ──────────────────────────
+      // 루프 후 1회만 평가 — 중복 발화 방지.
       // 잠금/백그라운드 상태에서도 적절한 시점에 사운드 발화. fire-and-forget.
       maybeFireBackgroundRaceEvents().catch(() => {});
     });
@@ -514,15 +529,16 @@ export async function startBackgroundLocationTask(): Promise<void> {
   try {
     await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
       accuracy: Location.Accuracy.BestForNavigation,
-      // 외출② 보완: activityType 'Fitness' 명시. iOS 기본 'Other'는 잠금/background
-      // 시 power management로 GPS callback 강하게 throttle → 외출②에서 timeInterval
-      // 1000 설정인데 실제 callback 3.4초 평균 + 평균 페이스 11'53"로 매우 느림.
-      // 'Fitness'는 운동 추적 우선순위라 잠금 중에도 callback 빈도 + 정확도 유지.
+      // activityType: Fitness — 러닝앱 적합. Apple 백그라운드 정지 조건과 무관.
       activityType: debugGpsConfig.useFitnessActivityType
         ? Location.LocationActivityType.Fitness
         : Location.LocationActivityType.Other,
       timeInterval: 1000,
-      distanceInterval: 1,
+      // FIX 12: distanceInterval 제거 — iOS 16.4+ 백그라운드 정지 조건 회피.
+      // Apple DTS 공식 답변: startUpdatingLocation + startMonitoringSignificantLocationChanges를
+      // 둘 다 호출(expo-location EXLocationTaskConsumer.m L76-77)하면서 distanceFilter != None이면
+      // 백그라운드에서 suspend 가능. distanceInterval: 1 → distanceFilter = 1m → 정지 조건 트리거.
+      // 거리 누적은 JS haversine + accuracy 게이트(50/100m)로 직접 처리하므로 native 필터 불필요.
       foregroundService: {
         notificationTitle: 'Pit Run',
         notificationBody: '러닝 세션이 진행 중입니다',
