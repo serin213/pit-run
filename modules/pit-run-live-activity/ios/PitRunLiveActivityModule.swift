@@ -102,7 +102,16 @@ public class PitRunLiveActivityModule: Module {
                 promise.resolve(nil as String?)
                 return
             }
-            guard let activity = self.activities[activityId] as? Activity<PitRunAttributes> else {
+            let activity: Activity<PitRunAttributes>
+            if let cached = self.activities[activityId] as? Activity<PitRunAttributes> {
+                activity = cached
+            } else if let existing = Activity<PitRunAttributes>.activities.first(where: { $0.id == activityId }) {
+                // Background JS/native module instances may not share this in-memory dictionary.
+                // ActivityKit keeps the live activities globally available, so recover by id.
+                self.activities[activityId] = existing as AnyObject
+                activity = existing
+            } else {
+                NSLog("[PitRunLA] update skipped: activity not found id=%@", activityId)
                 promise.resolve(nil as String?)
                 return
             }
@@ -140,7 +149,13 @@ public class PitRunLiveActivityModule: Module {
                 promise.resolve(nil as String?)
                 return
             }
-            guard let activity = self.activities[activityId] as? Activity<PitRunAttributes> else {
+            let activity: Activity<PitRunAttributes>
+            if let cached = self.activities[activityId] as? Activity<PitRunAttributes> {
+                activity = cached
+            } else if let existing = Activity<PitRunAttributes>.activities.first(where: { $0.id == activityId }) {
+                self.activities[activityId] = existing as AnyObject
+                activity = existing
+            } else {
                 promise.resolve(nil as String?)
                 return
             }

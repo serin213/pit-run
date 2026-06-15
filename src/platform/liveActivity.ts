@@ -18,6 +18,7 @@ import {
   endAllActivities as nativeEndAll,
   isSupported as nativeIsSupported,
 } from 'pit-run-live-activity';
+import { getString, setString, remove } from './storage';
 
 export type LiveActivityMode = 'race' | 'qualifying' | 'warmup';
 
@@ -44,6 +45,8 @@ export interface LiveActivityState {
   timerEndMs?: number;
 }
 
+const CURRENT_ACTIVITY_ID_KEY = 'live_activity_current_id_v1';
+
 let currentActivityId: string | null = null;
 
 const LA_TAG = '[LiveActivity]';
@@ -55,6 +58,8 @@ export function isLiveActivitySupported(): boolean {
 }
 
 export function getCurrentActivityId(): string | null {
+  if (currentActivityId) return currentActivityId;
+  currentActivityId = getString(CURRENT_ACTIVITY_ID_KEY) ?? null;
   return currentActivityId;
 }
 
@@ -79,6 +84,8 @@ export async function startLiveActivity(
     const id = await nativeStart(driverName, teamColor, circuitId, mode);
     if (__DEV__) console.log(`${LA_TAG} start: native returned id =`, id);
     currentActivityId = id;
+    if (id) setString(CURRENT_ACTIVITY_ID_KEY, id);
+    else remove(CURRENT_ACTIVITY_ID_KEY);
     return id;
   } catch (e) {
     console.warn(`${LA_TAG} start: native threw`, e);
@@ -124,6 +131,8 @@ export async function endLiveActivity(activityId: string): Promise<void> {
     if (currentActivityId === activityId) {
       currentActivityId = null;
     }
+    const stored = getString(CURRENT_ACTIVITY_ID_KEY);
+    if (stored === activityId) remove(CURRENT_ACTIVITY_ID_KEY);
   }
 }
 
@@ -136,5 +145,6 @@ export async function endAllLiveActivities(): Promise<void> {
     console.warn(`${LA_TAG} endAll threw`, e);
   } finally {
     currentActivityId = null;
+    remove(CURRENT_ACTIVITY_ID_KEY);
   }
 }

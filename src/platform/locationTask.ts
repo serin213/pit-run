@@ -490,8 +490,10 @@ export function defineBackgroundLocationTask(): void {
 
       // ── Background race event (boxbox / fullPush) ──────────────────────────
       // 루프 후 1회만 평가 — 중복 발화 방지.
-      // 잠금/백그라운드 상태에서도 적절한 시점에 사운드 발화. fire-and-forget.
-      maybeFireBackgroundRaceEvents().catch(() => {});
+      // 잠금/백그라운드 상태에서도 적절한 시점에 사운드/LA update가 콜백 생명주기
+      // 안에서 완료되도록 기다린다. fire-and-forget이면 iOS가 JS를 다시 suspend할 때
+      // 후속 async 작업이 유실될 수 있다.
+      await maybeFireBackgroundRaceEvents().catch(() => {});
     });
     gpsDiag.defineCalled = true;
   } catch (e) {
