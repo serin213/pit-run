@@ -457,9 +457,10 @@ private struct LockNormalView: View {
                     .foregroundStyle(Color.white.opacity(0.4))
                     .tracking(0.3)
                 Color.clear.frame(height: 4)
+                // FIX 15-4: 거리 숫자는 항상 흰색 (이전엔 teamColor `color`).
                 Text(String(format: "%.2f", distKm))
                     .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
-                    .foregroundStyle(color)
+                    .foregroundStyle(Color.white)
                     .lineLimit(1)
                     .offset(x: -1)
                 Color.clear.frame(height: 16)
@@ -861,12 +862,13 @@ struct PitRunLiveActivity: Widget {
             } compactLeading: {
                 StaticRaceFlag()
             } compactTrailing: {
-                // warmup/qualifying: timerInterval 자체 틱 (FIX 10-B).
-                // race: distKm.
-                if isRedTheme {
+                // FIX 15-3: qualifying compact는 race와 동일하게 distKm 표시 — timerInterval
+                // (monospacedDigit "00:00" 기준 최대폭 ~41pt)이 거리(33.7pt)보다 넓어
+                // DI 알약이 벌어지는 문제 해결. warmup만 카운트다운 타이머 유지.
+                if state.mode == "warmup" {
                     compactTimerText(
-                        timerStartMs: state.mode == "qualifying" ? state.timerStartMs : nil,
-                        timerEndMs:   state.mode == "warmup"     ? state.timerEndMs   : nil,
+                        timerStartMs: nil,
+                        timerEndMs: state.timerEndMs,
                         elapsedMs: state.elapsedMs,
                         font: .custom("Formula1-Display-Regular", size: 13).monospacedDigit(),
                         color: Color.white

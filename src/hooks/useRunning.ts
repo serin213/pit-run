@@ -210,6 +210,11 @@ export function useRunning(options: UseRunningOptions = {}) {
   useEffect(() => {
     if (!isRunning) return;
 
+    // FIX 15-2: AppState 'active' 전환 직후 첫 syncFromPlan에서는 boxBoxActive를
+    // 새로 켜지 않음. 잠금 중 발생한 박스박스/풀푸시는 복귀 시점엔 이미 지난 이벤트라
+    // 시트를 "몰아서" 띄우면 안 됨 — pitPhase 자체(inPit 등)는 정상 반영.
+    const suppressBoxBoxOnceRef = { current: false };
+
     const syncFromPlan = () => {
       const plan = getActiveRacePlan();
       if (!plan || plan.mode !== 'race') return;
@@ -217,6 +222,8 @@ export function useRunning(options: UseRunningOptions = {}) {
       const derivedPhase = derivePitPhaseFromPlan(plan);
       const lapLog = getRaceLapLog();
       const state = useRunStore.getState();
+      const suppressBoxBox = suppressBoxBoxOnceRef.current;
+      suppressBoxBoxOnceRef.current = false;
 
       const patch: Partial<{
         pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
@@ -229,7 +236,7 @@ export function useRunning(options: UseRunningOptions = {}) {
         // 외출② 보완: alert phase ('boxbox', 'fullPush') 4초 윈도우에만 BoxBoxSheet 표시.
         // 회복 시간(180초) 동안 inPit phase는 트랙 + IN PIT 헤더로 별도 표시.
         // 기존 'derivedPhase !== none'은 inPit에서도 true → 회복 내내 바텀싯 안 닫힘.
-        patch.boxBoxActive = derivedPhase === 'boxbox' || derivedPhase === 'fullPush';
+        patch.boxBoxActive = (derivedPhase === 'boxbox' || derivedPhase === 'fullPush') && !suppressBoxBox;
       }
       // lapLog는 background이 길이만 늘림. 길이 비교로만 sync.
       if (lapLog.length !== state.lapLog.length) {
@@ -263,7 +270,10 @@ export function useRunning(options: UseRunningOptions = {}) {
     syncFromPlan();
     const intervalId = setInterval(syncFromPlan, PLAN_POLL_INTERVAL_MS);
     const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') syncFromPlan();
+      if (state === 'active') {
+        suppressBoxBoxOnceRef.current = true;
+        syncFromPlan();
+      }
     });
 
     return () => {
@@ -272,7 +282,11 @@ export function useRunning(options: UseRunningOptions = {}) {
     };
   }, [isRunning]);
 
-  // pitPhase 변화 → 즉시 LA update (alert UI 시각 반영)
+  // pitPhase/isPaused 변화 → 즉시 LA update (alert UI 시각 반영).
+  // FIX 15-1A: deps에 isPaused가 있어 pause/resume 전환 시 정확히 1회 push됨 —
+  // pause 진입 시 isPaused:true로 멈춤 상태 고정, resume 시 isPaused:false로 재개.
+  // distKm/elapsedMs는 1-B(거리 누적 정지) + RAF isPaused 가드로 pause 중 동결되므로
+  // 이 push 사이 추가 갱신이 없어도 LA가 정지 상태를 그대로 유지.
   const pitPhase = useRunStore((s) => s.pitPhase);
   useEffect(() => {
     const id = activityIdRef.current;

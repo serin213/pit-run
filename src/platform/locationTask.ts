@@ -286,7 +286,7 @@ async function fireQualifyingLAUpdate(
     tire: 'soft',
     pitPhase: completed ? 'completed' : 'none',
     prog,
-    isPaused: false,
+    isPaused: plan.isPaused,
     mode: 'qualifying',
     timerStartMs: plan.startedAtMs,
   });
@@ -325,7 +325,7 @@ async function fireLAUpdate(
     tire,
     pitPhase,
     prog,
-    isPaused: false,
+    isPaused: plan.isPaused,
     mode: 'race',
   });
   if (isBg) gpsDiag.bgLaOk++;
@@ -381,6 +381,11 @@ export function defineBackgroundLocationTask(): void {
         gpsDiag.startError = 'task-cb empty locations';
         return;
       }
+
+      // FIX 15-1B: pause 중에는 거리 누적 skip (PREV_KEY는 Layer 2에서 계속 갱신) —
+      // resume 시 pause 동안 이동한 직선거리가 한 번에 들어오는 점프 방지.
+      const racePlan = getActiveRacePlan();
+      const isPausedForAccum = racePlan?.mode === 'race' && racePlan.isPaused;
 
       // FIX 12: locations 배열 전체 순회 — iOS가 여러 샘플을 묶어서 줄 때 중간 점 손실 방지.
       // distanceFilter 제거 후 콜백이 더 잦아져도 배열 길이는 1이 대부분이지만,
@@ -473,6 +478,10 @@ export function defineBackgroundLocationTask(): void {
         }
 
         // ── Accumulate ───────────────────────────────────────────────────────
+        if (isPausedForAccum) {
+          gpsDiag.distSkipCount++;
+          continue;
+        }
         const newAccum = readAccum() + deltaKm;
         setString(ACCUM_KEY, String(newAccum));
         gpsDiag.acceptCount++;
