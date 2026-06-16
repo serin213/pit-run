@@ -478,7 +478,7 @@ private struct LockNormalView: View {
                 } else {
                     Text(formatPace(paceS))
                         .font(.custom("Formula1-Display-Bold", size: 30).monospacedDigit())
-                        .foregroundStyle(color)
+                        .foregroundStyle(Color.white)
                         .lineLimit(1)
                         .offset(x: -1)
                 }
