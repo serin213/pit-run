@@ -3,7 +3,7 @@ import type { TireType } from '../constants/colors';
 import { BASE_PACE_S, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
 import { CIRCUITS } from '../config/circuits';
 import { useAppStore } from './appStore';
-import { updateActiveRacePlan } from '../api/racePlan';
+import { getActiveRacePlan, updateActiveRacePlan } from '../api/racePlan';
 import type { LapEntry } from '../types/run';
 
 export type { LapEntry };
@@ -125,21 +125,42 @@ export const useRunStore = create<RunState>((set, get) => ({
       raceStartedAt: new Date().toISOString(),
     }),
 
-  // 외출② 보완: pause/resume 시 background plan에도 isPaused patch.
-  // background callback의 maybeFireBackgroundRaceEvents가 plan.isPaused 가드 →
-  // pause 시점의 GPS callback에서 박스박스 추가 발화 차단.
   pauseRun: () => {
-    set({ isPaused: true });
-    updateActiveRacePlan({ isPaused: true });
+    const now = Date.now();
+    updateActiveRacePlan({
+      isPaused: true,
+      pausedAtMs: now,
+      lastFiredAt: null,
+      lastFiredAtMs: null,
+    });
+    set({ isPaused: true, gpsEnabled: false, boxBoxActive: false, pitPhase: 'none' });
   },
 
   resumeRun: () => {
-    set({ isPaused: false });
-    updateActiveRacePlan({ isPaused: false });
+    const now = Date.now();
+    const plan = getActiveRacePlan();
+    const pausedForMs = plan?.pausedAtMs != null ? Math.max(0, now - plan.pausedAtMs) : 0;
+    updateActiveRacePlan({
+      isPaused: false,
+      pausedAtMs: null,
+      startedAtMs: plan ? plan.startedAtMs + pausedForMs : undefined,
+      workStartedAtMs: plan ? plan.workStartedAtMs + pausedForMs : undefined,
+      pitStartedAtMs: plan?.pitStartedAtMs != null ? plan.pitStartedAtMs + pausedForMs : plan?.pitStartedAtMs,
+      nextFullPushAtMs: plan?.nextFullPushAtMs != null ? plan.nextFullPushAtMs + pausedForMs : plan?.nextFullPushAtMs,
+    });
+    set({ isPaused: false, gpsEnabled: true, boxBoxActive: false, pitPhase: 'none' });
   },
 
-  stopRun: () =>
-    set({ isRunning: false, isPaused: true }),
+  stopRun: () => {
+    updateActiveRacePlan({
+      isRunning: false,
+      isPaused: true,
+      pausedAtMs: Date.now(),
+      lastFiredAt: null,
+      lastFiredAtMs: null,
+    });
+    set({ isRunning: false, isPaused: true, gpsEnabled: false });
+  },
 
   resetRun: () =>
     set({
@@ -207,7 +228,8 @@ export const useRunStore = create<RunState>((set, get) => ({
   addGpsDistance: (km: number) => {
     const { isPaused, distKm, elapsedMs, paceHistory, lastRecordDist, tyreLog } = get();
     // 속도 필터는 background task(locationTask.ts)에서 이미 적용됨.
-    // isPaused 시 누적 차단 — background task는 계속 누적하지만 foreground는 무시.
+    // isPaused 시 foreground 반영 차단. background task도 activeRacePlan.isPaused를 보고
+    // accumulator write를 차단하므로 pause 중 이동 거리는 계산에 포함되지 않는다.
     if (km <= 0 || isPaused) return;
 
     const newDist = distKm + km;

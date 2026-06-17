@@ -35,11 +35,10 @@ export type ActiveRacePlan = {
    */
   isRunning: boolean;
   /**
-   * 외출② 보완: foreground pause 상태 동기화 필드.
-   * background callback이 pause 중에 trigger 발화하지 않도록 가드.
-   * - pauseRun 액션이 updateActiveRacePlan({ isPaused: true }) 호출
-   * - resumeRun 액션이 updateActiveRacePlan({ isPaused: false }) 호출
-   * - background maybeFireBackgroundRaceEvents 진입 시 plan.isPaused 가드
+   * measurement lifecycle 상태 동기화 필드.
+   * - pauseRun: isPaused=true 저장 후 background location task를 내림
+   * - resumeRun: isPaused=false 저장 후 RunningScreen/useGPS가 task를 새 baseline으로 재시작
+   * - background callback의 isPaused 체크는 stop 직전 이미 들어온 callback용 safety net
    * - 시작 시 false
    */
   isPaused: boolean;
@@ -82,6 +81,17 @@ export type ActiveRacePlan = {
   workStartedAtKm: number;
   pitStartedAtMs: number | null;
   pitStartedAtKm: number | null;
+
+  /** race: 전체 서킷 거리. background finish/final-lap 판정용. */
+  circuitKm?: number;
+  /** race: final lap 진입 판정에 쓰는 예상 1사이클 거리. */
+  expectedCycleM?: number;
+  /** background에서 finalLap 사운드를 이미 발화했는지. */
+  finalLapFired?: boolean;
+  /** background에서 finish 사운드를 이미 발화했는지. */
+  finishFired?: boolean;
+  /** race pause 시작 시각. resume 때 wall-clock timer들을 이 기간만큼 뒤로 민다. */
+  pausedAtMs?: number | null;
 };
 
 export function getActiveRacePlan(): ActiveRacePlan | null {

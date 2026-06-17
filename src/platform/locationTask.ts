@@ -60,9 +60,11 @@ import {
 } from '../api/racePlan';
 import { appendRaceLapEntry, getRaceLapLog } from '../api/raceLapLog';
 import { updateLiveActivity, getCurrentActivityId } from './liveActivity';
+import type { LiveActivityState } from './liveActivity';
 import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
 import { debugGpsConfig } from './debugGpsConfig';
+import { shouldFireFinalLap, shouldFireFinalLapSafety } from '../lib/runTriggers';
 
 /**
  * Background race event check — distance 누적 직후 호출.
@@ -87,12 +89,40 @@ const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
 let boxboxTriggerInFlight = false;
 let fullPushTriggerInFlight = false;
 
-// LA push 5초 throttle. iOS ActivityKit은 너무 자주 update하면 budget 소진 후
-// 영구 throttle/drop 가능 (Apple Developer Forum thread 731715, 776031 확인).
-// NSSupportsLiveActivitiesFrequentUpdates: true 설정되어 있지만 안전 마진 추가.
+// LA push throttle. iOS ActivityKit은 너무 자주 update하면 실제 잠금화면 렌더가
+// coalesce/throttle될 수 있다. 일반 거리 표시는 30초 cadence로 낮추고,
+// boxbox/fullPush phase transition은 이 throttle을 무시하고 즉시 push한다.
 // phase transition (boxbox/fullPush)은 즉시 push하고 이 throttle 무시.
 let lastLAPushTime = 0;
-const LA_PUSH_MIN_INTERVAL_MS = 5000;
+const LA_PUSH_MIN_INTERVAL_MS = 30_000;
+
+type RunnableRaceSnapshot = {
+  plan: ActiveRacePlan;
+  accumKm: number;
+  now: number;
+};
+
+function isRunnableRacePlan(plan: ActiveRacePlan | null): plan is ActiveRacePlan {
+  return !!plan && plan.mode === 'race' && plan.isRunning && !plan.isPaused;
+}
+
+function readRunnableRaceSnapshot(): RunnableRaceSnapshot | null {
+  const latest = getActiveRacePlan();
+  if (!isRunnableRacePlan(latest)) return null;
+  return {
+    plan: latest,
+    accumKm: readAccum(),
+    now: Date.now(),
+  };
+}
+
+function readRunnableRaceSnapshotIf(
+  predicate: (snapshot: RunnableRaceSnapshot) => boolean,
+): RunnableRaceSnapshot | null {
+  const snapshot = readRunnableRaceSnapshot();
+  if (!snapshot || !predicate(snapshot)) return null;
+  return snapshot;
+}
 
 // foreground useRunning.ts의 derivePitPhaseFromPlan과 동일 로직.
 // background callback이 매번 plan에서 phase derive하기 위함.
@@ -112,10 +142,9 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 끝난 상태가 가능. cleanupStaleBackgroundTask가 부팅 시 isRunning을 false로
   // 패치하거나 plan을 지워주지만, 그 사이 발화하는 한 사이클을 막기 위한 가드.
   if (!plan.isRunning) { gpsDiag.bgEventPlanNull++; return; }
-  // 외출② 보완: pause 중에는 trigger 발화 + lap log push + LA update 모두 skip.
-  // distance 누적 자체는 background callback의 Layer 5에서 계속됨 — resume 후 그대로
-  // 사용. pause 의도는 "trigger 발화 중단" + "사용자가 직접 끝낸 race에서 박스박스/
-  // 풀푸시 추가 발화 차단".
+  // pause 중에는 trigger 발화 + lap log push + LA update 모두 skip.
+  // distance 누적도 task callback의 Layer 5에서 차단한다. 사용자가 느끼는 계산 시간과
+  // 인터벌 기준 거리는 pause 시점에 멈추고 resume 후 이어진다.
   if (plan.isPaused) { gpsDiag.bgEventPlanNull++; return; }
 
   const now = Date.now();
@@ -133,7 +162,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       lastLAPushTime = now;
       return; // qualifying은 boxbox/fullPush 분기 안 탐
     }
-    // 미완주: 5초 throttle로 LA prog 갱신
+    // 미완주: 일반 cadence로 LA prog 갱신
     if (now - lastLAPushTime >= LA_PUSH_MIN_INTERVAL_MS) {
       await fireQualifyingLAUpdate(plan, currentAccum, now, false).catch(() => {});
       lastLAPushTime = now;
@@ -145,20 +174,74 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 묶음 2: trigger 발화 + plan 업데이트 + lap entry push + LA update 모두 여기서.
   // foreground useRunning checkBoxBox는 폐기 (UI는 polling으로 sync).
 
+  const raceSnapshot = readRunnableRaceSnapshot();
+  if (!raceSnapshot) { gpsDiag.bgEventPlanNull++; return; }
+  plan = raceSnapshot.plan;
+
+  const circuitKm = plan.circuitKm
+    ?? CIRCUITS.find((c) => c.id === useAppStore.getState().selectedCircuitId)?.distanceKm
+    ?? 0;
+  const expectedCycleM = plan.expectedCycleM ?? Math.round(plan.intervalKm * 1500);
+
+  // (0) finish/final-lap — Live Activity 렌더 여부와 무관한 background single source.
+  const finishSnapshot = readRunnableRaceSnapshotIf((snapshot) => (
+    circuitKm > 0 &&
+    snapshot.accumKm >= circuitKm &&
+    !snapshot.plan.finishFired
+  ));
+  if (finishSnapshot) {
+    plan = finishSnapshot.plan;
+    plan = updateActiveRacePlan({
+      finishFired: true,
+      finalLapFired: true,
+      lastFiredAt: null,
+      lastFiredAtMs: null,
+    }) ?? plan;
+    try { await playSound('chequeredFlag'); } catch {}
+    await fireLAUpdate(plan, finishSnapshot.accumKm, finishSnapshot.now, 'completed').catch((e) => {
+      console.warn('[locationTask] LA update (finish) failed:', e);
+    });
+    lastLAPushTime = finishSnapshot.now;
+    return;
+  }
+  if (plan.finishFired) return;
+
+  const finalLapSnapshot = readRunnableRaceSnapshotIf((snapshot) => (
+    circuitKm > 0 &&
+    !snapshot.plan.finalLapFired &&
+    snapshot.plan.nextFullPushAtMs == null &&
+    (
+      shouldFireFinalLap({ distKm: snapshot.accumKm, circuitKm, expectedCycleM }) ||
+      shouldFireFinalLapSafety({ distKm: snapshot.accumKm, circuitKm, intervalKm: snapshot.plan.intervalKm })
+    )
+  ));
+  if (finalLapSnapshot) {
+    plan = finalLapSnapshot.plan;
+    plan = updateActiveRacePlan({ finalLapFired: true }) ?? plan;
+    try { await playSound('finalLap'); } catch {}
+  }
+
   // (1) 예약된 fullPush 시점 도래 → 회복 종료 → 다음 work 시작
   // 외출① 보완: atomic guard (fullPushTriggerInFlight) + plan-first 순서로 async race 차단.
   if (plan.nextFullPushAtMs && now >= plan.nextFullPushAtMs && !fullPushTriggerInFlight) {
     fullPushTriggerInFlight = true;
     try {
-      const accumAtFullPush = readAccum();
+      const fullPushSnapshot = readRunnableRaceSnapshotIf((snapshot) => (
+        snapshot.plan.nextFullPushAtMs != null &&
+        snapshot.now >= snapshot.plan.nextFullPushAtMs
+      ));
+      if (!fullPushSnapshot) return;
+      plan = fullPushSnapshot.plan;
+      const accumAtFullPush = fullPushSnapshot.accumKm;
+      const firedAtMs = fullPushSnapshot.now;
 
       // (1) plan 동기 update 먼저 — 다른 callback이 새 plan 보고 자연스럽게 조건 미달
       plan = updateActiveRacePlan({
         nextFullPushAtMs: null,
         lastBoxBoxAtKm: accumAtFullPush,
         lastFiredAt: 'fullPush',
-        lastFiredAtMs: now,
-        workStartedAtMs: now,
+        lastFiredAtMs: firedAtMs,
+        workStartedAtMs: firedAtMs,
         workStartedAtKm: accumAtFullPush,
         pitStartedAtMs: null,
         pitStartedAtKm: null,
@@ -171,7 +254,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       // (3) 회복 segment lap entry push (type='pit')
       if (plan.pitStartedAtMs != null && plan.pitStartedAtKm != null) {
         const pitDistM = Math.max(0, Math.round((accumAtFullPush - plan.pitStartedAtKm) * 1000));
-        const pitDurationSec = Math.max(0.1, (now - plan.pitStartedAtMs) / 1000);
+        const pitDurationSec = Math.max(0.1, (firedAtMs - plan.pitStartedAtMs) / 1000);
         const idx = getRaceLapLog().length;
         appendRaceLapEntry({
           idx,
@@ -183,10 +266,10 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       }
 
       // (4) LA update — pitPhase='none' (잠금 중 work 단계로 즉시 전환).
-      await fireLAUpdate(plan, accumAtFullPush, now, 'none').catch((e) => {
+      await fireLAUpdate(plan, accumAtFullPush, firedAtMs, 'none').catch((e) => {
         console.warn('[locationTask] LA update (fullPush) failed:', e);
       });
-      lastLAPushTime = now;
+      lastLAPushTime = firedAtMs;
     } finally {
       fullPushTriggerInFlight = false;
     }
@@ -194,21 +277,35 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
 
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
   // 외출① 보완: atomic guard + plan-first 순서.
-  if (plan.nextFullPushAtMs == null && plan.completedReps < plan.maxReps) {
+  if (plan.nextFullPushAtMs == null && plan.completedReps < plan.maxReps && !plan.finalLapFired) {
     const currentAccum = readAccum();
     const workKm = currentAccum - plan.lastBoxBoxAtKm;
     if (workKm >= plan.intervalKm && !boxboxTriggerInFlight) {
       boxboxTriggerInFlight = true;
       try {
+        const boxboxSnapshot = readRunnableRaceSnapshotIf((snapshot) => {
+          if (
+            snapshot.plan.nextFullPushAtMs != null ||
+            snapshot.plan.finalLapFired ||
+            snapshot.plan.completedReps >= snapshot.plan.maxReps
+          ) {
+            return false;
+          }
+          return snapshot.accumKm - snapshot.plan.lastBoxBoxAtKm >= snapshot.plan.intervalKm;
+        });
+        if (!boxboxSnapshot) return;
+        plan = boxboxSnapshot.plan;
+        const triggerAccum = boxboxSnapshot.accumKm;
+        const firedAtMs = boxboxSnapshot.now;
         // (1) plan 동기 update 먼저
         plan = updateActiveRacePlan({
-          lastBoxBoxAtKm: currentAccum,
+          lastBoxBoxAtKm: triggerAccum,
           completedReps: plan.completedReps + 1,
-          nextFullPushAtMs: now + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
+          nextFullPushAtMs: firedAtMs + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
           lastFiredAt: 'boxbox',
-          lastFiredAtMs: now,
-          pitStartedAtMs: now,
-          pitStartedAtKm: currentAccum,
+          lastFiredAtMs: firedAtMs,
+          pitStartedAtMs: firedAtMs,
+          pitStartedAtKm: triggerAccum,
         }) ?? plan;
 
         // (2) await playSound
@@ -216,8 +313,8 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         gpsDiag.bgEventBoxBoxFired++;
 
         // (3) work segment lap entry push (type='lap')
-        const distM = Math.max(0, Math.round((currentAccum - plan.workStartedAtKm) * 1000));
-        const durationSec = Math.max(0.1, (now - plan.workStartedAtMs) / 1000);
+        const distM = Math.max(0, Math.round((triggerAccum - plan.workStartedAtKm) * 1000));
+        const durationSec = Math.max(0.1, (firedAtMs - plan.workStartedAtMs) / 1000);
         const paceS = distM > 0 ? durationSec / (distM / 1000) : null;
         const idx = getRaceLapLog().length;
         appendRaceLapEntry({
@@ -229,10 +326,10 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         });
 
         // (4) LA update — pitPhase='inPit' (잠금 중 회복 단계로 즉시 전환).
-        await fireLAUpdate(plan, currentAccum, now, 'inPit').catch((e) => {
+        await fireLAUpdate(plan, triggerAccum, firedAtMs, 'inPit').catch((e) => {
           console.warn('[locationTask] LA update (boxbox) failed:', e);
         });
-        lastLAPushTime = now;
+        lastLAPushTime = firedAtMs;
       } finally {
         boxboxTriggerInFlight = false;
       }
@@ -243,19 +340,24 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
     gpsDiag.bgEventNotWorkPhase++;
   }
 
-  // 외출① 보완: 매 callback마다 일반 거리 갱신용 LA push (5초 throttle).
+  // 일반 거리 갱신용 LA push (30초 cadence).
   // 잠금 중 LA distance/elapsedMs/prog 멈춤 + 잠금 풀 때 점프 문제 해결.
   // boxbox/fullPush 발화 시점엔 위에서 이미 fireLAUpdate + lastLAPushTime 업데이트했으니
   // 이 조건 자연스럽게 skip.
-  const elapsedSinceLastPush = now - lastLAPushTime;
+  const regularSnapshot = readRunnableRaceSnapshot();
+  if (!regularSnapshot) return;
+  const elapsedSinceLastPush = regularSnapshot.now - lastLAPushTime;
   if (elapsedSinceLastPush >= LA_PUSH_MIN_INTERVAL_MS) {
-    const currentAccum = readAccum();
-    const phase = derivePitPhaseFromPlan(plan, now);
-    await fireLAUpdate(plan, currentAccum, now, phase).catch((e) => {
+    const phase = derivePitPhaseFromPlan(regularSnapshot.plan, regularSnapshot.now);
+    await fireLAUpdate(regularSnapshot.plan, regularSnapshot.accumKm, regularSnapshot.now, phase).catch((e) => {
       console.warn('[locationTask] LA update (regular) failed:', e);
     });
-    lastLAPushTime = now;
+    lastLAPushTime = regularSnapshot.now;
   }
+}
+
+export async function __simulateBackgroundRaceEventsForTest(): Promise<void> {
+  await maybeFireBackgroundRaceEvents();
 }
 
 /**
@@ -278,7 +380,7 @@ async function fireQualifyingLAUpdate(
   const elapsedMs = Math.max(0, now - plan.startedAtMs);
   const isBg = AppState.currentState !== 'active';
   if (isBg) gpsDiag.bgLaTried++;
-  await updateLiveActivity(id, {
+  const laState: LiveActivityState = {
     distKm: 0,
     elapsedMs,
     paceS: 0,
@@ -289,7 +391,8 @@ async function fireQualifyingLAUpdate(
     isPaused: plan.isPaused,
     mode: 'qualifying',
     timerStartMs: plan.startedAtMs,
-  });
+  };
+  await updateLiveActivity(id, laState);
   if (isBg) gpsDiag.bgLaOk++;
 }
 
@@ -297,8 +400,7 @@ async function fireQualifyingLAUpdate(
  * 묶음 2: background에서 LA update 호출.
  * Apple ActivityKit은 background에서도 update 허용. expo-modules-core AsyncFunction
  * 호출 자체는 RN JS context에서 자유롭게 가능 — locationTask callback도 동일 context.
- * paceS/elapsedMs는 plan + readAccum 기반으로 계산. selectedCircuitId + CIRCUITS로
- * prog 계산.
+ * paceS/elapsedMs/prog는 plan + readAccum 기반으로 계산한다.
  */
 async function fireLAUpdate(
   plan: ActiveRacePlan,
@@ -311,13 +413,15 @@ async function fireLAUpdate(
   const elapsedMs = Math.max(0, now - plan.startedAtMs);
   const paceS = distKm > 0 ? Math.round(elapsedMs / 1000 / distKm) : 0;
   const selectedCircuitId = useAppStore.getState().selectedCircuitId;
-  const circuitKm = CIRCUITS.find((c) => c.id === selectedCircuitId)?.distanceKm ?? 0;
+  const circuitKm = plan.circuitKm
+    ?? CIRCUITS.find((c) => c.id === selectedCircuitId)?.distanceKm
+    ?? 0;
   const prog = circuitKm > 0 ? Math.min(distKm / circuitKm, 1) : 0;
   // tire 정보는 background에 없으므로 store 또는 'medium' 폴백.
   const tire = (useAppStore.getState() as { tire?: 'soft' | 'medium' | 'hard' | 'wet' }).tire ?? 'medium';
   const isBg = AppState.currentState !== 'active';
   if (isBg) gpsDiag.bgLaTried++;
-  await updateLiveActivity(id, {
+  const laState: LiveActivityState = {
     distKm,
     elapsedMs,
     paceS,
@@ -327,7 +431,8 @@ async function fireLAUpdate(
     prog,
     isPaused: plan.isPaused,
     mode: 'race',
-  });
+  };
+  await updateLiveActivity(id, laState);
   if (isBg) gpsDiag.bgLaOk++;
 }
 
@@ -382,10 +487,15 @@ export function defineBackgroundLocationTask(): void {
         return;
       }
 
-      // FIX 15-1B: pause 중에는 거리 누적 skip (PREV_KEY는 Layer 2에서 계속 갱신) —
-      // resume 시 pause 동안 이동한 직선거리가 한 번에 들어오는 점프 방지.
+      // pause 중에는 background measurement 자체가 stop되어야 한다. 다만 stop 직전
+      // 이미 들어온 callback이 있을 수 있으므로 여기서도 좌표 baseline을 건드리지 않고
+      // 즉시 빠진다.
       const racePlan = getActiveRacePlan();
       const isPausedForAccum = racePlan?.mode === 'race' && racePlan.isPaused;
+      if (isPausedForAccum) {
+        gpsDiag.distSkipCount += locations.length;
+        return;
+      }
 
       // FIX 12: locations 배열 전체 순회 — iOS가 여러 샘플을 묶어서 줄 때 중간 점 손실 방지.
       // distanceFilter 제거 후 콜백이 더 잦아져도 배열 길이는 1이 대부분이지만,
@@ -478,7 +588,13 @@ export function defineBackgroundLocationTask(): void {
         }
 
         // ── Accumulate ───────────────────────────────────────────────────────
-        if (isPausedForAccum) {
+        // pause 버튼과 background callback이 겹치면 callback 시작 시점의
+        // isPausedForAccum=false가 stale일 수 있으므로 쓰기 직전에 한 번 더 확인한다.
+        const latestPlanForAccum = getActiveRacePlan();
+        if (
+          isPausedForAccum ||
+          (latestPlanForAccum?.mode === 'race' && latestPlanForAccum.isPaused)
+        ) {
           gpsDiag.distSkipCount++;
           continue;
         }
@@ -622,10 +738,20 @@ export function getAccumulatedKm(): number {
   return readAccum();
 }
 
-/** 새 레이스 시작 시 모든 상태 초기화 */
-export function clearBackgroundCoords(): void {
+/** foreground에서 pause/resume 복구 시 background accumulator를 화면 상태에 맞춘다. */
+export function setAccumulatedKm(km: number): void {
+  setString(ACCUM_KEY, String(Math.max(0, km)));
+}
+
+/** pause/resume 경계에서 다음 GPS fix를 새 기준점으로 쓰기 위한 baseline reset. */
+export function resetBackgroundLocationBaseline(): void {
   remove(LATEST_KEY);
   remove(PREV_KEY);
+}
+
+/** 새 레이스 시작 시 모든 상태 초기화 */
+export function clearBackgroundCoords(): void {
+  resetBackgroundLocationBaseline();
   setString(ACCUM_KEY, '0');
 }
 

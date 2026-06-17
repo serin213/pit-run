@@ -8,10 +8,14 @@ import { singleImpact } from '../platform/haptics';
 import {
   startLiveActivity,
   endLiveActivity,
+  endAllLiveActivities,
   getCurrentActivityId,
 } from '../platform/liveActivity';
 import { useAppStore } from '../store/appStore';
 import { getCurrentPosition } from '../platform/location';
+import { clearActiveRacePlan } from '../api/racePlan';
+import { clearRaceLapLog } from '../api/raceLapLog';
+import { clearBackgroundCoords } from '../platform/locationTask';
 import type { CountdownScreenProps } from '../navigation/types';
 
 const COUNTDOWN_PAGE_MS = 1000;
@@ -55,6 +59,11 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
     // 햅틱은 scheduleAt 타이머에 들어있어서 clearAllTimers로 미리 발화 안 한 건 차단됨
     // (이미 발화된 1.5s 진동은 자연 종료까지 ~1초 남음 — 수용 가능).
     stopSound('countdown');
+    // Countdown -> Running은 항상 새 race 시작이다. 이전 background plan/accum이
+    // 남아 있으면 RunningScreen이 복구 세션으로 오인해 즉시 finish될 수 있다.
+    clearActiveRacePlan();
+    clearRaceLapLog();
+    clearBackgroundCoords();
     onFinish();
   }, [onFinish, clearAllTimers]);
 
@@ -84,11 +93,13 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
           circuit: selectedCircuitId ?? 'shanghai',
         });
       }
-      startLiveActivity(
-        profile.displayName,
-        profile.nameTagAccentColor,
-        selectedCircuitId ?? 'shanghai',
-      )
+      endAllLiveActivities()
+        .catch(() => {})
+        .then(() => startLiveActivity(
+          profile.displayName,
+          profile.nameTagAccentColor,
+          selectedCircuitId ?? 'shanghai',
+        ))
         .then((activityId) => {
           if (!activityId) {
             console.warn('[Countdown] LA startActivity returned null — native module not loaded or LA disabled in Settings');

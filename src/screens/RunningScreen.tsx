@@ -35,6 +35,10 @@ import { isBackgroundActivitySupported } from '../platform/backgroundActivity';
 import { syncDiag } from '../api/saveDiag';
 import { doubleImpact, successLong } from '../platform/haptics';
 import { endAllLiveActivities } from '../platform/liveActivity';
+import { clearActiveRacePlan, getActiveRacePlan } from '../api/racePlan';
+import { clearRaceLapLog } from '../api/raceLapLog';
+import { clearBackgroundCoords, getAccumulatedKm } from '../platform/locationTask';
+import { consumePendingRunControlIntent } from '../navigation/runControlIntent';
 
 const FW = 402;
 const FH = 874;
@@ -87,6 +91,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const onStop = useCallback(() => {
     endAllLiveActivities().catch(() => {});
     const currentDistKm = useRunStore.getState().distKm;
+    clearActiveRacePlan();
+    clearRaceLapLog();
+    clearBackgroundCoords();
     if (currentDistKm < 0.10) {
       navigation.replace('Home');
       return;
@@ -144,6 +151,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const activeCircuit = isDevMode ? (CIRCUITS[debugCircuitIdx] ?? circuit) : circuit;
 
   const autoFinishedRef = useRef(false);
+  const startOrRestoreAttemptedRef = useRef(false);
   const handleFinalLap = useCallback(() => {
     playSound('finalLap');
     doubleImpact();
@@ -151,21 +159,23 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const handleAutoFinish = useCallback(() => {
     if (autoFinishedRef.current) return;
     autoFinishedRef.current = true;
-    playSound('chequeredFlag');
+    const finishAlreadyFired = !!getActiveRacePlan()?.finishFired;
+    if (!finishAlreadyFired) {
+      playSound('chequeredFlag');
+    }
     successLong();
     setPitPhase('completed');
     setBoxBoxActive(true);
     stopRun();
+    clearActiveRacePlan();
+    clearRaceLapLog();
+    clearBackgroundCoords();
     navigateToResult();
   }, [navigateToResult, setPitPhase, setBoxBoxActive, stopRun]);
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
-  // isPaused는 GPS 조건에서 제외 — 화면 잠금 시 isPaused가 순간 true로 흔들려도
-  // background task가 종료되지 않도록. pause 중 거리 누적 차단은 addGpsDistance에서 처리.
-  useGPS(isRunning, (d) => useRunStore.getState().addGpsDistance(d));
-
-  useEffect(() => {
-    startRun();
-  }, [startRun]);
+  // 측정 task의 실제 생명주기: running에서만 켜고 pause에서는 내린다.
+  // resume 첫 GPS fix는 locationTask baseline reset 뒤 기준점으로만 사용된다.
+  useGPS(isRunning && !isPaused, (d) => useRunStore.getState().addGpsDistance(d));
 
   // 묶음 1b: sector 시스템 제거. accent는 teamColor(profile.nameTagAccentColor) 우선,
   // 미설정 시 PALETTE.red 폴백 (Swift teamColorName / RN HEX_TO_NAME / LA payload
@@ -178,9 +188,62 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   const circuitLabel = activeCircuit?.displayName ?? 'Shanghai';
   const circuitKm = activeCircuit?.distanceKm ?? CIRCUIT_KM;
   const circuitPath = activeCircuit?.trackPath;
+
+  useEffect(() => {
+    if (startOrRestoreAttemptedRef.current) return;
+    startOrRestoreAttemptedRef.current = true;
+    const existingPlan = getActiveRacePlan();
+    if (existingPlan?.isRunning) {
+      const restoredDistKm = getAccumulatedKm();
+      const restoredElapsedMs = Math.max(0, Date.now() - existingPlan.startedAtMs);
+      const restoredPaceS = restoredDistKm > 0 ? restoredElapsedMs / 1000 / restoredDistKm : paceS;
+      const restoredProg = circuitKm > 0 ? Math.min(restoredDistKm / circuitKm, 1) : 0;
+      const restoredPitPhase = existingPlan.nextFullPushAtMs != null && existingPlan.nextFullPushAtMs > Date.now()
+        ? 'inPit'
+        : 'none';
+      useRunStore.setState({
+        isRunning: true,
+        isPaused: existingPlan.isPaused,
+        distKm: restoredDistKm,
+        elapsedMs: restoredElapsedMs,
+        paceS: restoredPaceS,
+        prog: restoredProg,
+        boxBoxActive: false,
+        pitPhase: existingPlan.isPaused ? 'none' : restoredPitPhase,
+      });
+      return;
+    }
+    startRun();
+  }, [circuitKm, paceS, startRun]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const intent = consumePendingRunControlIntent();
+    if (!intent) return;
+
+    if (intent === 'pause') {
+      pauseRun();
+      return;
+    }
+    if (intent === 'resume') {
+      resumeRun();
+      return;
+    }
+
+    stopRun();
+    if (user?.id && currentRaceEventId) {
+      logRaceAbandoned({
+        raceStartedEventId: currentRaceEventId,
+        userId: user.id,
+        abandonedAtRep: 0,
+        reasonCode: 'user_quit',
+      }).catch(() => {});
+    }
+    onStop();
+  }, [currentRaceEventId, isRunning, onStop, pauseRun, resumeRun, stopRun, user?.id]);
   // FIX 13-3: 국가명/서킷km/구분선 항상 흰색 — in-pit 분기 제거.
   const topTheme = { line: PALETTE.white, text: PALETTE.white };
-  const raceStatusLabel = isInPitTheme ? 'IN PIT' : isPaused ? 'PAUSED' : isFinalLap ? 'FINAL LAP' : 'RACING';
+  const raceStatusLabel = isPaused ? 'PAUSED' : isInPitTheme ? 'IN PIT' : isFinalLap ? 'FINAL LAP' : 'RACING';
   const topLineTop = safeTop + 48;
   const topLineBottom = topLineTop + 4;
   const nameTagLabel = getDriverCode(profile?.displayName ?? '');
@@ -568,6 +631,14 @@ function BgEventDiagPanel() {
   // 다시 mount되지 않으면 영원히 "?" 표시. activePlan을 reactive로 subscribe하면 store
   // 갱신 즉시 re-render → 정상값 표시.
   const activePlan = useAppStore((s) => s.activePlan);
+  const bgPlan = getActiveRacePlan();
+  const intervalKm = activePlan?.intervals.distanceM != null
+    ? activePlan.intervals.distanceM / 1000
+    : bgPlan?.intervalKm;
+  const reps = activePlan?.intervals.reps ?? bgPlan?.maxReps;
+  const recoverySec = activePlan?.recovery.durationSec ?? (
+    bgPlan?.recoveryDurationMs != null ? bgPlan.recoveryDurationMs / 1000 : undefined
+  );
   return (
     <View
       style={{
@@ -597,6 +668,10 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>tried: {laDiag.pushTried}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>ok: {laDiag.pushOk}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>fail: {laDiag.pushFail}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>miss: {laDiag.nativeMiss}</Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>
+        last: {laDiag.lastPushDistKm != null ? laDiag.lastPushDistKm.toFixed(3) : '?'} {laDiag.lastPushWasBg ? 'bg' : 'fg'}
+      </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>
@@ -610,13 +685,13 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>totalKm: {syncDiag.totalDistanceOk ? '1' : '0'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>flush: {syncDiag.flushOk ? '1' : '0'}</Text>
       <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
-        iKm: {activePlan?.intervals.distanceM != null ? (activePlan.intervals.distanceM / 1000).toFixed(2) : '?'}
+        iKm: {intervalKm != null ? intervalKm.toFixed(2) : '?'}
       </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>
-        reps: {activePlan?.intervals.reps ?? '?'}
+        reps: {reps ?? '?'}
       </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>
-        recS: {activePlan?.recovery.durationSec ?? '?'}
+        recS: {recoverySec ?? '?'}
       </Text>
       {/* A/B 토글 — 다음 GPS 시작 시 적용 */}
       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>A/B (next start)</Text>

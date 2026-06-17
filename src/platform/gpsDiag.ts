@@ -83,7 +83,10 @@ export const laDiag = {
   pushTried: 0,
   pushOk: 0,
   pushFail: 0,
+  nativeMiss: 0,
   lastPushAt: 0,           // timestamp (Date.now())
+  lastPushDistKm: null as number | null,
+  lastPushWasBg: false,
   lastErrorMsg: '',
   lockTransitions: 0,      // 잠금/언락 transition 횟수
   lastLockState: 'active', // 'active' | 'background' | 'inactive'
@@ -139,4 +142,7 @@ export function resetSessionDiag(): void {
   laDiag.pushTried = 0;
   laDiag.pushOk = 0;
   laDiag.pushFail = 0;
+  laDiag.nativeMiss = 0;
+  laDiag.lastPushDistKm = null;
+  laDiag.lastPushWasBg = false;
 }

@@ -10,6 +10,7 @@
  * Activity.request()를 거부하는 문제를 회피).
  */
 
+import { AppState } from 'react-native';
 import { laDiag } from './gpsDiag';
 import {
   startActivity as nativeStart,
@@ -99,8 +100,10 @@ export async function updateLiveActivity(
 ): Promise<void> {
   laDiag.pushTried++;
   laDiag.lastPushAt = Date.now();
+  laDiag.lastPushDistKm = state.distKm;
+  laDiag.lastPushWasBg = AppState.currentState !== 'active';
   try {
-    await nativeUpdate(activityId, {
+    const updated = await nativeUpdate(activityId, {
       distKm: state.distKm,
       elapsedMs: state.elapsedMs,
       paceS: state.paceS,
@@ -113,6 +116,10 @@ export async function updateLiveActivity(
       timerStartMs: state.timerStartMs ?? null,
       timerEndMs: state.timerEndMs ?? null,
     });
+    if (!updated) {
+      laDiag.nativeMiss++;
+      throw new Error('native update returned false');
+    }
     laDiag.pushOk++;
   } catch (e) {
     laDiag.pushFail++;

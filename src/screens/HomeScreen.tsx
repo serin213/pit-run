@@ -49,7 +49,8 @@ import {
 } from '../components/MonthCalendar';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
-import { logSessionStarted } from '../lib/analytics/raceEvents';
+import { logRaceStarted, logSessionStarted } from '../lib/analytics/raceEvents';
+import { buildProgram, type Tire } from '../lib/training/buildProgram';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { GRADE_COLORS, GRADE_LABELS, GRADE_ORDER } from '../constants/grade';
 import type { QualifyingGrade } from '../types';
@@ -254,7 +255,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const safeBottom = useSafeBottom();
 
   // 홈 최초 진입 시 위치 권한 요청
-  useLocationPermission({ requestOnMount: true });
+  const { ensurePermission } = useLocationPermission({ requestOnMount: true });
 
   const { user } = useAuthStore();
 
@@ -654,8 +655,44 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           {/* START 버튼: 서킷 bottom + 32px gap. 추천 서킷을 selectedCircuitId로 동기화 후 Countdown */}
           <StartButton
             posStyle={{ position: 'absolute', left: 20, top: startBtnTopInCard, width: startBtnW, height: 44 }}
-            onPress={() => {
+            onPress={async () => {
+              const granted = await ensurePermission();
+              if (!granted) return;
               setSelectedCircuitId(circuit.id);
+              if (qualifyingResult) {
+                try {
+                  const appUser = {
+                    trainingBasePace: qualifyingResult.paceSecPerKm,
+                    grade: qualifyingResult.grade,
+                    totalSessionCount: 0,
+                  };
+                  const program = buildProgram(
+                    appUser,
+                    {
+                      id: circuit.id,
+                      distanceKm: circuit.distanceKm,
+                      baseIntervalM: circuit.baseIntervalM,
+                      baseReps: circuit.baseReps,
+                    },
+                    selectedTire as Tire,
+                  );
+                  useAppStore.getState().setActivePlan(program);
+                  if (user?.id) {
+                    logRaceStarted({
+                      userId: user.id,
+                      grade: qualifyingResult.grade,
+                      circuitId: circuit.id,
+                      tire: selectedTire as Tire,
+                      cyclePhase: program.cyclePhase,
+                      program,
+                    }).then((eventId) => {
+                      useAppStore.getState().setCurrentRaceEventId(eventId);
+                    }).catch(() => {});
+                  }
+                } catch (e) {
+                  console.warn('[HomeStart] race setup error (non-blocking):', e);
+                }
+              }
               navigation.navigate('Countdown');
             }}
           />

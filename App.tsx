@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StatusBar, Text, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,11 +10,76 @@ import ErrorBoundary from './src/components/ErrorBoundary';
 import { flushPendingEvents } from './src/lib/analytics/raceEvents';
 import { flushAllPendingMutations } from './src/api/pendingFlush';
 import { useAuthStore } from './src/store/authStore';
+import { getActiveRacePlan } from './src/api/racePlan';
+import { useRunStore } from './src/store/runStore';
+import { addDeepLinkListener, getInitialDeepLink } from './src/platform/deepLinking';
+import { setPendingRunControlIntent, type RunControlIntent } from './src/navigation/runControlIntent';
 
 const FONT_LOAD_TIMEOUT_MS = 5000;
 
+const LIVE_ACTIVITY_LINK_PATHS = new Set([
+  'pause',
+  'resume',
+  'stop',
+  'result',
+  'qualifying-result',
+]);
+
+function getPitRunPath(url: string): string | null {
+  if (!url.startsWith('pitrun://')) return null;
+  return url.slice('pitrun://'.length).split(/[?#]/)[0] ?? null;
+}
+
+function ensureRunningRouteForActiveRace(): boolean {
+  const plan = getActiveRacePlan();
+  if (!plan?.isRunning) return true;
+  if (!navigationRef.isReady()) return false;
+  const currentRoute = navigationRef.getCurrentRoute()?.name;
+  if (currentRoute !== 'Running') {
+    navigationRef.reset({ index: 0, routes: [{ name: 'Running' }] });
+  }
+  return true;
+}
+
+function handleLiveActivityUrl(url: string): boolean {
+  const path = getPitRunPath(url);
+  if (!path || !LIVE_ACTIVITY_LINK_PATHS.has(path)) return false;
+  const plan = getActiveRacePlan();
+  if (!plan?.isRunning) return true;
+
+  if (path === 'pause' || path === 'resume' || path === 'stop') {
+    const intent = path as RunControlIntent;
+    const canApplyNow = navigationRef.isReady()
+      && navigationRef.getCurrentRoute()?.name === 'Running'
+      && useRunStore.getState().isRunning;
+    if (canApplyNow) {
+      if (intent === 'pause') useRunStore.getState().pauseRun();
+      else if (intent === 'resume') useRunStore.getState().resumeRun();
+      else {
+        setPendingRunControlIntent(intent);
+        useRunStore.getState().pauseRun();
+      }
+    } else {
+      setPendingRunControlIntent(intent);
+    }
+  }
+
+  return ensureRunningRouteForActiveRace();
+}
+
 export default function App() {
   const { isAuthenticated } = useAuthStore();
+  const pendingLiveActivityUrlRef = useRef<string | null>(null);
+
+  const flushPendingRunNavigation = useCallback(() => {
+    const pendingUrl = pendingLiveActivityUrlRef.current;
+    if (pendingUrl && handleLiveActivityUrl(pendingUrl)) {
+      pendingLiveActivityUrlRef.current = null;
+      return;
+    }
+    if (!ensureRunningRouteForActiveRace()) return;
+    pendingLiveActivityUrlRef.current = null;
+  }, []);
 
   // 앱 시작 시 이전 세션에서 전송 못 한 analytics 이벤트 flush
   useEffect(() => {
@@ -30,9 +95,27 @@ export default function App() {
         flushAllPendingMutations().catch(() => {});
         flushPendingEvents().catch(() => {});
       }
+      if (nextState === 'active') {
+        flushPendingRunNavigation();
+      }
     });
     return () => sub.remove();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, flushPendingRunNavigation]);
+
+  useEffect(() => {
+    const handleUrl = (url: string | null) => {
+      if (!url) return;
+      const handled = handleLiveActivityUrl(url);
+      const path = getPitRunPath(url);
+      if (!handled && path && LIVE_ACTIVITY_LINK_PATHS.has(path) && getActiveRacePlan()?.isRunning) {
+        pendingLiveActivityUrlRef.current = url;
+      }
+    };
+
+    getInitialDeepLink().then(handleUrl).catch(() => {});
+    const sub = addDeepLinkListener(handleUrl);
+    return () => sub.remove();
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     'Formula1-Black': require('./assets/fonts/Formula1-Black.ttf'),
@@ -78,8 +161,14 @@ export default function App() {
         <StatusBar barStyle="light-content" backgroundColor="#17171C" />
         <NavigationContainer
           ref={navigationRef}
-          onReady={() => syncTabFromRoute(navigationRef.current?.getCurrentRoute()?.name ?? '')}
-          onStateChange={(state) => syncTabFromRoute(state?.routes[state.index]?.name ?? '')}
+          onReady={() => {
+            syncTabFromRoute(navigationRef.current?.getCurrentRoute()?.name ?? '');
+            flushPendingRunNavigation();
+          }}
+          onStateChange={(state) => {
+            syncTabFromRoute(state?.routes[state.index]?.name ?? '');
+            flushPendingRunNavigation();
+          }}
         >
           <RootNavigator />
         </NavigationContainer>

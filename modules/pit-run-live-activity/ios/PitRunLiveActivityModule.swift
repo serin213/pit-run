@@ -112,7 +112,7 @@ public class PitRunLiveActivityModule: Module {
                 activity = existing
             } else {
                 NSLog("[PitRunLA] update skipped: activity not found id=%@", activityId)
-                promise.resolve(nil as String?)
+                promise.resolve(false)
                 return
             }
 
@@ -139,7 +139,7 @@ public class PitRunLiveActivityModule: Module {
                 await activity.update(content)
                 NSLog("[PitRunLA] update OK: id=%@ dist=%.2f phase=%@",
                       activityId, newState.distKm, newState.pitPhase)
-                promise.resolve(nil as String?)
+                promise.resolve(true)
             }
         }
 
@@ -193,4 +193,5 @@ public class PitRunLiveActivityModule: Module {
             return false
         }
     }
+
 }

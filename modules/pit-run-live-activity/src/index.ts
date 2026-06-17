@@ -17,7 +17,7 @@ interface PitRunLiveActivityNative {
     mode: string;
     timerStartMs: number | null;
     timerEndMs: number | null;
-  }): Promise<void>;
+  }): Promise<boolean>;
   endActivity(activityId: string): Promise<void>;
   endAllActivities(): Promise<void>;
   isSupported(): boolean;
@@ -91,13 +91,14 @@ export async function updateActivity(
     timerStartMs: number | null;
     timerEndMs: number | null;
   }
-): Promise<void> {
+): Promise<boolean> {
   const mod = getNativeModule();
-  if (!mod) return;
+  if (!mod) return false;
   try {
-    await mod.updateActivity(activityId, state);
+    return await mod.updateActivity(activityId, state);
   } catch (e) {
     console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
+    return false;
   }
 }
 

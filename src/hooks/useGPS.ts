@@ -9,6 +9,8 @@ import {
   startBackgroundLocationTask,
   stopBackgroundLocationTask,
   getAccumulatedKm,
+  setAccumulatedKm,
+  resetBackgroundLocationBaseline,
   clearBackgroundCoords,
 } from '../platform/locationTask';
 import { getActiveRacePlan } from '../api/racePlan';
@@ -61,9 +63,22 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       const bgGranted = await requestBackgroundPermission().catch(() => false);
       gpsDiag.bgPerm = bgGranted;
 
-      // 누적 카운터 및 MMKV 좌표 초기화
-      clearBackgroundCoords();
-      lastAppliedAccumRef.current = 0;
+      // 누적 카운터 및 MMKV 좌표 초기화.
+      // 단, 앱이 진행 중 race로 cold-start 복구된 경우 기존 background 누적값을
+      // foreground store가 이미 반영한 상태이므로 지우거나 다시 더하지 않는다.
+      const existingPlan = getActiveRacePlan();
+      const existingAccum = getAccumulatedKm();
+      const isResumingBackgroundRace = !!existingPlan?.isRunning && !existingPlan.isPaused && existingAccum > 0;
+      if (isResumingBackgroundRace) {
+        const storeDistKm = useRunStore.getState().distKm;
+        const resumeAccum = storeDistKm > 0 ? storeDistKm : existingAccum;
+        setAccumulatedKm(resumeAccum);
+        resetBackgroundLocationBaseline();
+        lastAppliedAccumRef.current = resumeAccum;
+      } else {
+        clearBackgroundCoords();
+        lastAppliedAccumRef.current = 0;
+      }
       setGpsEnabled(true);
       // FIX 10-A: 세션 시작 시 진단 카운터 리셋 — 이전 세션 잔존값 오염 제거.
       resetSessionDiag();
@@ -100,6 +115,10 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       const drainAccum = () => {
         gpsDiag.tick++;
         const accum = getAccumulatedKm();
+        if (useRunStore.getState().isPaused) {
+          lastAppliedAccumRef.current = accum;
+          return;
+        }
         const delta = accum - lastAppliedAccumRef.current;
         if (delta > 0) {
           lastAppliedAccumRef.current = accum;
@@ -153,12 +172,26 @@ export function useGPS(enabled: boolean, onDistance: (deltaKm: number) => void) 
       lastAppliedAccumRef.current = 0;
       if (pollInterval) clearInterval(pollInterval);
       if (appStateSubscription) appStateSubscription.remove();
-      stopBackgroundLocationTask();
-      // FIX 7-2: CLBackgroundActivitySession 종료. race 종료 시 시스템에 background
-      // runtime 해제 신호. battery 보호 + 다음 race 시작 시 fresh 시작 보장.
-      stopBackgroundActivitySession().catch(() => {});
-      gpsDiag.bgSessionActive = false;
-      setGpsEnabled(false);
+      const plan = getActiveRacePlan();
+      const runState = useRunStore.getState();
+      const stillRunning = runState.isRunning || !!plan?.isRunning;
+      const isPaused = runState.isPaused || !!plan?.isPaused;
+      if (!stillRunning || isPaused) {
+        const snapshotKm = runState.distKm;
+        setAccumulatedKm(snapshotKm);
+        resetBackgroundLocationBaseline();
+        stopBackgroundLocationTask()
+          .catch(() => {})
+          .finally(() => {
+            setAccumulatedKm(snapshotKm);
+            resetBackgroundLocationBaseline();
+          });
+        // FIX 7-2: CLBackgroundActivitySession 종료. race 종료 시 시스템에 background
+        // runtime 해제 신호. pause/종료 모두 다음 resume/race 시작 시 fresh baseline 보장.
+        stopBackgroundActivitySession().catch(() => {});
+        gpsDiag.bgSessionActive = false;
+        setGpsEnabled(false);
+      }
     };
   }, [enabled, setGpsEnabled]);
 }

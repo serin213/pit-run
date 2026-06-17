@@ -29,6 +29,7 @@ import { usePendingSessionFlush } from '../hooks/usePendingSessionFlush';
 import { usePendingFlushTriggers } from '../hooks/usePendingFlushTriggers';
 import SplashScreen from '../screens/SplashScreen';
 import { endAllLiveActivities } from '../platform/liveActivity';
+import { getActiveRacePlan } from '../api/racePlan';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -41,6 +42,7 @@ function getInitialRoute(isAuthenticated: boolean, hasProfile: boolean): keyof R
 
   if (!isAuthenticated) return 'Auth';
   if (!hasProfile) return 'ProfileSetup';
+  if (getActiveRacePlan()?.isRunning) return 'Running';
   return 'Home';
 }
 
@@ -62,10 +64,10 @@ export default function RootNavigator() {
     return () => cleanup();
   }, [initialize, cleanup]);
 
-  // 앱 시작 시 잔여 Live Activity 정리.
-  // 레이스 도중 앱이 강제 종료(스와이프)되면 cleanup 코드가 실행되지 않아
-  // 잠금화면 LA가 계속 남는 문제를 다음 실행 시점에 처리.
+  // 앱 시작 시 잔여 Live Activity 정리. 진행 중 race plan이 있으면 Live Activity
+  // 탭/앱 재진입 복구 케이스이므로 끊지 않고 RunningScreen으로 복귀시킨다.
   useEffect(() => {
+    if (getActiveRacePlan()?.isRunning) return;
     endAllLiveActivities().catch(() => {});
   }, []);
 
