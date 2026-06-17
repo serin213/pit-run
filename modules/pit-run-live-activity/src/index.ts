@@ -1,8 +1,21 @@
-import { requireOptionalNativeModule, Platform } from 'expo-modules-core';
+import { requireOptionalNativeModule, Platform, type EventSubscription } from 'expo-modules-core';
+
+/** APNs Live Activity push 토큰 갱신 이벤트 payload (네이티브 onLiveActivityPushToken). */
+export interface LiveActivityPushTokenEvent {
+  activityId: string;
+  token: string; // 소문자 hex
+  environment: 'sandbox' | 'production';
+}
 
 interface PitRunLiveActivityNative {
   // mode: "race" | "qualifying" | "warmup" — Lock screen / expanded color 분기.
   startActivity(driverName: string, teamColor: string, circuitId: string, mode: string): Promise<string | null>;
+  // APNs push 토큰 직접 조회 (폴백). 이벤트를 놓쳤거나 JS context 재시작 시 사용.
+  getPushToken(activityId: string): Promise<string | null>;
+  // NSSupportsLiveActivitiesFrequentUpdates 사용자 허용 여부.
+  frequentPushesEnabled(): boolean;
+  // expo-modules-core EventEmitter — onLiveActivityPushToken 구독.
+  addListener(eventName: string, listener: (event: LiveActivityPushTokenEvent) => void): EventSubscription;
   // updateActivity는 state를 dict로 받음 (expo-modules-core의 AsyncFunction
   // 매개변수 개수 상한 초과로 인한 native binding 깨짐 회피).
   updateActivity(activityId: string, state: {
@@ -119,5 +132,46 @@ export async function endAllActivities(): Promise<void> {
     await mod.endAllActivities();
   } catch (e) {
     console.error('[PitRunLA-DIAG] endAllActivities threw', String(e));
+  }
+}
+
+/**
+ * APNs Live Activity push 토큰 갱신 구독.
+ * 토큰은 비동기로 도착하고 rotation도 가능하므로 반드시 이벤트로 받는다.
+ * 반환된 subscription.remove()로 해제.
+ */
+export function addPushTokenListener(
+  listener: (event: LiveActivityPushTokenEvent) => void,
+): EventSubscription | null {
+  const mod = getNativeModule();
+  if (!mod) return null;
+  try {
+    return mod.addListener('onLiveActivityPushToken', listener);
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] addPushTokenListener threw', String(e));
+    return null;
+  }
+}
+
+/** 현재 activity의 APNs push 토큰을 직접 조회 (이벤트 폴백). */
+export async function getPushToken(activityId: string): Promise<string | null> {
+  const mod = getNativeModule();
+  if (!mod) return null;
+  try {
+    return await mod.getPushToken(activityId);
+  } catch (e) {
+    console.error('[PitRunLA-DIAG] getPushToken threw', String(e));
+    return null;
+  }
+}
+
+/** NSSupportsLiveActivitiesFrequentUpdates 사용자 허용 여부 (priority 10 throttle 힌트). */
+export function frequentPushesEnabled(): boolean {
+  const mod = getNativeModule();
+  if (!mod) return false;
+  try {
+    return mod.frequentPushesEnabled();
+  } catch {
+    return false;
   }
 }

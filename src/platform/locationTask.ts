@@ -59,7 +59,7 @@ import {
   type ActiveRacePlan,
 } from '../api/racePlan';
 import { appendRaceLapEntry, getRaceLapLog } from '../api/raceLapLog';
-import { updateLiveActivity, getCurrentActivityId } from './liveActivity';
+import { updateLiveActivity, getCurrentActivityId, pushLiveActivityUpdate } from './liveActivity';
 import type { LiveActivityState } from './liveActivity';
 import { useAppStore } from '../store/appStore';
 import { CIRCUITS } from '../config/circuits';
@@ -393,6 +393,8 @@ async function fireQualifyingLAUpdate(
     timerStartMs: plan.startedAtMs,
   };
   await updateLiveActivity(id, laState);
+  // best-effort APNs 보강 — 로컬 update 이후, 사운드/트리거와 독립. 실패 무시.
+  void pushLiveActivityUpdate(id, laState).catch(() => {});
   if (isBg) gpsDiag.bgLaOk++;
 }
 
@@ -433,6 +435,9 @@ async function fireLAUpdate(
     mode: 'race',
   };
   await updateLiveActivity(id, laState);
+  // best-effort APNs 보강 — pitPhase가 boxbox/fullPush/completed면 priority 10,
+  // 일반 거리 갱신은 priority 5. 로컬 사운드는 이미 이 함수 호출 전에 발화됨.
+  void pushLiveActivityUpdate(id, laState).catch(() => {});
   if (isBg) gpsDiag.bgLaOk++;
 }
 

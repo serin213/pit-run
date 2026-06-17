@@ -10,6 +10,7 @@ import {
   updateLiveActivity,
   endLiveActivity,
   getCurrentActivityId,
+  setLiveActivityRaceId,
 } from '../platform/liveActivity';
 import {
   calcWorkKm,
@@ -86,6 +87,8 @@ export function useRunning(options: UseRunningOptions = {}) {
         if (__DEV__) console.warn('[useRunning] LA not supported — skipping start');
         return;
       }
+      // APNs push 토큰을 이 레이스에 연결 — 토큰 도착 시 서버 등록에 race_id가 실린다.
+      setLiveActivityRaceId(useRunStore.getState().raceId);
       const existing = getCurrentActivityId();
       if (existing) {
         if (__DEV__) console.log('[useRunning] LA reuse existing id', existing);

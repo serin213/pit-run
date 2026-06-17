@@ -11,6 +11,7 @@ import { flushPendingEvents } from './src/lib/analytics/raceEvents';
 import { flushAllPendingMutations } from './src/api/pendingFlush';
 import { useAuthStore } from './src/store/authStore';
 import { getActiveRacePlan } from './src/api/racePlan';
+import { initLiveActivityPushTokens, refreshLiveActivityPushToken } from './src/platform/liveActivity';
 import { useRunStore } from './src/store/runStore';
 import { addDeepLinkListener, getInitialDeepLink } from './src/platform/deepLinking';
 import { setPendingRunControlIntent, type RunControlIntent } from './src/navigation/runControlIntent';
@@ -84,6 +85,16 @@ export default function App() {
   // 앱 시작 시 이전 세션에서 전송 못 한 analytics 이벤트 flush
   useEffect(() => {
     flushPendingEvents().catch(() => {});
+  }, []);
+
+  // APNs Live Activity push 토큰 이벤트 구독을 앱 시작 시 1회 보장.
+  // JS context가 재시작된 채 레이스가 진행 중이면(LA가 살아있으면) 토큰을 재조회해
+  // 서버 등록을 복구한다. 로컬 GPS/사운드와 무관한 best-effort.
+  useEffect(() => {
+    initLiveActivityPushTokens();
+    if (getActiveRacePlan()?.isRunning) {
+      refreshLiveActivityPushToken().catch(() => {});
+    }
   }, []);
 
   // FIX 9-3: background → active 전환 시 pending mutations flush.
