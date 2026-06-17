@@ -46,7 +46,48 @@ ActivityKit(.token) ──pushTokenUpdates──▶ 네이티브 onLiveActivityP
 - 로컬 `Activity.update`는 항상 폴백으로 유지된다.
 - 로컬 사운드 타이밍은 APNs와 무관 (`playSound`는 `fireLAUpdate` 호출 전에 발화).
 
-## 서버 시크릿 (배포 전 설정 필수)
+## 배포 체크리스트 (순서대로)
+
+> 인증·시크릿이 필요한 실제 실행은 **운영자가 직접** 한다. 아래는 명령 목록이다.
+> 이 repo에는 아직 `supabase/config.toml`이 없으므로 0단계 `link`가 선행되어야 한다.
+
+0. **프로젝트 연결** (config.toml 생성)
+   ```bash
+   supabase link --project-ref <project-ref>
+   ```
+1. **마이그레이션 적용** — `0007_live_activity_push_tokens` 테이블 + RLS 생성
+   ```bash
+   supabase db push
+   ```
+2. **APNs 시크릿 등록** (아래 "서버 시크릿" 표 참고)
+   ```bash
+   supabase secrets set APNS_AUTH_KEY_P8="$(cat AuthKey_XXXX.p8)"
+   supabase secrets set APNS_KEY_ID=XXXXXXXXXX
+   supabase secrets set APNS_TEAM_ID=YYYYYYYYYY
+   supabase secrets set APNS_BUNDLE_ID=com.pitrun.apps
+   supabase secrets set APNS_ENV=production   # 또는 sandbox
+   ```
+3. **Edge Function 배포**
+   ```bash
+   supabase functions deploy live-activity-push
+   ```
+4. **iOS 빌드 전제조건** (이미 코드에 반영됨 — 확인만)
+   - `aps-environment` entitlement: `app.json > ios.entitlements` + `ios/PITRUN/PITRUN.entitlements` (값 `production`)
+   - `NSSupportsLiveActivities` / `NSSupportsLiveActivitiesFrequentUpdates`: `app.json > ios.infoPlist` (이미 true)
+   - Apple Developer 포털에서 App ID에 **Push Notifications** capability 활성 + APNs Auth Key(.p8) 발급
+   - TestFlight/App Store 빌드로 설치 (시뮬레이터는 APNs push 미지원)
+
+### 필요한 서버 시크릿
+
+| 시크릿 | 설명 |
+| --- | --- |
+| `APNS_AUTH_KEY_P8` | `.p8` 파일 전체 내용 (`-----BEGIN PRIVATE KEY-----` 포함) — **앱 번들 금지** |
+| `APNS_KEY_ID` | APNs Auth Key ID (10자) |
+| `APNS_TEAM_ID` | Apple Developer Team ID (10자, 예: `H2B5B8WXW6`) |
+| `APNS_BUNDLE_ID` | `com.pitrun.apps` |
+| `APNS_ENV` (선택) | `production` \| `sandbox` — 토큰 `row.environment`가 우선, 없으면 이 값 |
+
+## 서버 시크릿 (명령 모음)
 
 ```bash
 supabase secrets set APNS_AUTH_KEY_P8="$(cat AuthKey_XXXX.p8)"

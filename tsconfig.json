@@ -3,7 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "pit-run-background-activity": ["./modules/pit-run-background-activity/src/index.ts"]
+      "pit-run-background-activity": ["./modules/pit-run-background-activity/src/index.ts"],
+      "expo-modules-core": ["./node_modules/expo/node_modules/expo-modules-core"],
+      "expo-modules-core/*": ["./node_modules/expo/node_modules/expo-modules-core/*"]
     }
   },
   "exclude": [
