@@ -56,6 +56,10 @@ export function useRunning(options: UseRunningOptions = {}) {
   const lastTsRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const activityIdRef = useRef<string | null>(null);
+  // LA end는 "레이스가 멈췄을 때(true→false 전이)"만 해야 한다. 마운트 시 isRunning이
+  // 단순히 false인 경우(카운트다운 직후 RunningScreen 진입, startRun 전)엔 end 금지 —
+  // 안 그러면 카운트다운에서 띄운 LA를 본 시작 직전에 죽인다.
+  const wasRunningRef = useRef(false);
   // FIX 6-4: lastLAUpdateRef 제거 (RAF LA push 폐기 후 미사용).
   const finalLapFiredRef = useRef(false);
   const finishFiredRef = useRef(false);
@@ -79,6 +83,7 @@ export function useRunning(options: UseRunningOptions = {}) {
 
   useEffect(() => {
     if (isRunning) {
+      wasRunningRef.current = true;
       if (completedTimerRef.current) {
         clearTimeout(completedTimerRef.current);
         completedTimerRef.current = null;
@@ -116,6 +121,9 @@ export function useRunning(options: UseRunningOptions = {}) {
           });
       }
     } else {
+      // 한 번도 running이 아니었으면(마운트 직후 카운트다운 LA 보존 단계) end 금지.
+      if (!wasRunningRef.current) return;
+      wasRunningRef.current = false;
       const phase = useRunStore.getState().pitPhase;
       const id = activityIdRef.current ?? getCurrentActivityId();
       if (id) {

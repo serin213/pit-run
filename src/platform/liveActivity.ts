@@ -264,20 +264,24 @@ export async function pushLiveActivityUpdate(
 }
 
 export async function endLiveActivity(activityId: string): Promise<void> {
+  // async-race 차단: native end를 await하기 "전에" 로컬 식별 상태를 즉시 동기적으로 비운다.
+  // (id는 지역변수로 캡처해 nativeEnd에 넘긴다.) 안 그러면 end 직후 재실행되는
+  // useRunning 효과가 아직 안 비워진 stale id를 getCurrentActivityId()로 재사용 →
+  // 새 LA를 안 만들고 곧 죽을 id를 잡아 LA가 영구 소멸한다.
+  const idToEnd = activityId;
+  if (currentActivityId === idToEnd) {
+    currentActivityId = null;
+  }
+  const stored = getString(CURRENT_ACTIVITY_ID_KEY);
+  if (stored === idToEnd) remove(CURRENT_ACTIVITY_ID_KEY);
+  clearPushTokenState();
+  // 서버 push 대상에서 제외 — status='ended'. 로컬 종료와 독립적으로 best-effort.
+  void endLiveActivityToken(idToEnd).catch(() => {});
   try {
-    await nativeEnd(activityId);
-    if (__DEV__) console.log(`${LA_TAG} end: ok`, activityId);
+    await nativeEnd(idToEnd);
+    if (__DEV__) console.log(`${LA_TAG} end: ok`, idToEnd);
   } catch (e) {
     console.warn(`${LA_TAG} end threw`, e);
-  } finally {
-    // 서버 push 대상에서 제외 — status='ended'. 로컬 종료와 독립적으로 best-effort.
-    void endLiveActivityToken(activityId).catch(() => {});
-    if (currentActivityId === activityId) {
-      currentActivityId = null;
-    }
-    const stored = getString(CURRENT_ACTIVITY_ID_KEY);
-    if (stored === activityId) remove(CURRENT_ACTIVITY_ID_KEY);
-    clearPushTokenState();
   }
 }
 
