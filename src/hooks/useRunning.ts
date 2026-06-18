@@ -25,6 +25,7 @@ import {
 } from '../api/racePlan';
 import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
 import { stopBackgroundLocationTask } from '../platform/locationTask';
+import { laDiag } from '../platform/gpsDiag';
 
 // FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
 // background fireLAUpdate가 30초 cadence로 단일 source 담당.
@@ -326,19 +327,18 @@ export function useRunning(options: UseRunningOptions = {}) {
         finishFiredRef.current = true;
         onFinishRef.current?.();
       }
-    };
 
-    syncFromPlan();
-    const intervalId = setInterval(syncFromPlan, PLAN_POLL_INTERVAL_MS);
-    const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        suppressBoxBoxOnceRef.current = true;
-        syncFromPlan();
-        // 인앱 복귀 시 LA 1회 즉시 갱신. 폴링(syncFromPlan)은 UI store만 sync하고
-        // LA push는 pitPhase/isPaused 변화 시에만 일어나므로, 거리만 변한 채 복귀하면
-        // LA가 stale로 남는다. nil LA는 로컬 update가 즉시 렌더되므로 여기서 1회 밀어준다.
+      // ── 포그라운드(active) 실시간 LA 갱신 — FIX 6-4 회귀 복원 ────────────────
+      // FIX 6-4(d6ff942)가 제거한 1초 cadence foreground LA push를 polling에 복원한다.
+      // active(PIT RUN 화면 ON)일 때만 push — background(잠금/다른앱 전면)는 locationTask
+      // 의 fireLAUpdate가 담당하므로 dual-source stale을 회피한다(둘이 동시에 push하면
+      // store.distKm vs readAccum() timing 차이로 stale 가능 — FIX 6-4가 제거한 이유).
+      // 화면 ON+잠금해제는 iOS LA 렌더 throttle이 없고, nil pushType이라 APNs budget도
+      // 없으므로 1초 push가 안전하다.
+      if (AppState.currentState === 'active') {
         const laId = activityIdRef.current ?? getCurrentActivityId();
         if (laId) {
+          // patch 반영 후의 최신 store 값으로 push (pitPhase/prog가 위에서 바뀌었을 수 있음).
           const s = useRunStore.getState();
           updateLiveActivity(laId, {
             distKm: s.distKm,
@@ -351,7 +351,22 @@ export function useRunning(options: UseRunningOptions = {}) {
             isPaused: s.isPaused,
             mode: 'race',
           });
+          laDiag.fgLaPush++;
+          laDiag.lastPushAt = Date.now();
+          laDiag.lastPushDistKm = s.distKm;
+          laDiag.lastPushWasBg = false;
         }
+      }
+    };
+
+    syncFromPlan();
+    const intervalId = setInterval(syncFromPlan, PLAN_POLL_INTERVAL_MS);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        suppressBoxBoxOnceRef.current = true;
+        // syncFromPlan이 active 게이트로 LA를 즉시 push하므로 별도 1회 push 불필요
+        // (FIX 6-4 복원으로 syncFromPlan 자체가 active일 때 매 tick LA를 갱신).
+        syncFromPlan();
       }
     });
 

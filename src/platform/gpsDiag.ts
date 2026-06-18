@@ -90,6 +90,9 @@ export const laDiag = {
   lastErrorMsg: '',
   lockTransitions: 0,      // 잠금/언락 transition 횟수
   lastLockState: 'active', // 'active' | 'background' | 'inactive'
+  // foreground(active) 실시간 LA push 횟수 (useRunning syncFromPlan, 1초 cadence).
+  // background fireLAUpdate 횟수는 gpsDiag.bgLaOk가 담당 → fg/bg 소스 분리 검증.
+  fgLaPush: 0,
 };
 
 export function resetGpsDiag(): void {
@@ -145,4 +148,5 @@ export function resetSessionDiag(): void {
   laDiag.nativeMiss = 0;
   laDiag.lastPushDistKm = null;
   laDiag.lastPushWasBg = false;
+  laDiag.fgLaPush = 0;
 }

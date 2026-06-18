@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, AppState, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useRunStore } from '../store/runStore';
@@ -672,6 +672,8 @@ function BgEventDiagPanel() {
       <Text style={{ color: '#fff', fontSize: 10 }}>
         last: {laDiag.lastPushDistKm != null ? laDiag.lastPushDistKm.toFixed(3) : '?'} {laDiag.lastPushWasBg ? 'bg' : 'fg'}
       </Text>
+      <Text style={{ color: '#ff9', fontSize: 10 }}>appState: {AppState.currentState}</Text>
+      <Text style={{ color: '#ff9', fontSize: 10 }}>laPush fg/bg: {laDiag.fgLaPush}/{gpsDiag.bgLaOk}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>

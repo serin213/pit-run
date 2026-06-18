@@ -94,7 +94,13 @@ let fullPushTriggerInFlight = false;
 // boxbox/fullPush phase transition은 이 throttle을 무시하고 즉시 push한다.
 // phase transition (boxbox/fullPush)은 즉시 push하고 이 throttle 무시.
 let lastLAPushTime = 0;
-const LA_PUSH_MIN_INTERVAL_MS = 30_000;
+// 잠금/다른앱(background) 일반 거리 갱신 cadence. 30초 → 10초 하향:
+// 잠금 기대치는 30초~1분이지만 10초로 자주 호출해두면 iOS가 렌더하는 순간
+// 최신값이 보장된다(로컬 nil update라 APNs budget 없음, 배터리 부담 적음).
+// 다른앱 전면(화면 ON)에선 10초면 거의 실시간으로 렌더된다.
+// active(PIT RUN 화면 ON)일 땐 foreground polling(useRunning syncFromPlan)이
+// 1초 cadence로 push하므로 이 regular 블록은 background에서만 동작시킨다.
+const LA_PUSH_MIN_INTERVAL_MS = 10_000;
 
 type RunnableRaceSnapshot = {
   plan: ActiveRacePlan;
@@ -344,6 +350,11 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 잠금 중 LA distance/elapsedMs/prog 멈춤 + 잠금 풀 때 점프 문제 해결.
   // boxbox/fullPush 발화 시점엔 위에서 이미 fireLAUpdate + lastLAPushTime 업데이트했으니
   // 이 조건 자연스럽게 skip.
+  // active(PIT RUN 화면 ON)일 땐 foreground polling이 1초 cadence로 LA를 push하므로
+  // 여기 regular 블록은 skip — dual-source(foreground store.distKm vs background
+  // readAccum) timing 차이로 인한 stale을 회피한다. boxbox/fullPush phase 전환 push는
+  // 위에서 AppState와 무관하게 항상 발화한다.
+  if (AppState.currentState === 'active') return;
   const regularSnapshot = readRunnableRaceSnapshot();
   if (!regularSnapshot) return;
   const elapsedSinceLastPush = regularSnapshot.now - lastLAPushTime;
