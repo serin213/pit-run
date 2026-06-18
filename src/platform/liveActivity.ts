@@ -21,6 +21,7 @@ import {
   addPushTokenListener,
   getPushToken as nativeGetPushToken,
   frequentPushesEnabled as nativeFrequentPushesEnabled,
+  isActivityActive as nativeIsActivityActive,
   type LiveActivityPushTokenEvent,
 } from 'pit-run-live-activity';
 import { getString, setString, remove } from './storage';
@@ -181,9 +182,19 @@ export async function startLiveActivity(
 ): Promise<string | null> {
   // 토큰 이벤트 구독 보장 — start 시점에 무조건 1회 init (idempotent).
   initLiveActivityPushTokens();
-  if (currentActivityId) {
-    if (__DEV__) console.log(`${LA_TAG} start: reusing existing id`, currentActivityId);
-    return currentActivityId;
+  // 기존 id 재사용 전, 네이티브로 그 Activity가 실제 살아있는지 확인한다.
+  // 무효화된(죽은) id를 재사용하면 update가 조용히 실패하고 LA가 안 뜬다.
+  const existing = getCurrentActivityId();
+  if (existing) {
+    if (nativeIsActivityActive(existing)) {
+      if (__DEV__) console.log(`${LA_TAG} start: reusing live id`, existing);
+      return existing;
+    }
+    // stale/dead id — MMKV·토큰 상태 정리 후 새로 request.
+    if (__DEV__) console.log(`${LA_TAG} start: stale id, discarding`, existing);
+    currentActivityId = null;
+    remove(CURRENT_ACTIVITY_ID_KEY);
+    clearPushTokenState();
   }
   if (__DEV__) {
     console.log(`${LA_TAG} start: requesting`, { driverName, teamColor, circuitId, mode });

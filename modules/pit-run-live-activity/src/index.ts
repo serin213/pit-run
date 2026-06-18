@@ -14,6 +14,8 @@ interface PitRunLiveActivityNative {
   getPushToken(activityId: string): Promise<string | null>;
   // NSSupportsLiveActivitiesFrequentUpdates 사용자 허용 여부.
   frequentPushesEnabled(): boolean;
+  // MMKV에 저장된 id가 실제 살아있는 Activity인지 검증 (stale id 재사용 방지).
+  isActivityActive(activityId: string): boolean;
   // expo-modules-core EventEmitter — onLiveActivityPushToken 구독.
   addListener(eventName: string, listener: (event: LiveActivityPushTokenEvent) => void): EventSubscription;
   // updateActivity는 state를 dict로 받음 (expo-modules-core의 AsyncFunction
@@ -171,6 +173,17 @@ export function frequentPushesEnabled(): boolean {
   if (!mod) return false;
   try {
     return mod.frequentPushesEnabled();
+  } catch {
+    return false;
+  }
+}
+
+/** MMKV에 저장된 activityId가 실제 살아있는 Activity인지 확인 (stale id 재사용 방지). */
+export function isActivityActive(activityId: string): boolean {
+  const mod = getNativeModule();
+  if (!mod) return false;
+  try {
+    return mod.isActivityActive(activityId);
   } catch {
     return false;
   }

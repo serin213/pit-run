@@ -78,7 +78,11 @@ public class PitRunLiveActivityModule: Module {
                 mode: mode,
                 timerStartMs: nil, timerEndMs: nil
             )
-            let content = ActivityContent(state: initialState, staleDate: Date().addingTimeInterval(60))
+            // staleDate: nil — .token activity의 초기 표시 버그 회피.
+            // iOS 18+에서 pushType:.token + 짧은 staleDate(예: 60초)면 초기 snapshot이
+            // sceneNotReady로 실패하고 activity가 무효화되는 알려진 동작이 있다.
+            // push 갱신은 staleDate와 무관하게 동작하므로 nil로 둔다.
+            let content = ActivityContent(state: initialState, staleDate: nil)
             let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
 
             do {
@@ -129,6 +133,16 @@ public class PitRunLiveActivityModule: Module {
                 let enabled = ActivityAuthorizationInfo().frequentPushesEnabled
                 NSLog("[PitRunLA] frequentPushesEnabled() → \(enabled)")
                 return enabled
+            }
+            return false
+        }
+
+        // isActivityActive(activityId) -> Bool
+        // MMKV에 저장된 id가 실제로 살아있는 Activity인지 검증용. 죽은(무효화된) id를
+        // 재사용해 update가 조용히 실패하는 것을 JS 측에서 막는다.
+        Function("isActivityActive") { (activityId: String) -> Bool in
+            if #available(iOS 16.2, *) {
+                return Activity<PitRunAttributes>.activities.contains(where: { $0.id == activityId })
             }
             return false
         }
