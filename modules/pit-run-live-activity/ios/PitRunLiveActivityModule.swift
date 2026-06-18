@@ -101,6 +101,11 @@ public class PitRunLiveActivityModule: Module {
                 promise.reject("ERR_START_ACTIVITY", "\(error)")
             }
         }
+        // New Architecture(bridgeless) fix: AsyncFunction은 기본적으로 비-JS 백그라운드
+        // 큐에서 실행된다. ActivityKit Activity.request()를 off-main에서 호출하면 New Arch
+        // 에서 LA 초기 스냅샷이 foreground scene에 attach 실패(sceneNotReady)→폐기된다.
+        // request + observePushToken 시작을 메인 스레드로 강제해 scene attach를 보장한다.
+        .runOnQueue(DispatchQueue.main)
 
         // getPushToken(activityId) -> hex token | null
         // 폴백 조회용 — 이벤트를 놓쳤거나 JS context가 재시작된 경우 현재 토큰을 직접 읽는다.
