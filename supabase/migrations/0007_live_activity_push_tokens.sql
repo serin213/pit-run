@@ -7,7 +7,7 @@
 -- 로컬 GPS/오디오 트리거 소유권과 무관 — 렌더 신뢰성 보강 전용.
 
 create table if not exists public.live_activity_push_tokens (
-  id                      uuid primary key default uuid_generate_v4(),
+  id                      uuid primary key default gen_random_uuid(),
   user_id                 uuid not null references auth.users(id) on delete cascade,
   -- 클라이언트 생성 race UUID (runStore.raceId). 한 레이스가 여러 토큰 rotation을
   -- 가질 수 있으므로 race_id로 묶어 조회한다.
