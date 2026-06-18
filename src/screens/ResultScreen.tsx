@@ -24,6 +24,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import TireIcon from '../components/TireIcon';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
+import { getRaceLapLog } from '../api/raceLapLog';
 import { calcRaceRank, percentileToPNumber, buildUnrankedResult, calcGradePercentileFromNormalDist } from '../lib/ranking/calcRank';
 import type { Tire as RankTire } from '../lib/ranking/types';
 import { CIRCUITS } from '../config/circuits';
@@ -142,7 +143,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   const runStore = useRunStore();
   const { distKm, elapsedMs, paceHistory, lapLog: rawLapLog, resetRun } = isHistoryMode
-    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], lapLog: [] as import('../types/run').LapEntry[], resetRun: () => {} }
+    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], lapLog: (historyData.lapLog ?? []) as import('../types/run').LapEntry[], resetRun: () => {} }
     : runStore;
 
   const {
@@ -207,7 +208,13 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       total_time_ms: Math.round(elapsedMs),
       avg_pace_sec_per_km: avgPace,
       best_pace_sec_per_km: bestPace,
-      payload: diff ? { difficulty: diff } : undefined,
+      // 히스토리 결과 그래프 복원용 — lapLog(MMKV 단일 소스)·paceHistory를 payload에 저장.
+      // payload(jsonb) 컬럼 재사용이라 마이그레이션 불필요.
+      payload: {
+        ...(diff ? { difficulty: diff } : {}),
+        lapLog: getRaceLapLog(),
+        paceHistory,
+      },
     }).catch(() => {});
     if (user?.id && currentRaceEventId) {
       const activePlan = useAppStore.getState().activePlan;
@@ -386,7 +393,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   // lapLog 기반 lap별 페이스 막대. work lap만 표시, pit은 구분 색상.
   // lapLog 없거나 1개 이하면 기존 sectorPaces(균등 분할) 폴백.
-  const useLapLog = !isHistoryMode && rawLapLog.length > 1;
+  // 히스토리도 payload.lapLog가 복원되면 사용. 구버전(랩 없음)은 rawLapLog=[] → fallback.
+  const useLapLog = rawLapLog.length > 1;
 
   const sectorCount = useLapLog
     ? rawLapLog.length

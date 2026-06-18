@@ -46,6 +46,7 @@ import { GRADE_DISPLAY_NAME, GRADE_ORDER } from '../constants/grade';
 import { COLORS, PALETTE} from '../constants/colors';
 import type { HistoryScreenProps } from '../navigation/types';
 import type { QualifyingGrade } from '../types';
+import type { LapEntry } from '../types/run';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { radius } from '../constants/radius';
 import { useTabBarTotalHeight } from '../components/TabBar';
@@ -126,7 +127,7 @@ type QHistRow = {
 };
 
 type HistoryRow =
-  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null }
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null; lapLog?: LapEntry[] }
   | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
   | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
@@ -336,6 +337,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             const elapsedMs = s.total_time_ms ?? 0;
 
             const difficulty = typeof s.payload?.difficulty === 'string' ? s.payload.difficulty : null;
+            const lapLog = Array.isArray(s.payload?.lapLog) ? (s.payload.lapLog as LapEntry[]) : undefined;
 
             if (s.type === 'grand_prix') {
               const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
@@ -348,6 +350,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
                 circuitId: s.circuit_id ?? 'monaco',
                 difficulty,
+                lapLog,
               };
             } else if (s.type === 'qualifying') {
               const grade = qualByDate.get(sortKey) ?? 'f3';
@@ -798,6 +801,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 elapsedMs: row.elapsedMs,
                 circuitId: row.circuitId,
                 difficulty: row.difficulty,
+                lapLog: row.lapLog,
               };
               return (
                 <GradientCardBorder
