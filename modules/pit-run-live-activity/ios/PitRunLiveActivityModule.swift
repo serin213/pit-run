@@ -87,10 +87,13 @@ public class PitRunLiveActivityModule: Module {
                 // 도착하므로 여기서 기다리지 않고 activityId만 즉시 반환, 토큰은
                 // pushTokenUpdates 관찰 Task에서 onLiveActivityPushToken 이벤트로 흘려보낸다.
                 // 로컬 updateActivity 폴백은 그대로 동작 (push와 무관).
+                // LA_PUSH_ENABLED=false 동안 로컬 update가 즉시 렌더되도록 nil 유지.
+                // (.token은 push 전제라 백그라운드 로컬 update 렌더를 throttle함.)
+                // observePushToken/Events/getPushToken 코드는 보존 — nil이면 자연 무동작.
                 let activity = try Activity<PitRunAttributes>.request(
                     attributes: attributes,
                     content: content,
-                    pushType: .token
+                    pushType: nil
                 )
                 self.activities[activity.id] = activity as AnyObject
                 NSLog("[PitRunLA] activity REQUESTED OK (pushType=.token): id=%@", activity.id)

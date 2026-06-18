@@ -334,6 +334,24 @@ export function useRunning(options: UseRunningOptions = {}) {
       if (state === 'active') {
         suppressBoxBoxOnceRef.current = true;
         syncFromPlan();
+        // 인앱 복귀 시 LA 1회 즉시 갱신. 폴링(syncFromPlan)은 UI store만 sync하고
+        // LA push는 pitPhase/isPaused 변화 시에만 일어나므로, 거리만 변한 채 복귀하면
+        // LA가 stale로 남는다. nil LA는 로컬 update가 즉시 렌더되므로 여기서 1회 밀어준다.
+        const laId = activityIdRef.current ?? getCurrentActivityId();
+        if (laId) {
+          const s = useRunStore.getState();
+          updateLiveActivity(laId, {
+            distKm: s.distKm,
+            elapsedMs: Math.round(s.elapsedMs),
+            paceS: Math.round(s.paceS),
+            sector: 'red',
+            tire: s.tire,
+            pitPhase: s.pitPhase,
+            prog: s.prog,
+            isPaused: s.isPaused,
+            mode: 'race',
+          });
+        }
       }
     });
 

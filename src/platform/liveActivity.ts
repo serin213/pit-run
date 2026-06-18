@@ -56,6 +56,11 @@ export interface LiveActivityState {
   timerEndMs?: number;
 }
 
+// APNs push 파이프라인 활성 플래그. false면 토큰 등록·Edge Function invoke를 전부
+// 차단한다(코드/인프라는 보존). 현재 LA는 pushType:nil 로컬 update로만 렌더하므로
+// push는 비활성. push로 전환할 준비가 되면 true + 네이티브 pushType:.token 복구.
+const LA_PUSH_ENABLED = false;
+
 const CURRENT_ACTIVITY_ID_KEY = 'live_activity_current_id_v1';
 const CURRENT_PUSH_TOKEN_KEY = 'live_activity_push_token_v1';
 const CURRENT_PUSH_ENV_KEY = 'live_activity_push_env_v1';
@@ -135,6 +140,7 @@ export function initLiveActivityPushTokens(): void {
  * race_id는 nullable이라 raceId 미설정이어도 등록은 진행한다.
  */
 async function maybeRegisterPushToken(): Promise<void> {
+  if (!LA_PUSH_ENABLED) return;
   const token = getCurrentLiveActivityPushToken();
   const activityId = getCurrentActivityId();
   if (!token || !activityId) return;
@@ -247,6 +253,7 @@ export async function pushLiveActivityUpdate(
   activityId: string,
   state: LiveActivityState,
 ): Promise<void> {
+  if (!LA_PUSH_ENABLED) return;
   // 토큰이 아직 없으면 서버에 등록된 row도 없으니 push 의미 없음 → skip.
   if (!getCurrentLiveActivityPushToken()) return;
   const isTransition = isLiveActivityVisualTransition(state.pitPhase);
