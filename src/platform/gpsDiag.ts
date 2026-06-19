@@ -95,6 +95,53 @@ export const laDiag = {
   fgLaPush: 0,
 };
 
+/**
+ * 엔진음 keep-alive + 시간기준 box-box 계측.
+ * 핵심: 루프-생존(active/playing/restartCount) — 엔진이 죽으면 옛 버그(잠금 중 멈춤)와
+ * 똑같이 보이므로 반드시 가시화해야 원인 구분이 된다.
+ */
+export const engineDiag = {
+  // ── 루프-생존 ──────────────────────────────────────────────────────────────
+  active: false,            // 재생 "의도" (race 진행 중 + 토글 ON)
+  playing: false,           // 실제 재생 중 (마지막 폴링 값)
+  restartCount: 0,          // 워치독/네이티브 이벤트로 되살린 횟수 (0이면 한 번도 안 죽음)
+  startedAtMs: 0,           // 엔진 루프 시작 시각
+  // ── 인터럽션 (네이티브 AVAudioSession 이벤트) ────────────────────────────────
+  interruptionCount: 0,
+  lastInterruptionAtMs: 0,
+  lastInterruptionKind: '' as string, // 'began'|'ended'|'ended-resume'|'route:xxx'|'mediaReset'
+  lastInterruptionDurationMs: null as number | null, // began→ended 간격
+  // ── box-box/풀푸시 정시성 (예약 vs 실제 발화) ───────────────────────────────
+  lastBoxBoxDeltaMs: null as number | null,
+  maxBoxBoxDeltaMs: 0,
+  lastFullPushDeltaMs: null as number | null,
+  maxFullPushDeltaMs: 0,
+  // ── 콜백/LA 멈춤 ────────────────────────────────────────────────────────────
+  maxCbGapMs: 0,            // 연속 GPS 콜백 최대 간격
+  lastCbGapMs: 0,
+  lastLaUpdateAtMs: 0,
+  maxLaGapMs: 0,            // LA update 호출 간 최대 간격 ('몇 분 멈춤' 줄었나)
+};
+
+export function resetEngineDiag(): void {
+  engineDiag.active = false;
+  engineDiag.playing = false;
+  engineDiag.restartCount = 0;
+  engineDiag.startedAtMs = 0;
+  engineDiag.interruptionCount = 0;
+  engineDiag.lastInterruptionAtMs = 0;
+  engineDiag.lastInterruptionKind = '';
+  engineDiag.lastInterruptionDurationMs = null;
+  engineDiag.lastBoxBoxDeltaMs = null;
+  engineDiag.maxBoxBoxDeltaMs = 0;
+  engineDiag.lastFullPushDeltaMs = null;
+  engineDiag.maxFullPushDeltaMs = 0;
+  engineDiag.maxCbGapMs = 0;
+  engineDiag.lastCbGapMs = 0;
+  engineDiag.lastLaUpdateAtMs = 0;
+  engineDiag.maxLaGapMs = 0;
+}
+
 export function resetGpsDiag(): void {
   // useGPS 사이클 카운터만 reset. defineCalled / earlyReg 등 module-load 관련은
   // 한 번만 결정되므로 reset 대상이 아님.
@@ -149,4 +196,5 @@ export function resetSessionDiag(): void {
   laDiag.lastPushDistKm = null;
   laDiag.lastPushWasBg = false;
   laDiag.fgLaPush = 0;
+  resetEngineDiag();
 }

@@ -40,6 +40,7 @@
     "pit-run-haptics": "file:./modules/pit-run-haptics",
     "pit-run-background-activity": "file:./modules/pit-run-background-activity",
     "pit-run-live-activity": "file:./modules/pit-run-live-activity",
+    "pit-run-audio-session": "file:./modules/pit-run-audio-session",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.2",

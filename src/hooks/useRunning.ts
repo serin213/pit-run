@@ -24,7 +24,8 @@ import {
   clearActiveRacePlan,
 } from '../api/racePlan';
 import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
-import { stopBackgroundLocationTask } from '../platform/locationTask';
+import { stopBackgroundLocationTask, runRaceTriggerTick } from '../platform/locationTask';
+import { startEngineLoop, stopEngineLoop, ensureEngineAlive } from '../platform/engineAudio';
 import { laDiag } from '../platform/gpsDiag';
 
 // FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
@@ -178,6 +179,12 @@ export function useRunning(options: UseRunningOptions = {}) {
         : Number.MAX_SAFE_INTEGER;
     const expectedCycleMInit = activePlan?.totals.expectedCycleDistanceM
       ?? Math.round(intervalKmInit * 1500);
+    // 시간 기준 box-box: work 1회 예상 시간. 예선 고정 페이스(실시간 적응 X).
+    // activePlan: intervalKm × hardPace. free-run: intervalKm × 예선 paceSecPerKm.
+    const basePaceSecPerKm = activePlan
+      ? activePlan.intervals.hardPace
+      : (useAppStore.getState().qualifyingResult?.paceSecPerKm ?? 360);
+    const predictedWorkMsInit = Math.max(10_000, Math.round(intervalKmInit * basePaceSecPerKm * 1000));
     const nowMs = Date.now();
     console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
       intervalKm: intervalKmInit,
@@ -201,6 +208,8 @@ export function useRunning(options: UseRunningOptions = {}) {
         lastBoxBoxAtKm: 0,
         completedReps: 0,
         nextFullPushAtMs: null,
+        nextBoxBoxAtMs: nowMs + predictedWorkMsInit,
+        predictedWorkMs: predictedWorkMsInit,
         lastFiredAt: null,
         lastFiredAtMs: null,
         workStartedAtMs: nowMs,
@@ -214,6 +223,14 @@ export function useRunning(options: UseRunningOptions = {}) {
         pausedAtMs: null,
       });
     }
+  }, [isRunning]);
+
+  // 엔진음 keep-alive — 레이스 진행 동안 연속 재생해 잠금 중 앱 생존 확보.
+  // TODO(toggle): on/off 설정 연동 (기본 ON). 현재는 무조건 시작 — 메커니즘 우선.
+  useEffect(() => {
+    if (!isRunning) return;
+    void startEngineLoop();
+    return () => { stopEngineLoop(); };
   }, [isRunning]);
 
   // RAF 루프 — 묶음 2 이후엔 elapsedMs 누적용으로만 사용한다.
@@ -359,13 +376,24 @@ export function useRunning(options: UseRunningOptions = {}) {
       }
     };
 
+    // 1초 tick — 앱이 살아있는 동안(엔진음 keep-alive로 background에서도) 매초 실행:
+    //  1) runRaceTriggerTick: 시간 기준 box-box/fullPush 평가 → 정시(~1초) 발화.
+    //     locationTask 콜백(~6초)과 동일 단일 평가기, in-flight 가드로 동시호출 안전.
+    //  2) ensureEngineAlive: 엔진 워치독 — 인터럽션 후 죽었으면 되살림.
+    //  3) syncFromPlan: store sync + foreground(active) LA push.
+    const tick = () => {
+      void runRaceTriggerTick();
+      void ensureEngineAlive();
+      syncFromPlan();
+    };
     syncFromPlan();
-    const intervalId = setInterval(syncFromPlan, PLAN_POLL_INTERVAL_MS);
+    const intervalId = setInterval(tick, PLAN_POLL_INTERVAL_MS);
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         suppressBoxBoxOnceRef.current = true;
         // syncFromPlan이 active 게이트로 LA를 즉시 push하므로 별도 1회 push 불필요
         // (FIX 6-4 복원으로 syncFromPlan 자체가 active일 때 매 tick LA를 갱신).
+        void ensureEngineAlive();
         syncFromPlan();
       }
     });

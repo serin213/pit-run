@@ -29,7 +29,7 @@ import { useDevMode } from '../lib/devMode';
 import type { RunningScreenProps as NavRunningScreenProps } from '../navigation/types';
 import { logRaceAbandoned } from '../lib/analytics/raceEvents';
 import { playSound } from '../platform/audio';
-import { gpsDiag, laDiag, cbLog } from '../platform/gpsDiag';
+import { gpsDiag, laDiag, engineDiag, cbLog } from '../platform/gpsDiag';
 import { debugGpsConfig } from '../platform/debugGpsConfig';
 import { isBackgroundActivitySupported } from '../platform/backgroundActivity';
 import { syncDiag } from '../api/saveDiag';
@@ -674,6 +674,23 @@ function BgEventDiagPanel() {
       </Text>
       <Text style={{ color: '#ff9', fontSize: 10 }}>appState: {AppState.currentState}</Text>
       <Text style={{ color: '#ff9', fontSize: 10 }}>laPush fg/bg: {laDiag.fgLaPush}/{gpsDiag.bgLaOk}</Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>ENGINE</Text>
+      <Text style={{ color: engineDiag.active && !engineDiag.playing ? '#f99' : '#9f9', fontSize: 10 }}>
+        play: {engineDiag.playing ? 'y' : 'n'}  active: {engineDiag.active ? 'y' : 'n'}  restart: {engineDiag.restartCount}
+      </Text>
+      <Text style={{ color: '#fff', fontSize: 10 }}>
+        intr: {engineDiag.interruptionCount} {engineDiag.lastInterruptionKind || 'none'}
+        {engineDiag.lastInterruptionDurationMs != null ? ` ${Math.round(engineDiag.lastInterruptionDurationMs / 1000)}s` : ''}
+      </Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>
+        bbΔ: {engineDiag.lastBoxBoxDeltaMs != null ? engineDiag.lastBoxBoxDeltaMs : '?'}ms (max {engineDiag.maxBoxBoxDeltaMs})
+      </Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>
+        fpΔ: {engineDiag.lastFullPushDeltaMs != null ? engineDiag.lastFullPushDeltaMs : '?'}ms (max {engineDiag.maxFullPushDeltaMs})
+      </Text>
+      <Text style={{ color: '#aff', fontSize: 10 }}>
+        cbGap: {(engineDiag.lastCbGapMs / 1000).toFixed(1)}s (max {(engineDiag.maxCbGapMs / 1000).toFixed(1)}s)  laGap max: {(engineDiag.maxLaGapMs / 1000).toFixed(0)}s
+      </Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>bgSess: {isBackgroundActivitySupported() ? (gpsDiag.bgSessionActive ? '1' : '0') : 'n/a'}</Text>
       <Text style={{ color: '#fff', fontSize: 10 }}>lockT: {laDiag.lockTransitions}</Text>
       <Text style={{ color: '#aff', fontSize: 10 }}>bgTw: {gpsDiag.bgTw} bgLA: {gpsDiag.bgLaOk}/{gpsDiag.bgLaTried}</Text>

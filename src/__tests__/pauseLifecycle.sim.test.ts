@@ -55,6 +55,15 @@ vi.mock('../platform/liveActivity', () => ({
   updateLiveActivity: vi.fn(async () => undefined),
 }));
 
+// engineAudio는 expo-audio/native(pit-run-audio-session)를 import하므로 node 테스트에선
+// 모킹 — maybeFireBackgroundRaceEvents 경로는 engine을 직접 부르지 않아 안전.
+vi.mock('../platform/engineAudio', () => ({
+  ensureEngineAlive: vi.fn(async () => undefined),
+  startEngineLoop: vi.fn(async () => undefined),
+  stopEngineLoop: vi.fn(() => undefined),
+  isEnginePlaying: vi.fn(() => false),
+}));
+
 vi.mock('../store/appStore', () => ({
   useAppStore: {
     getState: () => ({
@@ -103,6 +112,10 @@ function setRacePlan(overrides: Partial<NonNullable<ReturnType<typeof getActiveR
     lastBoxBoxAtKm: 0,
     completedReps: 0,
     nextFullPushAtMs: null,
+    // 시간 기준 box-box: 기본적으로 "이미 발화 시점 도래"로 두어 distance 기반이던
+    // 기존 시나리오(work 도달 시 box-box)를 시간 기준에서 재현한다.
+    nextBoxBoxAtMs: now - 1000,
+    predictedWorkMs: 120_000,
     lastFiredAt: null,
     lastFiredAtMs: null,
     workStartedAtMs: now - 60_000,

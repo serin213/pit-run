@@ -63,6 +63,22 @@ export type ActiveRacePlan = {
   nextFullPushAtMs: number | null;
 
   /**
+   * race: 예약된 box-box 발화 시각 (work 구간 중). 시간 기준 트리거.
+   * work 시작 시 now + predictedWorkMs로 설정, box-box 발화 시 null(회복 진입),
+   * fullPush 발화(work 재시작) 시 다시 now + predictedWorkMs로 재설정.
+   * 거리 기준(workKm>=intervalKm)을 시간 기준(now>=nextBoxBoxAtMs)으로 대체 —
+   * 엔진음 keep-alive로 앱이 살아있어 자체 1초 평가로 정시 발화 가능. qualifying: null.
+   */
+  nextBoxBoxAtMs: number | null;
+
+  /**
+   * race: work 1회 예상 소요 시간(ms). box-box/work 재예약에 사용.
+   * activePlan: intervalKm × intervals.hardPace × 1000. free-run: intervalKm ×
+   * qualifyingResult.paceSecPerKm × 1000 (예선 고정 페이스). qualifying: 0.
+   */
+  predictedWorkMs: number;
+
+  /**
    * 묶음 2: alert 단계 동기화 필드.
    * background가 발화한 직후 foreground polling이 'boxbox'/'fullPush' alert phase를
    * derive할 수 있게 표시. 발화 후 4초(ALERT_MS) 이내면 alert phase로 표시.
