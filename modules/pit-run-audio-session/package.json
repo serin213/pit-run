@@ -1,7 +1,7 @@
 {
   "name": "pit-run-audio-session",
   "version": "1.0.0",
-  "description": "AVAudioSession interruption/route observer for PIT RUN — precise engine-audio keep-alive recovery (iOS)",
+  "description": "AVAudioSession interruption/route observer for PIT RUN - precise engine-audio keep-alive recovery (iOS)",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "private": true
