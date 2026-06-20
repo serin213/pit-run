@@ -35,10 +35,9 @@ function isEngineSoundEnabled(): boolean {
   return useAppStore.getState().engineSoundEnabled !== false;
 }
 
-// TODO(asset): 임시 placeholder — 짧은 mp3라 루프마다 미세 갭 발생 → keep-alive "측정"엔
-// 부적합(배선/컴파일 검증용). 실측 전 gapless ≥30s 엔진음(caf/wav)으로 교체할 것.
-// 교체 시 이 require 한 줄만 바꾸면 됨.
-const ENGINE_LOOP_SOURCE = require('../../assets/sound/count-down.mp3');
+// F1 엔진음 연속 루프 — 120초 모노 ALAC CAF(무손실, 갭리스). keep-alive용.
+// CAF/ALAC는 mp3 인코더 padding이 없어 loop=true 시 끝→시작이 매끄럽게 이어진다.
+const ENGINE_LOOP_SOURCE = require('../../assets/sound/engine.caf');
 
 const isIOS = Platform.OS === 'ios';
 
