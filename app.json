@@ -23,8 +23,7 @@
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.pitrun.apps"
-        ],
-        "aps-environment": "production"
+        ]
       },
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "PIT RUN tracks your distance accurately even when the screen is off, so you never lose progress mid-run.",
@@ -39,7 +38,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.1",
-      "buildNumber": "98"
+      "buildNumber": "99"
     },
     "android": {
       "adaptiveIcon": {
