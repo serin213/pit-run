@@ -225,13 +225,15 @@ export function useRunning(options: UseRunningOptions = {}) {
     }
   }, [isRunning]);
 
-  // 엔진음 keep-alive — 레이스 진행 동안 연속 재생해 잠금 중 앱 생존 확보.
-  // TODO(toggle): on/off 설정 연동 (기본 ON). 현재는 무조건 시작 — 메커니즘 우선.
+  // 엔진음 keep-alive — running && !paused일 때만 재생.
+  // pause 중에는 백그라운드 시간 임계 작업이 없으므로(거리누적·트리거 평가·GPS 정지)
+  // 앱을 살려둘 필요가 없다 → 엔진 정지(엔진음 안 울림 + 배터리 절약). resume(active 복귀)
+  // 시 자동 재시작. 토글 OFF면 startEngineLoop가 내부에서 no-op.
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning || isPaused) return;
     void startEngineLoop();
     return () => { stopEngineLoop(); };
-  }, [isRunning]);
+  }, [isRunning, isPaused]);
 
   // RAF 루프 — 묶음 2 이후엔 elapsedMs 누적용으로만 사용한다.
   // trigger 판정 / plan 업데이트 / lap log / LA push는 background task가 담당.

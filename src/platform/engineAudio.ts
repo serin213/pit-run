@@ -39,6 +39,11 @@ function isEngineSoundEnabled(): boolean {
 // CAF/ALAC는 mp3 인코더 padding이 없어 loop=true 시 끝→시작이 매끄럽게 이어진다.
 const ENGINE_LOOP_SOURCE = require('../../assets/sound/engine.caf');
 
+// 엔진 루프 볼륨(0~1). keep-alive는 낮은 볼륨에서도 유지되고(샘플만 출력되면 됨),
+// 앰비언스라 작게 깔리는 게 적절. box-box/풀푸시 알림음은 audio.ts 별도 플레이어라
+// 이 값과 무관하게 크게 유지된다. 튜닝은 이 상수만 조정.
+const ENGINE_VOLUME = 0.14;
+
 const isIOS = Platform.OS === 'ios';
 
 let enginePlayer: AudioPlayer | null = null;
@@ -62,6 +67,7 @@ function getEnginePlayer(): AudioPlayer {
   if (!enginePlayer) {
     enginePlayer = createAudioPlayer(ENGINE_LOOP_SOURCE);
     enginePlayer.loop = true;
+    try { enginePlayer.volume = ENGINE_VOLUME; } catch {}
   }
   return enginePlayer;
 }
@@ -91,6 +97,7 @@ export async function startEngineLoop(): Promise<void> {
   await applyKeepAliveAudioMode();
   const p = getEnginePlayer();
   p.loop = true;
+  try { p.volume = ENGINE_VOLUME; } catch {}
   try { p.play(); } catch {}
   engineDiag.startedAtMs = Date.now();
   subscribeInterruptions();
@@ -134,6 +141,7 @@ export async function ensureEngineAlive(): Promise<void> {
   } catch {}
   try {
     p.loop = true;
+    p.volume = ENGINE_VOLUME;
     p.play();
   } catch {}
   engineDiag.restartCount++;
