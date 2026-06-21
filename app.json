@@ -89,6 +89,7 @@
           ]
         }
       ],
+      "./plugins/with-no-aps-environment",
       "./plugins/with-widget-object-version",
       [
         "expo-build-properties",
