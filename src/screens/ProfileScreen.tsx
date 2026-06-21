@@ -157,8 +157,6 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
   const profile                 = useAppStore((s) => s.profile);
   const qualifyingResult        = useAppStore((s) => s.qualifyingResult);
-  const engineSoundEnabled      = useAppStore((s) => s.engineSoundEnabled);
-  const setEngineSoundEnabled   = useAppStore((s) => s.setEngineSoundEnabled);
 
   const trophySource = qualifyingResult
     ? (TROPHY_IMAGES[qualifyingResult.grade] ?? null)
@@ -171,17 +169,6 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
-  // Engine Sound 토글: 켜기는 즉시, 끄기는 ConfirmSheet 경유(잠금 중 알림 누락 경고).
-  const [showEngineSheet, setShowEngineSheet] = useState(false);
-  const handleEngineToggle = () => {
-    if (engineSoundEnabled) {
-      // ON → OFF: 바로 끄지 않고 확인 시트
-      setShowEngineSheet(true);
-    } else {
-      // OFF → ON: 즉시 켜기
-      setEngineSoundEnabled(true);
-    }
-  };
 
   const handleConfirmDelete = async () => {
     setShowDeleteSheet(false);
@@ -235,16 +222,6 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
         {/* ── 3. 설정 리스트 ── */}
         <View style={{ marginTop: 28 }}>
-          {/* Engine Sound */}
-          <View style={styles.listRow}>
-            <Text style={styles.listLabel}>Engine Sound</Text>
-            <View style={{ position: 'absolute', right: 20 }}>
-              <AnimatedToggle
-                on={engineSoundEnabled}
-                onToggle={handleEngineToggle}
-              />
-            </View>
-          </View>
 
           {/* Terms of Service */}
           <Pressable
@@ -328,19 +305,6 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         />
       )}
 
-      {showEngineSheet && (
-        <ConfirmSheet
-          title="Turn off Engine Sound?"
-          description="You may miss interval alerts while your screen is locked."
-          secondaryLabel="Keep On"
-          primaryLabel="Turn Off"
-          onSecondary={() => setShowEngineSheet(false)}
-          onPrimary={() => {
-            setEngineSoundEnabled(false);
-            setShowEngineSheet(false);
-          }}
-        />
-      )}
     </Animated.View>
   );
 }

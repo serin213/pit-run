@@ -55,15 +55,6 @@ vi.mock('../platform/liveActivity', () => ({
   updateLiveActivity: vi.fn(async () => undefined),
 }));
 
-// engineAudio는 expo-audio/native(pit-run-audio-session)를 import하므로 node 테스트에선
-// 모킹 — maybeFireBackgroundRaceEvents 경로는 engine을 직접 부르지 않아 안전.
-vi.mock('../platform/engineAudio', () => ({
-  ensureEngineAlive: vi.fn(async () => undefined),
-  startEngineLoop: vi.fn(async () => undefined),
-  stopEngineLoop: vi.fn(() => undefined),
-  isEnginePlaying: vi.fn(() => false),
-}));
-
 vi.mock('../store/appStore', () => ({
   useAppStore: {
     getState: () => ({

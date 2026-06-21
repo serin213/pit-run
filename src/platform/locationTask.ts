@@ -52,7 +52,6 @@ import { getString, setString, remove } from './storage';
 import { gpsDiag, engineDiag, pushCbLog } from './gpsDiag';
 import { haversineKm, type LocationCoords } from './location';
 import { playSound } from './audio';
-import { ensureEngineAlive } from './engineAudio';
 import {
   getActiveRacePlan,
   updateActiveRacePlan,
@@ -675,9 +674,6 @@ export function defineBackgroundLocationTask(): void {
       // 안에서 완료되도록 기다린다. fire-and-forget이면 iOS가 JS를 다시 suspend할 때
       // 후속 async 작업이 유실될 수 있다.
       await maybeFireBackgroundRaceEvents().catch(() => {});
-      // 엔진 워치독 심박 — 엔진이 인터럽션으로 죽었으면 잠금 중에도 여기서 되살린다.
-      // (네이티브 .ended 이벤트를 놓친 완전 suspend 케이스 보정.)
-      void ensureEngineAlive();
     });
     gpsDiag.defineCalled = true;
   } catch (e) {

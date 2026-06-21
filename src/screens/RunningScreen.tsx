@@ -674,14 +674,7 @@ function BgEventDiagPanel() {
       </Text>
       <Text style={{ color: '#ff9', fontSize: 10 }}>appState: {AppState.currentState}</Text>
       <Text style={{ color: '#ff9', fontSize: 10 }}>laPush fg/bg: {laDiag.fgLaPush}/{gpsDiag.bgLaOk}</Text>
-      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>ENGINE</Text>
-      <Text style={{ color: engineDiag.active && !engineDiag.playing ? '#f99' : '#9f9', fontSize: 10 }}>
-        play: {engineDiag.playing ? 'y' : 'n'}  active: {engineDiag.active ? 'y' : 'n'}  restart: {engineDiag.restartCount}
-      </Text>
-      <Text style={{ color: '#fff', fontSize: 10 }}>
-        intr: {engineDiag.interruptionCount} {engineDiag.lastInterruptionKind || 'none'}
-        {engineDiag.lastInterruptionDurationMs != null ? ` ${Math.round(engineDiag.lastInterruptionDurationMs / 1000)}s` : ''}
-      </Text>
+      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 4 }}>TIMING</Text>
       <Text style={{ color: '#aff', fontSize: 10 }}>
         bbΔ: {engineDiag.lastBoxBoxDeltaMs != null ? engineDiag.lastBoxBoxDeltaMs : '?'}ms (max {engineDiag.maxBoxBoxDeltaMs})
       </Text>

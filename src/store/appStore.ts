@@ -32,7 +32,6 @@ type PersistedState = {
   activityDates: string[];
   totalDistanceKm: number;
   paceRecords: { bestEver: number; todayBest: number };
-  engineSoundEnabled: boolean;
   /** circuitId → last raced timestamp (ms). 홈 추천 서킷 로테이션용. */
   lastRaceByCircuit: Record<string, number>;
 };
@@ -104,8 +103,6 @@ interface AppState {
   totalDistanceKm: number;
   addDistance: (km: number) => void;
 
-  engineSoundEnabled: boolean;
-  setEngineSoundEnabled: (enabled: boolean) => void;
 
   /** 현재 진행 중인 레이스의 analytics eventId. 비지속성(휘발). */
   currentRaceEventId: string | null;
@@ -128,7 +125,6 @@ function extractPersisted(state: AppState): PersistedState {
     activityDates: state.activityDates,
     totalDistanceKm: state.totalDistanceKm,
     paceRecords: state.paceRecords,
-    engineSoundEnabled: state.engineSoundEnabled,
     lastRaceByCircuit: state.lastRaceByCircuit,
   };
 }
@@ -193,11 +189,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     persist(extractPersisted({ ...get(), totalDistanceKm }));
   },
 
-  engineSoundEnabled: saved.engineSoundEnabled ?? true,
-  setEngineSoundEnabled: (enabled) => {
-    set({ engineSoundEnabled: enabled });
-    persist(extractPersisted({ ...get(), engineSoundEnabled: enabled }));
-  },
 
   currentRaceEventId: null,
   setCurrentRaceEventId: (id) => set({ currentRaceEventId: id }),

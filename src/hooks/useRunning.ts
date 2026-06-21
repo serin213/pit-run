@@ -25,7 +25,6 @@ import {
 } from '../api/racePlan';
 import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
 import { stopBackgroundLocationTask, runRaceTriggerTick } from '../platform/locationTask';
-import { startEngineLoop, stopEngineLoop, ensureEngineAlive } from '../platform/engineAudio';
 import { laDiag } from '../platform/gpsDiag';
 
 // FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
@@ -225,16 +224,6 @@ export function useRunning(options: UseRunningOptions = {}) {
     }
   }, [isRunning]);
 
-  // 엔진음 keep-alive — running && !paused일 때만 재생.
-  // pause 중에는 백그라운드 시간 임계 작업이 없으므로(거리누적·트리거 평가·GPS 정지)
-  // 앱을 살려둘 필요가 없다 → 엔진 정지(엔진음 안 울림 + 배터리 절약). resume(active 복귀)
-  // 시 자동 재시작. 토글 OFF면 startEngineLoop가 내부에서 no-op.
-  useEffect(() => {
-    if (!isRunning || isPaused) return;
-    void startEngineLoop();
-    return () => { stopEngineLoop(); };
-  }, [isRunning, isPaused]);
-
   // RAF 루프 — 묶음 2 이후엔 elapsedMs 누적용으로만 사용한다.
   // trigger 판정 / plan 업데이트 / lap log / LA push는 background task가 담당.
   useEffect(() => {
@@ -378,14 +367,13 @@ export function useRunning(options: UseRunningOptions = {}) {
       }
     };
 
-    // 1초 tick — 앱이 살아있는 동안(엔진음 keep-alive로 background에서도) 매초 실행:
-    //  1) runRaceTriggerTick: 시간 기준 box-box/fullPush 평가 → 정시(~1초) 발화.
-    //     locationTask 콜백(~6초)과 동일 단일 평가기, in-flight 가드로 동시호출 안전.
-    //  2) ensureEngineAlive: 엔진 워치독 — 인터럽션 후 죽었으면 되살림.
-    //  3) syncFromPlan: store sync + foreground(active) LA push.
+    // 1초 tick — foreground(앱 활성)에서 매초 실행:
+    //  1) runRaceTriggerTick: 시간 기준 box-box/fullPush 평가. 앱 활성 시 1초 정시,
+    //     백그라운드/잠금에선 JS suspend로 locationTask 콜백(~6초)이 평가를 담당.
+    //     동일 단일 평가기, in-flight 가드로 동시호출 안전.
+    //  2) syncFromPlan: store sync + foreground(active) LA push.
     const tick = () => {
       void runRaceTriggerTick();
-      void ensureEngineAlive();
       syncFromPlan();
     };
     syncFromPlan();
@@ -395,7 +383,6 @@ export function useRunning(options: UseRunningOptions = {}) {
         suppressBoxBoxOnceRef.current = true;
         // syncFromPlan이 active 게이트로 LA를 즉시 push하므로 별도 1회 push 불필요
         // (FIX 6-4 복원으로 syncFromPlan 자체가 active일 때 매 tick LA를 갱신).
-        void ensureEngineAlive();
         syncFromPlan();
       }
     });
