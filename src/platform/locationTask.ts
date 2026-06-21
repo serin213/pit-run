@@ -52,6 +52,7 @@ import { getString, setString, remove } from './storage';
 import { gpsDiag, engineDiag, pushCbLog } from './gpsDiag';
 import { haversineKm, type LocationCoords } from './location';
 import { playSound } from './audio';
+import { areNotificationsGranted } from './notifications';
 import {
   getActiveRacePlan,
   updateActiveRacePlan,
@@ -264,8 +265,9 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         pitStartedAtKm: null,
       }) ?? plan;
 
-      // (2) await playSound (이제 race-safe)
-      try { await playSound('fullPush'); } catch {}
+      // (2) 사운드: box-box/풀푸시는 예약 로컬 알림이 정시 발화(잠금 중에도). 알림 권한
+      //     없을 때만 인앱 playSound로 폴백.
+      if (!areNotificationsGranted()) { try { await playSound('fullPush'); } catch {} }
       gpsDiag.bgEventFullPushFired++;
 
       // (3) 회복 segment lap entry push (type='pit')
@@ -333,8 +335,8 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
           pitStartedAtKm: triggerAccum,
         }) ?? plan;
 
-        // (2) await playSound
-        try { await playSound('boxbox'); } catch {}
+        // (2) 사운드: 예약 로컬 알림이 정시 발화. 알림 권한 없을 때만 인앱 playSound 폴백.
+        if (!areNotificationsGranted()) { try { await playSound('boxbox'); } catch {} }
         gpsDiag.bgEventBoxBoxFired++;
 
         // (3) work segment lap entry push (type='lap')

@@ -25,6 +25,11 @@ import {
 } from '../api/racePlan';
 import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
 import { stopBackgroundLocationTask, runRaceTriggerTick } from '../platform/locationTask';
+import {
+  requestNotificationPermission,
+  scheduleIntervalChain,
+  cancelAllIntervalNotifications,
+} from '../platform/notifications';
 import { laDiag } from '../platform/gpsDiag';
 
 // FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
@@ -223,6 +228,30 @@ export function useRunning(options: UseRunningOptions = {}) {
       });
     }
   }, [isRunning]);
+
+  // box-box/풀푸시 예약 로컬 알림 — 잠금/suspend 중에도 OS가 정시 발화(앱 생존 불필요).
+  // 시간 기준이라 발화 시각을 미리 알 수 있어 레이스 시작·resume 시 전체 체인을 예약한다.
+  // pause/stop = 전부 취소. 권한 거부 시 locationTask가 인앱 playSound로 폴백.
+  useEffect(() => {
+    if (!isRunning || isPaused) {
+      void cancelAllIntervalNotifications();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      await requestNotificationPermission();
+      if (cancelled) return;
+      const plan = getActiveRacePlan();
+      if (plan && plan.mode === 'race') {
+        await scheduleIntervalChain(plan, Date.now(), ALERT_MS);
+      }
+    })();
+    // running&&!paused를 떠날 때(일시정지/종료/언마운트) 예약 알림 정리.
+    return () => {
+      cancelled = true;
+      void cancelAllIntervalNotifications();
+    };
+  }, [isRunning, isPaused]);
 
   // RAF 루프 — 묶음 2 이후엔 elapsedMs 누적용으로만 사용한다.
   // trigger 판정 / plan 업데이트 / lap log / LA push는 background task가 담당.

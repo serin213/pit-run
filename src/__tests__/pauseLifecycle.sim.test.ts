@@ -50,6 +50,12 @@ vi.mock('../platform/audio', () => ({
   playSound: vi.fn(async () => undefined),
 }));
 
+// notifications는 expo-notifications를 import하므로 node 테스트에서 모킹.
+// 권한 미허용으로 두어 box-box/풀푸시가 인앱 playSound 폴백을 타도록 → 기존 assertion 유지.
+vi.mock('../platform/notifications', () => ({
+  areNotificationsGranted: vi.fn(() => false),
+}));
+
 vi.mock('../platform/liveActivity', () => ({
   getCurrentActivityId: vi.fn(() => 'activity-1'),
   updateLiveActivity: vi.fn(async () => undefined),

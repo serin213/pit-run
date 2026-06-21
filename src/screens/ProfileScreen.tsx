@@ -56,51 +56,6 @@ const TERMS_URL = 'https://brawny-camp-928.notion.site/Terms-of-Service-359fe217
 const PRIVACY_URL = 'https://brawny-camp-928.notion.site/Privacy-Policy-359fe2177fce80098b73da31906382d5';
 const FEEDBACK_URL = 'https://tally.so/r/Gxqzz2';
 
-// ─── AnimatedToggle ───────────────────────────────────────────────────────────
-
-function AnimatedToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  const anim = useRef(new Animated.Value(on ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.spring(anim, {
-      toValue: on ? 1 : 0,
-      useNativeDriver: false,
-      friction: 10,
-      tension: 100,
-    }).start();
-  }, [on, anim]);
-
-  const bgColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.1)', 'rgba(224,58,62,0.3)'],
-  });
-  const circleX = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 24] });
-  const circleColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,1)', 'rgba(224,58,62,1)'],
-  });
-  const circleSize = anim.interpolate({ inputRange: [0, 1], outputRange: [16, 24] });
-  const circleTop = anim.interpolate({ inputRange: [0, 1], outputRange: [4, 0] });
-
-  return (
-    <Pressable onPress={onToggle} hitSlop={8}>
-      <Animated.View
-        style={{ width: 48, height: 24, borderRadius: 12, backgroundColor: bgColor, overflow: 'hidden' }}
-      >
-        <Animated.View style={{ position: 'absolute', width: 24, height: 24, transform: [{ translateX: circleX }] }}>
-          <Animated.View
-            style={{
-              position: 'absolute', left: 0, right: 0, top: circleTop,
-              width: circleSize, alignSelf: 'center', height: circleSize,
-              borderRadius: 12, backgroundColor: circleColor,
-            }}
-          />
-        </Animated.View>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
 // ─── TeamSvg ──────────────────────────────────────────────────────────────────
 
 function TeamSvg({ color, width }: { color: string; width: number }) {

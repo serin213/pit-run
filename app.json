@@ -80,6 +80,15 @@
       ],
       "expo-audio",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sound/notif-boxbox.caf",
+            "./assets/sound/notif-fullpush.caf"
+          ]
+        }
+      ],
       "./plugins/with-widget-object-version",
       [
         "expo-build-properties",
