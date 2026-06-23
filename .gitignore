@@ -38,6 +38,9 @@ yarn-error.*
 /credentials.json
 /secrets/
 
+# Supabase local CLI state
+supabase/.temp/
+
 # Local build artifacts (xcodebuild archive / EAS local output)
 # IPA는 코드가 아니라 빌드 산출물이라 git에 들어가면 안 됨.
 *.ipa
