@@ -104,11 +104,11 @@ export function useSupabaseSession() {
    */
   const saveCompletedSession = useCallback(
     async (fields: {
-      /**
-       * 클라이언트 생성 UUID — runStore.raceId 또는 호출부에서 결정.
-       * 전달되면 API 레이어에서 upsert(onConflict: 'id')로 처리 → 같은 race가
-       * 중복 호출되어도 DB row 1개만 유지 (re-mount / 네트워크 retry 모두 차단).
-       */
+	      /**
+	       * 클라이언트 생성 UUID — runStore.raceId 또는 호출부에서 결정.
+	       * 전달되면 API 레이어가 기존 row를 먼저 조회한다. 이미 저장된 race는
+	       * 업데이트하지 않고 그대로 반환해 re-mount / 네트워크 retry 중복을 차단한다.
+	       */
       id?: string;
       type: SessionType;
       circuit_id?: string | null;

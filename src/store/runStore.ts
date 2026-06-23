@@ -147,6 +147,7 @@ export const useRunStore = create<RunState>((set, get) => ({
       workStartedAtMs: plan ? plan.workStartedAtMs + pausedForMs : undefined,
       pitStartedAtMs: plan?.pitStartedAtMs != null ? plan.pitStartedAtMs + pausedForMs : plan?.pitStartedAtMs,
       nextFullPushAtMs: plan?.nextFullPushAtMs != null ? plan.nextFullPushAtMs + pausedForMs : plan?.nextFullPushAtMs,
+      nextBoxBoxAtMs: plan?.nextBoxBoxAtMs != null ? plan.nextBoxBoxAtMs + pausedForMs : plan?.nextBoxBoxAtMs,
     });
     set({ isPaused: false, gpsEnabled: true, boxBoxActive: false, pitPhase: 'none' });
   },

@@ -32,6 +32,10 @@ export function appendRaceLapEntry(entry: LapEntry): void {
   setString(KEY, JSON.stringify(existing));
 }
 
+export function setRaceLapLog(entries: LapEntry[]): void {
+  setString(KEY, JSON.stringify(entries));
+}
+
 export function clearRaceLapLog(): void {
   remove(KEY);
 }

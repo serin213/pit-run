@@ -1,0 +1,8 @@
+{
+  "name": "pit-run-run-engine",
+  "version": "1.0.0",
+  "description": "Native race run engine for PIT RUN",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "private": true
+}

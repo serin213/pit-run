@@ -90,7 +90,38 @@ export const laDiag = {
   lastErrorMsg: '',
   lockTransitions: 0,      // 잠금/언락 transition 횟수
   lastLockState: 'active', // 'active' | 'background' | 'inactive'
+  // foreground(active) 실시간 LA push 횟수 (useRunning syncFromPlan, 1초 cadence).
+  // background fireLAUpdate 횟수는 gpsDiag.bgLaOk가 담당 → fg/bg 소스 분리 검증.
+  fgLaPush: 0,
 };
+
+/**
+ * 시간기준 box-box 타이밍 + 콜백/LA 멈춤 계측.
+ * (엔진음 keep-alive는 앱을 죽이는 문제로 폐기 — 관련 루프생존/인터럽션 필드 제거.)
+ */
+export const engineDiag = {
+  // ── box-box/풀푸시 정시성 (예약 vs 실제 발화) ───────────────────────────────
+  lastBoxBoxDeltaMs: null as number | null,
+  maxBoxBoxDeltaMs: 0,
+  lastFullPushDeltaMs: null as number | null,
+  maxFullPushDeltaMs: 0,
+  // ── 콜백/LA 멈춤 ────────────────────────────────────────────────────────────
+  maxCbGapMs: 0,            // 연속 GPS 콜백 최대 간격
+  lastCbGapMs: 0,
+  lastLaUpdateAtMs: 0,
+  maxLaGapMs: 0,            // LA update 호출 간 최대 간격
+};
+
+export function resetEngineDiag(): void {
+  engineDiag.lastBoxBoxDeltaMs = null;
+  engineDiag.maxBoxBoxDeltaMs = 0;
+  engineDiag.lastFullPushDeltaMs = null;
+  engineDiag.maxFullPushDeltaMs = 0;
+  engineDiag.maxCbGapMs = 0;
+  engineDiag.lastCbGapMs = 0;
+  engineDiag.lastLaUpdateAtMs = 0;
+  engineDiag.maxLaGapMs = 0;
+}
 
 export function resetGpsDiag(): void {
   // useGPS 사이클 카운터만 reset. defineCalled / earlyReg 등 module-load 관련은
@@ -145,4 +176,6 @@ export function resetSessionDiag(): void {
   laDiag.nativeMiss = 0;
   laDiag.lastPushDistKm = null;
   laDiag.lastPushWasBg = false;
+  laDiag.fgLaPush = 0;
+  resetEngineDiag();
 }

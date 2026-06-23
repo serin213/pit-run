@@ -50,6 +50,12 @@ vi.mock('../platform/audio', () => ({
   playSound: vi.fn(async () => undefined),
 }));
 
+// notifications는 expo-notifications를 import하므로 node 테스트에서 모킹.
+// 권한 미허용으로 두어 box-box/풀푸시가 인앱 playSound 폴백을 타도록 → 기존 assertion 유지.
+vi.mock('../platform/notifications', () => ({
+  areNotificationsGranted: vi.fn(() => false),
+}));
+
 vi.mock('../platform/liveActivity', () => ({
   getCurrentActivityId: vi.fn(() => 'activity-1'),
   updateLiveActivity: vi.fn(async () => undefined),
@@ -103,6 +109,10 @@ function setRacePlan(overrides: Partial<NonNullable<ReturnType<typeof getActiveR
     lastBoxBoxAtKm: 0,
     completedReps: 0,
     nextFullPushAtMs: null,
+    // 시간 기준 box-box: 기본적으로 "이미 발화 시점 도래"로 두어 distance 기반이던
+    // 기존 시나리오(work 도달 시 box-box)를 시간 기준에서 재현한다.
+    nextBoxBoxAtMs: now - 1000,
+    predictedWorkMs: 120_000,
     lastFiredAt: null,
     lastFiredAtMs: null,
     workStartedAtMs: now - 60_000,
@@ -138,6 +148,19 @@ describe('race pause lifecycle simulation', () => {
 
   it('does not commit boxbox when paused even if accumulated distance already passed interval', async () => {
     setRacePlan({ isPaused: true, pausedAtMs: Date.now(), lastFiredAt: null, lastFiredAtMs: null });
+    setAccumulatedKm(0.45);
+
+    await __simulateBackgroundRaceEventsForTest();
+
+    expect(playSound).not.toHaveBeenCalled();
+    expect(updateLiveActivity).not.toHaveBeenCalled();
+    expect(getRaceLapLog()).toHaveLength(0);
+    expect(getActiveRacePlan()?.completedReps).toBe(0);
+    expect(getActiveRacePlan()?.lastFiredAt).toBeNull();
+  });
+
+  it('does not let the legacy background task mutate a native-engine race', async () => {
+    setRacePlan({ runtime: 'native' });
     setAccumulatedKm(0.45);
 
     await __simulateBackgroundRaceEventsForTest();

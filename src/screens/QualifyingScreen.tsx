@@ -205,6 +205,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         lastBoxBoxAtKm: 0,
         completedReps: 0,
         nextFullPushAtMs: null,
+        nextBoxBoxAtMs: null,
+        predictedWorkMs: 0,
         // 묶음 2: qualifying은 boxbox/fullPush 분기 안 탐. lap timing 필드는 race 전용
         // 이지만 ActiveRacePlan 타입을 단일화 유지하기 위해 null/now로 채움.
         lastFiredAt: null,

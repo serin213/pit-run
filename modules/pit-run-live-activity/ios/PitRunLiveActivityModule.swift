@@ -34,6 +34,7 @@ public class PitRunLiveActivityModule: Module {
     // APNs push token 관찰 Task. activity id별로 1개. endActivity/endAll에서 cancel.
     // Task<Void, Never>는 @available 게이트가 필요 없어 클래스 레벨 보관 가능.
     private var pushTokenTasks: [String: Task<Void, Never>] = [:]
+    private var runEngineObserver: NSObjectProtocol?
 
     public func definition() -> ModuleDefinition {
         // IMPORTANT: 'PitRunLiveActivity'는 widget extension target name
@@ -47,6 +48,7 @@ public class PitRunLiveActivityModule: Module {
         // definition() 메서드는 AnyDefinition만 받으므로 NSLog는 OnCreate 블록 안.
         OnCreate {
             NSLog("[PitRunLA] Module OnCreate called — module is loaded and registered")
+            self.installRunEngineSnapshotObserver()
         }
 
         // APNs Live Activity push 토큰이 갱신될 때마다 JS로 전달.
@@ -82,18 +84,12 @@ public class PitRunLiveActivityModule: Module {
             let attributes = PitRunAttributes(driverName: driverName, teamColor: teamColor, circuitId: circuitId)
 
             do {
-                // pushType: .token — ActivityKit이 APNs push token을 발급해 서버에서
-                // Lock Screen / Dynamic Island를 원격 갱신할 수 있게 한다. 토큰은 비동기로
-                // 도착하므로 여기서 기다리지 않고 activityId만 즉시 반환, 토큰은
-                // pushTokenUpdates 관찰 Task에서 onLiveActivityPushToken 이벤트로 흘려보낸다.
-                // 로컬 updateActivity 폴백은 그대로 동작 (push와 무관).
-                // LA_PUSH_ENABLED=false 동안 로컬 update가 즉시 렌더되도록 nil 유지.
-                // (.token은 push 전제라 백그라운드 로컬 update 렌더를 throttle함.)
-                // observePushToken/Events/getPushToken 코드는 보존 — nil이면 자연 무동작.
+                // pushType:.token — APNs는 Live Activity 렌더 보강 전용.
+                // 소리/알림은 RunEngine local notification이 단독 소유한다.
                 let activity = try Activity<PitRunAttributes>.request(
                     attributes: attributes,
                     content: content,
-                    pushType: nil
+                    pushType: .token
                 )
                 self.activities[activity.id] = activity as AnyObject
                 NSLog("[PitRunLA] activity REQUESTED OK (pushType=.token): id=%@", activity.id)
@@ -255,6 +251,86 @@ public class PitRunLiveActivityModule: Module {
     // Data(APNs token) → 소문자 hex 문자열. 서버가 APNs apns-topic 대상에 그대로 사용.
     private static func hexString(from data: Data) -> String {
         return data.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func installRunEngineSnapshotObserver() {
+        guard #available(iOS 16.2, *) else { return }
+        if runEngineObserver != nil { return }
+        runEngineObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("PitRunRunEngineSnapshot"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.updateActivityFromRunEngineSnapshot(notification.userInfo)
+        }
+    }
+
+    @available(iOS 16.2, *)
+    private func updateActivityFromRunEngineSnapshot(_ userInfo: [AnyHashable: Any]?) {
+        guard let userInfo = userInfo else { return }
+        let activity: Activity<PitRunAttributes>
+        if
+            let id = Self.stringValue(userInfo["activityId"]),
+            let cached = activities[id] as? Activity<PitRunAttributes>
+        {
+            activity = cached
+        } else if
+            let id = Self.stringValue(userInfo["activityId"]),
+            let existing = Activity<PitRunAttributes>.activities.first(where: { $0.id == id })
+        {
+            activities[id] = existing as AnyObject
+            activity = existing
+        } else if let existing = Activity<PitRunAttributes>.activities.first {
+            activities[existing.id] = existing as AnyObject
+            activity = existing
+        } else {
+            return
+        }
+
+        let newState = PitRunAttributes.ContentState(
+            distKm: Self.doubleValue(userInfo["distKm"], defaultValue: 0),
+            elapsedMs: Self.intValue(userInfo["elapsedMs"], defaultValue: 0),
+            paceS: Self.intValue(userInfo["paceS"], defaultValue: 0),
+            sector: "red",
+            tire: Self.stringValue(userInfo["tire"]) ?? "medium",
+            pitPhase: Self.stringValue(userInfo["pitPhase"]) ?? "none",
+            prog: Self.doubleValue(userInfo["prog"], defaultValue: 0),
+            isPaused: Self.boolValue(userInfo["isPaused"], defaultValue: false),
+            mode: Self.stringValue(userInfo["mode"]) ?? "race",
+            timerStartMs: nil,
+            timerEndMs: nil
+        )
+        let content = ActivityContent(state: newState, staleDate: Date().addingTimeInterval(60))
+        Task {
+            await activity.update(content)
+            NSLog("[PitRunLA] native engine update OK: id=%@ dist=%.2f phase=%@",
+                  activity.id, newState.distKm, newState.pitPhase)
+        }
+    }
+
+    private static func stringValue(_ value: Any?) -> String? {
+        if let value = value as? String, !value.isEmpty { return value }
+        return nil
+    }
+
+    private static func doubleValue(_ value: Any?, defaultValue: Double) -> Double {
+        if let value = value as? Double { return value }
+        if let value = value as? Int { return Double(value) }
+        if let value = value as? NSNumber { return value.doubleValue }
+        return defaultValue
+    }
+
+    private static func intValue(_ value: Any?, defaultValue: Int) -> Int {
+        if let value = value as? Int { return value }
+        if let value = value as? Double { return Int(value) }
+        if let value = value as? NSNumber { return value.intValue }
+        return defaultValue
+    }
+
+    private static func boolValue(_ value: Any?, defaultValue: Bool) -> Bool {
+        if let value = value as? Bool { return value }
+        if let value = value as? NSNumber { return value.boolValue }
+        return defaultValue
     }
 
     // activity.pushTokenUpdates를 관찰해 토큰이 갱신될 때마다 JS로 이벤트 전송.

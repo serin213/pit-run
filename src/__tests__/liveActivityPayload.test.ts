@@ -71,6 +71,8 @@ describe('buildLiveActivityApnsPayload', () => {
     expect(payload.aps.event).toBe('update');
     expect(payload.aps['content-state']).toBe(cs);
     expect(payload.aps['stale-date']).toBeUndefined();
+    expect('alert' in payload.aps).toBe(false);
+    expect('sound' in payload.aps).toBe(false);
   });
 
   it('converts stale/dismissal dates to epoch seconds and includes relevance', () => {

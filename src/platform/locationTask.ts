@@ -49,9 +49,10 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { COLORS } from '../constants/colors';
 import { getString, setString, remove } from './storage';
-import { gpsDiag, pushCbLog } from './gpsDiag';
+import { gpsDiag, engineDiag, pushCbLog } from './gpsDiag';
 import { haversineKm, type LocationCoords } from './location';
 import { playSound } from './audio';
+import { areNotificationsGranted } from './notifications';
 import {
   getActiveRacePlan,
   updateActiveRacePlan,
@@ -89,12 +90,21 @@ const BOXBOX_ALERT_MS = 4000; // useRunning의 BOXBOX_ALERT_MS와 동일
 let boxboxTriggerInFlight = false;
 let fullPushTriggerInFlight = false;
 
+// 연속 GPS 콜백 간격 계측 (콜백 멈춤 = box-box 콜백-폴백 시 최대 오차).
+let lastCbAtMs = 0;
+
 // LA push throttle. iOS ActivityKit은 너무 자주 update하면 실제 잠금화면 렌더가
 // coalesce/throttle될 수 있다. 일반 거리 표시는 30초 cadence로 낮추고,
 // boxbox/fullPush phase transition은 이 throttle을 무시하고 즉시 push한다.
 // phase transition (boxbox/fullPush)은 즉시 push하고 이 throttle 무시.
 let lastLAPushTime = 0;
-const LA_PUSH_MIN_INTERVAL_MS = 30_000;
+// 잠금/다른앱(background) 일반 거리 갱신 cadence. 30초 → 10초 하향:
+// 잠금 기대치는 30초~1분이지만 10초로 자주 호출해두면 iOS가 렌더하는 순간
+// 최신값이 보장된다(로컬 nil update라 APNs budget 없음, 배터리 부담 적음).
+// 다른앱 전면(화면 ON)에선 10초면 거의 실시간으로 렌더된다.
+// active(PIT RUN 화면 ON)일 땐 foreground polling(useRunning syncFromPlan)이
+// 1초 cadence로 push하므로 이 regular 블록은 background에서만 동작시킨다.
+const LA_PUSH_MIN_INTERVAL_MS = 10_000;
 
 type RunnableRaceSnapshot = {
   plan: ActiveRacePlan;
@@ -136,6 +146,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   gpsDiag.bgEventCallCount++;
   let plan = getActiveRacePlan();
   if (!plan) { gpsDiag.bgEventPlanNull++; return; }
+  if (plan.runtime === 'native') { gpsDiag.bgEventPlanNull++; return; }
   // 이중 안전망 — clear가 호출되지 않은 채 race가 종료된 stale plan 방어.
   // 정상 흐름에선 clearActiveRacePlan으로 plan 자체가 제거되어 위 null 체크에서
   // 잡히지만, 앱 swipe kill 직후 task가 살아남는 케이스에서는 plan만 남고 race는
@@ -235,9 +246,17 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       const accumAtFullPush = fullPushSnapshot.accumKm;
       const firedAtMs = fullPushSnapshot.now;
 
-      // (1) plan 동기 update 먼저 — 다른 callback이 새 plan 보고 자연스럽게 조건 미달
+      // 정시성 계측: 예약(nextFullPushAtMs) vs 실제 발화(firedAtMs) 차이.
+      const scheduledFullPushAtMs = plan.nextFullPushAtMs ?? firedAtMs;
+      const fpDelta = Math.max(0, firedAtMs - scheduledFullPushAtMs);
+      engineDiag.lastFullPushDeltaMs = fpDelta;
+      if (fpDelta > engineDiag.maxFullPushDeltaMs) engineDiag.maxFullPushDeltaMs = fpDelta;
+
+      // (1) plan 동기 update 먼저 — 다른 callback이 새 plan 보고 자연스럽게 조건 미달.
+      //     work 재시작 → nextBoxBoxAtMs를 다시 now + predictedWorkMs로 재예약.
       plan = updateActiveRacePlan({
         nextFullPushAtMs: null,
+        nextBoxBoxAtMs: firedAtMs + plan.predictedWorkMs,
         lastBoxBoxAtKm: accumAtFullPush,
         lastFiredAt: 'fullPush',
         lastFiredAtMs: firedAtMs,
@@ -247,8 +266,9 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
         pitStartedAtKm: null,
       }) ?? plan;
 
-      // (2) await playSound (이제 race-safe)
-      try { await playSound('fullPush'); } catch {}
+      // (2) 사운드: box-box/풀푸시는 예약 로컬 알림이 정시 발화(잠금 중에도). 알림 권한
+      //     없을 때만 인앱 playSound로 폴백.
+      if (!areNotificationsGranted()) { try { await playSound('fullPush'); } catch {} }
       gpsDiag.bgEventFullPushFired++;
 
       // (3) 회복 segment lap entry push (type='pit')
@@ -278,9 +298,9 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // (2) work 페이즈 + interval 도달 검사 (currentAccum vs lastBoxBoxAtKm)
   // 외출① 보완: atomic guard + plan-first 순서.
   if (plan.nextFullPushAtMs == null && plan.completedReps < plan.maxReps && !plan.finalLapFired) {
-    const currentAccum = readAccum();
-    const workKm = currentAccum - plan.lastBoxBoxAtKm;
-    if (workKm >= plan.intervalKm && !boxboxTriggerInFlight) {
+    // 시간 기준: workKm>=intervalKm(거리) → now>=nextBoxBoxAtMs(시간).
+    // 거리는 lap distM(실거리)·완주·파이널랩에만 쓰고, 발화 시점은 시간이 결정한다.
+    if (plan.nextBoxBoxAtMs != null && now >= plan.nextBoxBoxAtMs && !boxboxTriggerInFlight) {
       boxboxTriggerInFlight = true;
       try {
         const boxboxSnapshot = readRunnableRaceSnapshotIf((snapshot) => {
@@ -291,16 +311,24 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
           ) {
             return false;
           }
-          return snapshot.accumKm - snapshot.plan.lastBoxBoxAtKm >= snapshot.plan.intervalKm;
+          return snapshot.plan.nextBoxBoxAtMs != null && snapshot.now >= snapshot.plan.nextBoxBoxAtMs;
         });
         if (!boxboxSnapshot) return;
         plan = boxboxSnapshot.plan;
         const triggerAccum = boxboxSnapshot.accumKm;
         const firedAtMs = boxboxSnapshot.now;
-        // (1) plan 동기 update 먼저
+
+        // 정시성 계측: 예약(nextBoxBoxAtMs) vs 실제 발화(firedAtMs).
+        const scheduledBoxBoxAtMs = plan.nextBoxBoxAtMs ?? firedAtMs;
+        const bbDelta = Math.max(0, firedAtMs - scheduledBoxBoxAtMs);
+        engineDiag.lastBoxBoxDeltaMs = bbDelta;
+        if (bbDelta > engineDiag.maxBoxBoxDeltaMs) engineDiag.maxBoxBoxDeltaMs = bbDelta;
+
+        // (1) plan 동기 update 먼저 — 회복 진입: nextBoxBoxAtMs=null, fullPush 예약.
         plan = updateActiveRacePlan({
           lastBoxBoxAtKm: triggerAccum,
           completedReps: plan.completedReps + 1,
+          nextBoxBoxAtMs: null,
           nextFullPushAtMs: firedAtMs + BOXBOX_ALERT_MS + plan.recoveryDurationMs,
           lastFiredAt: 'boxbox',
           lastFiredAtMs: firedAtMs,
@@ -308,8 +336,8 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
           pitStartedAtKm: triggerAccum,
         }) ?? plan;
 
-        // (2) await playSound
-        try { await playSound('boxbox'); } catch {}
+        // (2) 사운드: 예약 로컬 알림이 정시 발화. 알림 권한 없을 때만 인앱 playSound 폴백.
+        if (!areNotificationsGranted()) { try { await playSound('boxbox'); } catch {} }
         gpsDiag.bgEventBoxBoxFired++;
 
         // (3) work segment lap entry push (type='lap')
@@ -333,7 +361,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
       } finally {
         boxboxTriggerInFlight = false;
       }
-    } else if (workKm < plan.intervalKm) {
+    } else if (plan.nextBoxBoxAtMs != null && now < plan.nextBoxBoxAtMs) {
       gpsDiag.bgEventWorkNotReady++;
     }
   } else if (plan.nextFullPushAtMs != null) {
@@ -344,6 +372,11 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   // 잠금 중 LA distance/elapsedMs/prog 멈춤 + 잠금 풀 때 점프 문제 해결.
   // boxbox/fullPush 발화 시점엔 위에서 이미 fireLAUpdate + lastLAPushTime 업데이트했으니
   // 이 조건 자연스럽게 skip.
+  // active(PIT RUN 화면 ON)일 땐 foreground polling이 1초 cadence로 LA를 push하므로
+  // 여기 regular 블록은 skip — dual-source(foreground store.distKm vs background
+  // readAccum) timing 차이로 인한 stale을 회피한다. boxbox/fullPush phase 전환 push는
+  // 위에서 AppState와 무관하게 항상 발화한다.
+  if (AppState.currentState === 'active') return;
   const regularSnapshot = readRunnableRaceSnapshot();
   if (!regularSnapshot) return;
   const elapsedSinceLastPush = regularSnapshot.now - lastLAPushTime;
@@ -358,6 +391,16 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
 
 export async function __simulateBackgroundRaceEventsForTest(): Promise<void> {
   await maybeFireBackgroundRaceEvents();
+}
+
+/**
+ * 시간 기준 트리거 평가 1회 — foreground 1초 tick(useRunning)에서 호출.
+ * 엔진음 keep-alive로 앱이 살아있으면 매초 평가되어 box-box/fullPush가 정시 발화한다.
+ * locationTask 콜백(~6초)과 동일 단일 평가기 maybeFireBackgroundRaceEvents를 공유 —
+ * in-flight 가드 + atomic 스냅샷으로 두 컨텍스트 동시 호출이 안전하다.
+ */
+export async function runRaceTriggerTick(): Promise<void> {
+  await maybeFireBackgroundRaceEvents().catch(() => {});
 }
 
 /**
@@ -434,6 +477,15 @@ async function fireLAUpdate(
     isPaused: plan.isPaused,
     mode: 'race',
   };
+  // LA update 호출 간격 계측 — '몇 분 멈춤'(앱 suspend)이 줄었는지 직접 확인.
+  {
+    const laNow = Date.now();
+    if (engineDiag.lastLaUpdateAtMs > 0) {
+      const gap = laNow - engineDiag.lastLaUpdateAtMs;
+      if (gap > engineDiag.maxLaGapMs) engineDiag.maxLaGapMs = gap;
+    }
+    engineDiag.lastLaUpdateAtMs = laNow;
+  }
   await updateLiveActivity(id, laState);
   // best-effort APNs 보강 — pitPhase가 boxbox/fullPush/completed면 priority 10,
   // 일반 거리 갱신은 priority 5. 로컬 사운드는 이미 이 함수 호출 전에 발화됨.
@@ -496,6 +548,10 @@ export function defineBackgroundLocationTask(): void {
       // 이미 들어온 callback이 있을 수 있으므로 여기서도 좌표 baseline을 건드리지 않고
       // 즉시 빠진다.
       const racePlan = getActiveRacePlan();
+      if (racePlan?.mode === 'race' && racePlan.runtime === 'native') {
+        gpsDiag.distSkipCount += locations.length;
+        return;
+      }
       const isPausedForAccum = racePlan?.mode === 'race' && racePlan.isPaused;
       if (isPausedForAccum) {
         gpsDiag.distSkipCount += locations.length;
@@ -509,6 +565,16 @@ export function defineBackgroundLocationTask(): void {
       gpsDiag.taskWriteCount++;
       gpsDiag.lastTaskWriteTs = locations[locations.length - 1].timestamp;
       pushCbLog('cb');
+      // 콜백 간격 계측 (wall-clock). 큰 max-gap = 콜백 의존 시 box-box 최대 오차.
+      {
+        const cbNow = Date.now();
+        if (lastCbAtMs > 0) {
+          const gap = cbNow - lastCbAtMs;
+          engineDiag.lastCbGapMs = gap;
+          if (gap > engineDiag.maxCbGapMs) engineDiag.maxCbGapMs = gap;
+        }
+        lastCbAtMs = cbNow;
+      }
       // 잠금 중 콜백 검증 카운터 (FIX 12)
       if (AppState.currentState !== 'active') gpsDiag.bgTw++;
 

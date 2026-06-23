@@ -68,7 +68,7 @@ export async function flushAllPendingMutations(): Promise<{
         dbIds = new Set(recent.map((r) => r.id));
         dbStartedAt = new Set(recent.map((r) => r.started_at));
       } catch {
-        // fetch 실패 시 dedup 없이 진행 — insertCompletedSession의 upsert가 보호
+        // fetch 실패 시 dedup 없이 진행 — insertCompletedSession의 id 조회가 보호
       }
       for (const pending of sessionQueue) {
         const { _queuedAt, ...fields } = pending;
