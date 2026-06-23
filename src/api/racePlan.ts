@@ -1,16 +1,15 @@
 /**
  * Active race plan — MMKV에 저장되는 실시간 race 상태.
  *
- * 목적: background location task callback (foreground와 별도 JS context)에서도
- *       race 진행 상황 알 수 있게 공유. boxbox / fullPush 사운드를 background
- *       에서도 적절한 시점에 발화하기 위함.
+ * 목적:
+ *   - iOS native RunEngine snapshot을 JS/화면/복구/진단에서 공유
+ *   - Android 또는 native module 미사용 fallback에서는 background location task가
+ *     race 진행 상황을 읽을 수 있게 저장
  *
  * 정책:
  *   - race 시작 시 useRunning이 setActiveRacePlan() 호출
- *   - background task가 distance 누적 후 매번 plan 읽어 interval 도달 / fullPush
- *     시점 체크 → playSound() 발화 → plan 업데이트 (lastBoxBoxAtKm 등)
- *   - foreground useRunning이 store distKm 변경 시 plan.lastBoxBoxAtKm 읽어
- *     workStartKmRef 동기화 → 중복 boxbox 발화 차단
+ *   - iOS: runtime='native'이면 RunEngine이 측정/이벤트/알림/LA cadence의 원본
+ *   - fallback: runtime이 없거나 'task'이면 locationTask가 기존 방식으로 처리
  *   - race 종료 시 clearActiveRacePlan() 호출
  */
 
@@ -25,6 +24,13 @@ export type ActiveRacePlan = {
    *                boxbox/fullPush 로직 무관.
    */
   mode: 'race' | 'qualifying';
+  /**
+   * race runtime owner.
+   * - native: iOS PitRunRunEngine owns location/interval/notification lifecycle.
+   * - task: legacy Expo TaskManager path (Android/fallback).
+   * undefined keeps old tests/builds compatible and is treated as task.
+   */
+  runtime?: 'native' | 'task';
   /**
    * race가 실제로 진행 중인지 여부 — background task 이중 안전망.
    * 정상 흐름은 clearActiveRacePlan으로 전체 plan을 지우므로 이 필드는 redundant하지만,

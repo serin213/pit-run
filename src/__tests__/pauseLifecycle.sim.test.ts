@@ -159,6 +159,19 @@ describe('race pause lifecycle simulation', () => {
     expect(getActiveRacePlan()?.lastFiredAt).toBeNull();
   });
 
+  it('does not let the legacy background task mutate a native-engine race', async () => {
+    setRacePlan({ runtime: 'native' });
+    setAccumulatedKm(0.45);
+
+    await __simulateBackgroundRaceEventsForTest();
+
+    expect(playSound).not.toHaveBeenCalled();
+    expect(updateLiveActivity).not.toHaveBeenCalled();
+    expect(getRaceLapLog()).toHaveLength(0);
+    expect(getActiveRacePlan()?.completedReps).toBe(0);
+    expect(getActiveRacePlan()?.lastFiredAt).toBeNull();
+  });
+
   it('does not commit fullPush when paused even if recovery timer already elapsed', async () => {
     setRacePlan({
       isPaused: true,

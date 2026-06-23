@@ -37,6 +37,7 @@ create index if not exists idx_la_push_tokens_race
 create index if not exists idx_la_push_tokens_status
   on public.live_activity_push_tokens (status);
 
+drop trigger if exists live_activity_push_tokens_updated_at on public.live_activity_push_tokens;
 create trigger live_activity_push_tokens_updated_at
   before update on public.live_activity_push_tokens
   for each row execute function public.set_updated_at();
@@ -47,11 +48,15 @@ create trigger live_activity_push_tokens_updated_at
 -- =============================================================
 alter table public.live_activity_push_tokens enable row level security;
 
+drop policy if exists "Users can view own LA push tokens" on public.live_activity_push_tokens;
 create policy "Users can view own LA push tokens"
   on public.live_activity_push_tokens for select using (auth.uid() = user_id);
+drop policy if exists "Users can insert own LA push tokens" on public.live_activity_push_tokens;
 create policy "Users can insert own LA push tokens"
   on public.live_activity_push_tokens for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can update own LA push tokens" on public.live_activity_push_tokens;
 create policy "Users can update own LA push tokens"
   on public.live_activity_push_tokens for update using (auth.uid() = user_id);
+drop policy if exists "Users can delete own LA push tokens" on public.live_activity_push_tokens;
 create policy "Users can delete own LA push tokens"
   on public.live_activity_push_tokens for delete using (auth.uid() = user_id);

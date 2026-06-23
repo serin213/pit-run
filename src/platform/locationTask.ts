@@ -146,6 +146,7 @@ async function maybeFireBackgroundRaceEvents(): Promise<void> {
   gpsDiag.bgEventCallCount++;
   let plan = getActiveRacePlan();
   if (!plan) { gpsDiag.bgEventPlanNull++; return; }
+  if (plan.runtime === 'native') { gpsDiag.bgEventPlanNull++; return; }
   // 이중 안전망 — clear가 호출되지 않은 채 race가 종료된 stale plan 방어.
   // 정상 흐름에선 clearActiveRacePlan으로 plan 자체가 제거되어 위 null 체크에서
   // 잡히지만, 앱 swipe kill 직후 task가 살아남는 케이스에서는 plan만 남고 race는
@@ -547,6 +548,10 @@ export function defineBackgroundLocationTask(): void {
       // 이미 들어온 callback이 있을 수 있으므로 여기서도 좌표 baseline을 건드리지 않고
       // 즉시 빠진다.
       const racePlan = getActiveRacePlan();
+      if (racePlan?.mode === 'race' && racePlan.runtime === 'native') {
+        gpsDiag.distSkipCount += locations.length;
+        return;
+      }
       const isPausedForAccum = racePlan?.mode === 'race' && racePlan.isPaused;
       if (isPausedForAccum) {
         gpsDiag.distSkipCount += locations.length;

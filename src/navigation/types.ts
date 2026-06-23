@@ -7,6 +7,7 @@ export type HistoryResultData = {
   elapsedMs: number;
   circuitId?: string;
   difficulty?: string | null;
+  paceHistory?: number[];
   // 히스토리 결과 그래프용 랩 로그(run_sessions.payload.lapLog 복원). 구버전 기록엔 없음.
   lapLog?: LapEntry[];
 };

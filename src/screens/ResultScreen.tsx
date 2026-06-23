@@ -143,7 +143,13 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   const runStore = useRunStore();
   const { distKm, elapsedMs, paceHistory, lapLog: rawLapLog, resetRun } = isHistoryMode
-    ? { distKm: historyData.distKm, elapsedMs: historyData.elapsedMs, paceHistory: [] as number[], lapLog: (historyData.lapLog ?? []) as import('../types/run').LapEntry[], resetRun: () => {} }
+    ? {
+        distKm: historyData.distKm,
+        elapsedMs: historyData.elapsedMs,
+        paceHistory: historyData.paceHistory ?? ([] as number[]),
+        lapLog: (historyData.lapLog ?? []) as import('../types/run').LapEntry[],
+        resetRun: () => {},
+      }
     : runStore;
 
   const {
@@ -184,8 +190,10 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     recordActivity();
     addDistance(distKm);
     // 추천 서킷 로테이션: FINISH(완주) 시점에만 기록
-    if (statusLabel === 'FINISH' && circuitId) {
-      useAppStore.getState().recordCircuitRace(circuitId);
+    const saveCircuitId = circuitId ?? circuit.id;
+    const savedLapLog = rawLapLog.length > 0 ? rawLapLog : getRaceLapLog();
+    if (statusLabel === 'FINISH' && saveCircuitId) {
+      useAppStore.getState().recordCircuitRace(saveCircuitId);
     }
     const avgPace  = elapsedMs > 0 && distKm > 0 ? elapsedMs / 1000 / distKm : null;
     const bestPace = paceHistory.length > 0 ? Math.min(...paceHistory) : null;
@@ -199,7 +207,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
     saveCompletedSession({
       id: runStore.raceId ?? undefined,
       type: 'grand_prix',
-      circuit_id: circuitId,
+      circuit_id: saveCircuitId,
       started_at: rawStartedAt,
       total_dist_km: distKm,
       // elapsedMs는 useRunning RAF dt 누적이라 float (예: 3863267.79). DB
@@ -212,7 +220,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
       // payload(jsonb) 컬럼 재사용이라 마이그레이션 불필요.
       payload: {
         ...(diff ? { difficulty: diff } : {}),
-        lapLog: getRaceLapLog(),
+        circuitId: saveCircuitId,
+        lapLog: savedLapLog,
         paceHistory,
       },
     }).catch(() => {});
@@ -398,7 +407,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   const sectorCount = useLapLog
     ? rawLapLog.length
-    : Math.max(1, Math.floor(distKm));
+    : Math.max(1, paceHistory.length, Math.ceil(distKm));
 
   const sectorPaces = useMemo(() => {
     const fallback = totalPaceS > 0 ? totalPaceS : 300;

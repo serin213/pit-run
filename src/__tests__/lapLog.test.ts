@@ -7,6 +7,30 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const memoryStorage = new Map<string, string | boolean>();
+
+vi.mock('react-native-mmkv', () => ({
+  createMMKV: () => ({
+    getString: (key: string) => {
+      const value = memoryStorage.get(key);
+      return typeof value === 'string' ? value : undefined;
+    },
+    getBoolean: (key: string) => {
+      const value = memoryStorage.get(key);
+      return typeof value === 'boolean' ? value : undefined;
+    },
+    set: (key: string, value: string | boolean) => {
+      memoryStorage.set(key, value);
+    },
+    remove: (key: string) => {
+      memoryStorage.delete(key);
+    },
+    clearAll: () => {
+      memoryStorage.clear();
+    },
+  }),
+}));
+
 // ── circuits mock (PNG require 방지) ──────────────────────────────────────────
 vi.mock('../config/circuits', () => ({
   DEFAULT_CIRCUIT_KM: 5.14,
@@ -31,6 +55,7 @@ import { useRunStore } from '../store/runStore';
 
 describe('[verify-B] lapLog structure', () => {
   beforeEach(() => {
+    memoryStorage.clear();
     useRunStore.getState().resetRun();
   });
 
@@ -98,6 +123,7 @@ describe('[verify-B] lapLog structure', () => {
 
 describe('[verify-B] GPS addGpsDistance', () => {
   beforeEach(() => {
+    memoryStorage.clear();
     useRunStore.getState().resetRun();
   });
 

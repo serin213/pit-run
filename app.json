@@ -21,6 +21,7 @@
       "appleTeamId": "H2B5B8WXW6",
       "usesAppleSignIn": true,
       "entitlements": {
+        "aps-environment": "production",
         "com.apple.security.application-groups": [
           "group.com.pitrun.apps"
         ]
@@ -37,8 +38,7 @@
         "NSSupportsLiveActivitiesFrequentUpdates": true,
         "ITSAppUsesNonExemptEncryption": false
       },
-      "deploymentTarget": "16.1",
-      "buildNumber": "100"
+      "buildNumber": "106"
     },
     "android": {
       "adaptiveIcon": {
@@ -81,15 +81,18 @@
       "expo-audio",
       "expo-web-browser",
       [
-        "expo-notifications",
+        "./plugins/with-notification-sounds",
         {
           "sounds": [
             "./assets/sound/notif-boxbox.caf",
-            "./assets/sound/notif-fullpush.caf"
+            "./assets/sound/notif-fullpush.caf",
+            "./assets/sound/final-lap.caf",
+            "./assets/sound/chequered-flag.caf",
+            "./assets/sound/qualifying-ending.caf",
+            "./assets/sound/race-completed.caf"
           ]
         }
       ],
-      "./plugins/with-no-aps-environment",
       "./plugins/with-widget-object-version",
       [
         "expo-build-properties",

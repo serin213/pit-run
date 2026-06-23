@@ -127,7 +127,7 @@ type QHistRow = {
 };
 
 type HistoryRow =
-  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null; lapLog?: LapEntry[] }
+  | { type: 'grand_prix'; sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number; venue: string; circuitId: string; difficulty?: string | null; paceHistory?: number[]; lapLog?: LapEntry[] }
   | { type: 'practice';   sortKey: string; dateDisplay: string; distKm: number; elapsedMs: number }
   | { type: 'qualifying'; sortKey: string; dateDisplay: string; distKm: number; grade: QualifyingGrade; paceSec: number };
 
@@ -337,19 +337,25 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             const elapsedMs = s.total_time_ms ?? 0;
 
             const difficulty = typeof s.payload?.difficulty === 'string' ? s.payload.difficulty : null;
+            const payloadCircuitId = typeof s.payload?.circuitId === 'string' ? s.payload.circuitId : null;
+            const resolvedCircuitId = s.circuit_id ?? payloadCircuitId ?? 'monaco';
             const lapLog = Array.isArray(s.payload?.lapLog) ? (s.payload.lapLog as LapEntry[]) : undefined;
+            const paceHistory = Array.isArray(s.payload?.paceHistory)
+              ? (s.payload.paceHistory as unknown[]).filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+              : undefined;
 
             if (s.type === 'grand_prix') {
-              const circuit = CIRCUITS.find((c) => c.id === s.circuit_id);
+              const circuit = CIRCUITS.find((c) => c.id === resolvedCircuitId);
               return {
                 type: 'grand_prix',
                 sortKey,
                 dateDisplay,
                 distKm,
                 elapsedMs,
-                venue: circuit?.displayName?.toUpperCase() ?? s.circuit_id?.toUpperCase() ?? 'UNKNOWN',
-                circuitId: s.circuit_id ?? 'monaco',
+                venue: circuit?.displayName?.toUpperCase() ?? resolvedCircuitId.toUpperCase(),
+                circuitId: resolvedCircuitId,
                 difficulty,
+                paceHistory,
                 lapLog,
               };
             } else if (s.type === 'qualifying') {
@@ -801,6 +807,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 elapsedMs: row.elapsedMs,
                 circuitId: row.circuitId,
                 difficulty: row.difficulty,
+                paceHistory: row.paceHistory,
                 lapLog: row.lapLog,
               };
               return (

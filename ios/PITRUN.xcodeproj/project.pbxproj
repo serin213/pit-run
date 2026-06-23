@@ -10,6 +10,12 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		39C22B08BFC0B4864650EE9D /* libPods-PITRUN.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9C65D92041DB7592C1E029D /* libPods-PITRUN.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		CAFE0000000000000000B001 /* notif-boxbox.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F001 /* notif-boxbox.caf */; };
+		CAFE0000000000000000B002 /* notif-fullpush.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F002 /* notif-fullpush.caf */; };
+		CAFE0000000000000000B003 /* final-lap.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F003 /* final-lap.caf */; };
+		CAFE0000000000000000B004 /* chequered-flag.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F004 /* chequered-flag.caf */; };
+		CAFE0000000000000000B005 /* qualifying-ending.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F005 /* qualifying-ending.caf */; };
+		CAFE0000000000000000B006 /* race-completed.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F006 /* race-completed.caf */; };
 		B2A6E7DEE841308CB67C0BA7 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDBEA62DC7C329342418B25 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		CC28987122C6896732297F57 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5FBDFB3EFA4DF5864BB10011 /* PrivacyInfo.xcprivacy */; };
@@ -55,6 +61,12 @@
 		8CDBEA62DC7C329342418B25 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-PITRUN/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = PITRUN/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		CAFE0000000000000000F001 /* notif-boxbox.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/notif-boxbox.caf"; sourceTree = "<group>"; };
+		CAFE0000000000000000F002 /* notif-fullpush.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/notif-fullpush.caf"; sourceTree = "<group>"; };
+		CAFE0000000000000000F003 /* final-lap.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/final-lap.caf"; sourceTree = "<group>"; };
+		CAFE0000000000000000F004 /* chequered-flag.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/chequered-flag.caf"; sourceTree = "<group>"; };
+		CAFE0000000000000000F005 /* qualifying-ending.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/qualifying-ending.caf"; sourceTree = "<group>"; };
+		CAFE0000000000000000F006 /* race-completed.caf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = "PITRUN/race-completed.caf"; sourceTree = "<group>"; };
 		D9C65D92041DB7592C1E029D /* libPods-PITRUN.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PITRUN.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; fileEncoding = 4; includeInIndex = 1; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = PITRUN/AppDelegate.swift; sourceTree = "<group>"; };
@@ -67,7 +79,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		XXCF0AE9BD6A8C4D956418XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		XXCF0AE9BD6A8C4D956418XX /* Exceptions for "pit-run-live-activity" folder in "PitRunLiveActivity" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"expo-target.config.js",
@@ -78,7 +90,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		XX64165CDBFF03BED9E62DXX /* pit-run-live-activity */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (XXCF0AE9BD6A8C4D956418XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "pit-run-live-activity"; sourceTree = "<group>"; };
+		XX64165CDBFF03BED9E62DXX /* pit-run-live-activity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				XXCF0AE9BD6A8C4D956418XX /* Exceptions for "pit-run-live-activity" folder in "PitRunLiveActivity" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = "pit-run-live-activity";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +137,12 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				5FBDFB3EFA4DF5864BB10011 /* PrivacyInfo.xcprivacy */,
+				CAFE0000000000000000F001 /* notif-boxbox.caf */,
+				CAFE0000000000000000F002 /* notif-fullpush.caf */,
+				CAFE0000000000000000F003 /* final-lap.caf */,
+				CAFE0000000000000000F004 /* chequered-flag.caf */,
+				CAFE0000000000000000F005 /* qualifying-ending.caf */,
+				CAFE0000000000000000F006 /* race-completed.caf */,
 			);
 			name = PITRUN;
 			sourceTree = "<group>";
@@ -299,6 +328,12 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				CC28987122C6896732297F57 /* PrivacyInfo.xcprivacy in Resources */,
+				CAFE0000000000000000B001 /* notif-boxbox.caf in Resources */,
+				CAFE0000000000000000B002 /* notif-fullpush.caf in Resources */,
+				CAFE0000000000000000B003 /* final-lap.caf in Resources */,
+				CAFE0000000000000000B004 /* chequered-flag.caf in Resources */,
+				CAFE0000000000000000B005 /* qualifying-ending.caf in Resources */,
+				CAFE0000000000000000B006 /* race-completed.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -408,9 +443,11 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-PITRUN/Pods-PITRUN-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoNotifications/ExpoNotifications_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoTaskManager/ExpoTaskManager_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
@@ -421,9 +458,11 @@
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoApplication_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoNotifications_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoTaskManager_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",

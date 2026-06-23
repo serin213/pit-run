@@ -39,6 +39,7 @@ import { clearActiveRacePlan, getActiveRacePlan } from '../api/racePlan';
 import { clearRaceLapLog } from '../api/raceLapLog';
 import { clearBackgroundCoords, getAccumulatedKm } from '../platform/locationTask';
 import { consumePendingRunControlIntent } from '../navigation/runControlIntent';
+import { getRunEngineSnapshot, isRunEngineSupported } from '../platform/runEngine';
 
 const FW = 402;
 const FH = 874;
@@ -70,6 +71,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
   // → <0.10km로 중단된 레이스는 DB에 row 자체가 안 만들어짐.
   const { user } = useAuthStore();
   const { isDevMode } = useDevMode();
+  const nativeRunEngineSupported = isRunEngineSupported();
   // 0.10km 미만은 결과 화면도 안 보여주고 곧바로 홈.
   // 시작 시점에 DB 행을 만들지 않으므로 삭제할 것도 없음.
   //
@@ -173,9 +175,9 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     navigateToResult();
   }, [navigateToResult, setPitPhase, setBoxBoxActive, stopRun]);
   useRunning({ onFinalLap: handleFinalLap, onFinish: handleAutoFinish });
-  // 측정 task의 실제 생명주기: running에서만 켜고 pause에서는 내린다.
-  // resume 첫 GPS fix는 locationTask baseline reset 뒤 기준점으로만 사용된다.
-  useGPS(isRunning && !isPaused, (d) => useRunStore.getState().addGpsDistance(d));
+  // iOS 레이스는 native RunEngine이 CoreLocation을 단독 소유한다.
+  // Android/dev fallback에서만 Expo TaskManager GPS를 켠다.
+  useGPS(!nativeRunEngineSupported && isRunning && !isPaused, (d) => useRunStore.getState().addGpsDistance(d));
 
   // 묶음 1b: sector 시스템 제거. accent는 teamColor(profile.nameTagAccentColor) 우선,
   // 미설정 시 PALETTE.red 폴백 (Swift teamColorName / RN HEX_TO_NAME / LA payload
@@ -194,6 +196,30 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
     startOrRestoreAttemptedRef.current = true;
     const existingPlan = getActiveRacePlan();
     if (existingPlan?.isRunning) {
+      if (nativeRunEngineSupported) {
+        getRunEngineSnapshot().then((snapshot) => {
+          if (!snapshot) {
+            clearActiveRacePlan();
+            clearRaceLapLog();
+            clearBackgroundCoords();
+            startRun();
+            return;
+          }
+          useRunStore.setState({
+            isRunning: snapshot.isRunning,
+            isPaused: snapshot.isPaused,
+            distKm: snapshot.distKm,
+            elapsedMs: snapshot.elapsedMs,
+            paceS: snapshot.paceS > 0 ? snapshot.paceS : paceS,
+            prog: snapshot.prog,
+            boxBoxActive: false,
+            pitPhase: snapshot.isPaused ? 'none' : snapshot.pitPhase,
+            lapLog: snapshot.lapLog,
+            isFinalLap: snapshot.finalLapFired,
+          });
+        }).catch(() => {});
+        return;
+      }
       const restoredDistKm = getAccumulatedKm();
       const restoredElapsedMs = Math.max(0, Date.now() - existingPlan.startedAtMs);
       const restoredPaceS = restoredDistKm > 0 ? restoredElapsedMs / 1000 / restoredDistKm : paceS;
@@ -214,7 +240,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
       return;
     }
     startRun();
-  }, [circuitKm, paceS, startRun]);
+  }, [circuitKm, nativeRunEngineSupported, paceS, startRun]);
 
   useEffect(() => {
     if (!isRunning) return;

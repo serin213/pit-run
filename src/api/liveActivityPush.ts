@@ -8,7 +8,7 @@
  *       실제 push 전송은 서버(supabase/functions/live-activity-push)가 담당한다.
  */
 
-import { supabase, withRetry } from './client';
+import { supabase, supabaseAnonKey, supabaseUrl, withRetry } from './client';
 import type {
   LiveActivityContentState,
   LiveActivityPushEvent,
@@ -99,6 +99,30 @@ export type SendLiveActivityPushInput = {
   relevanceScore?: number;
   dismissalDateMs?: number;
 };
+
+export type LiveActivityPushRuntimeConfig = {
+  enabled: true;
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  accessToken: string;
+};
+
+/**
+ * Native RunEngine이 JS background runtime 없이 Edge Function을 호출할 수 있게
+ * 레이스 시작 시점의 Supabase 런타임 값을 넘긴다. 토큰/키는 APNs 사운드가 아니라
+ * Live Activity 렌더 보강 전용이며, access token이 없으면 APNs 보강만 비활성화한다.
+ */
+export async function getLiveActivityPushRuntimeConfig(): Promise<LiveActivityPushRuntimeConfig | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!supabaseUrl || !supabaseAnonKey || !accessToken) return null;
+  return {
+    enabled: true,
+    supabaseUrl,
+    supabaseAnonKey,
+    accessToken,
+  };
+}
 
 /**
  * Edge Function(live-activity-push)을 호출해 APNs Live Activity push를 보낸다.

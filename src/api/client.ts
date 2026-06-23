@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { createMMKV } from 'react-native-mmkv';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 // MMKV-backed storage adapter for Supabase Auth session persistence.
 // Lazy init: New Architecture에서 native module이 모듈 로드 시점에 준비되지 않을 수 있어,

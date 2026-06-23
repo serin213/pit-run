@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
-import { TIRES } from '../constants/tires';
+import { TIRES, PACE_RECORD_INTERVAL_KM } from '../constants/tires';
 import { CIRCUITS } from '../config/circuits';
 import {
   isLiveActivitySupported,
@@ -20,27 +20,51 @@ import {
 } from '../lib/runTriggers';
 import {
   setActiveRacePlan,
-  getActiveRacePlan,
   clearActiveRacePlan,
 } from '../api/racePlan';
-import { getRaceLapLog, clearRaceLapLog } from '../api/raceLapLog';
-import { stopBackgroundLocationTask, runRaceTriggerTick } from '../platform/locationTask';
 import {
-  requestNotificationPermission,
-  scheduleIntervalChain,
-  cancelAllIntervalNotifications,
-} from '../platform/notifications';
-import { laDiag } from '../platform/gpsDiag';
+  getLiveActivityPushRuntimeConfig,
+  type LiveActivityPushRuntimeConfig,
+} from '../api/liveActivityPush';
+import {
+  getRaceLapLog,
+  setRaceLapLog,
+  clearRaceLapLog,
+} from '../api/raceLapLog';
+import {
+  addRunEngineEventListener,
+  addRunEngineSnapshotListener,
+  isRunEngineSupported,
+  pauseRunEngine,
+  resumeRunEngine,
+  startRunEngine,
+  stopRunEngine,
+  type RunEngineConfig,
+  type RunEngineEvent,
+  type RunEngineSnapshot,
+} from '../platform/runEngine';
+import {
+  clearBackgroundCoords,
+  stopBackgroundLocationTask,
+} from '../platform/locationTask';
+import { cancelAllIntervalNotifications } from '../platform/notifications';
+import { gpsDiag, laDiag } from '../platform/gpsDiag';
+import type { LapEntry } from '../types/run';
+import {
+  requestBackgroundPermission,
+  requestForegroundPermission,
+} from '../platform/location';
+import {
+  isBackgroundActivitySupported,
+  startBackgroundActivitySession,
+  stopBackgroundActivitySession,
+} from '../platform/backgroundActivity';
+import { debugGpsConfig } from '../platform/debugGpsConfig';
 
-// FIX 6-4: LA_UPDATE_INTERVAL_MS 제거. foreground RAF LA push 폐기 후 미사용.
-// background fireLAUpdate가 30초 cadence로 단일 source 담당.
-// 묶음 2: alert phase 유지 ms — background가 lastFiredAtMs를 patch하면 이 시간 안에
-// foreground polling이 alert phase로 derive. locationTask.ts의 BOXBOX_ALERT_MS와 동일.
-const ALERT_MS = 4000;
-// 묶음 2: foreground polling 간격. 잠금 해제 직후 AppState 'active'에서도 즉시 sync.
-const PLAN_POLL_INTERVAL_MS = 1000;
+const ALERT_PHASES = new Set(['boxbox', 'fullPush']);
+const FALLBACK_MAX_REPS = 1_000_000;
 
-// Re-export pure helpers for single-import convenience
+// Re-export pure helpers for single-import convenience.
 export { calcWorkKm, shouldTriggerBoxBox, shouldFireFinalLap, shouldFireFinalLapSafety };
 
 interface UseRunningOptions {
@@ -51,33 +75,38 @@ interface UseRunningOptions {
 }
 
 /**
- * 묶음 2: background를 single source of truth로 통일.
- * - trigger 발화 / plan 업데이트 / lap log push / LA update 모두 locationTask.ts
- * - foreground useRunning은 plan polling으로 UI만 동기화 (boxBoxActive, pitPhase, lapLog)
- * - RAF tick은 isPaused 가드 + elapsedMs 누적용으로만 잔존 (시뮬레이션 페이스 계산 X)
+ * Race runtime coordinator.
+ *
+ * iOS production path:
+ *   Native RunEngine owns CoreLocation, pause/resume, interval events, audio
+ *   cues, lap log, and native Live Activity snapshot posting.
+ *
+ * JS path:
+ *   Consume native snapshots, sync Zustand/MMKV/result state, and push
+ *   foreground Live Activity updates while the app screen is open.
+ *
+ * Fallback path:
+ *   If the native module is unavailable (Android/dev shell), keep the old
+ *   store tick/GPS flow alive without using it as the iOS race source.
  */
 export function useRunning(options: UseRunningOptions = {}) {
   const { isRunning, isPaused, tick } = useRunStore();
+  const nativeEngineSupported = isRunEngineSupported();
 
   const lastTsRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const activityIdRef = useRef<string | null>(null);
-  // LA end는 "레이스가 멈췄을 때(true→false 전이)"만 해야 한다. 마운트 시 isRunning이
-  // 단순히 false인 경우(카운트다운 직후 RunningScreen 진입, startRun 전)엔 end 금지 —
-  // 안 그러면 카운트다운에서 띄운 LA를 본 시작 직전에 죽인다.
   const wasRunningRef = useRef(false);
-  // FIX 6-4: lastLAUpdateRef 제거 (RAF LA push 폐기 후 미사용).
+  const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedNativeRaceIdRef = useRef<string | null>(null);
   const finalLapFiredRef = useRef(false);
   const finishFiredRef = useRef(false);
-  const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Always-fresh callback refs so closures pick up the latest handlers.
   const onFinalLapRef = useRef(options.onFinalLap);
   const onFinishRef = useRef(options.onFinish);
   onFinalLapRef.current = options.onFinalLap;
   onFinishRef.current = options.onFinish;
 
-  // isRunning 변화 → Live Activity 시작/종료
   useEffect(() => {
     return () => {
       if (completedTimerRef.current) {
@@ -88,193 +117,127 @@ export function useRunning(options: UseRunningOptions = {}) {
   }, []);
 
   useEffect(() => {
-    if (isRunning) {
-      wasRunningRef.current = true;
-      if (completedTimerRef.current) {
-        clearTimeout(completedTimerRef.current);
-        completedTimerRef.current = null;
-      }
-      if (!isLiveActivitySupported()) {
-        if (__DEV__) console.warn('[useRunning] LA not supported — skipping start');
-        return;
-      }
-      // APNs push 토큰을 이 레이스에 연결 — 토큰 도착 시 서버 등록에 race_id가 실린다.
-      setLiveActivityRaceId(useRunStore.getState().raceId);
-      const existing = getCurrentActivityId();
-      if (existing) {
-        if (__DEV__) console.log('[useRunning] LA reuse existing id', existing);
-        activityIdRef.current = existing;
-      } else {
-        const { profile, selectedCircuitId } = useAppStore.getState();
-        if (__DEV__) {
-          console.log('[useRunning] LA start (no existing id)', {
-            displayName: profile.displayName,
-            teamColor: profile.nameTagAccentColor,
-            circuit: selectedCircuitId ?? 'shanghai',
-          });
-        }
-        startLiveActivity(
-          profile.displayName,
-          profile.nameTagAccentColor,
-          selectedCircuitId ?? 'shanghai',
-        )
-          .then(id => {
-            if (__DEV__) console.log('[useRunning] LA started, id =', id);
-            activityIdRef.current = id;
-          })
-          .catch(e => {
-            console.warn('[useRunning] LA start failed', e);
-          });
-      }
-    } else {
-      // 한 번도 running이 아니었으면(마운트 직후 카운트다운 LA 보존 단계) end 금지.
-      if (!wasRunningRef.current) return;
-      wasRunningRef.current = false;
-      const phase = useRunStore.getState().pitPhase;
-      const id = activityIdRef.current ?? getCurrentActivityId();
-      if (id) {
-        activityIdRef.current = id;
-        if (phase === 'completed') {
-          const idToEnd = id;
-          activityIdRef.current = null;
-          completedTimerRef.current = setTimeout(() => {
-            endLiveActivity(idToEnd).catch(() => {});
-            completedTimerRef.current = null;
-          }, 10000);
-        } else {
-          endLiveActivity(id);
-          activityIdRef.current = null;
-        }
-      }
-    }
-  }, [isRunning]);
+    const snapshotSub = addRunEngineSnapshotListener((snapshot) => {
+      applyRunEngineSnapshot(snapshot);
+      pushForegroundLiveActivity(snapshot);
+    });
+    const eventSub = addRunEngineEventListener((event) => {
+      handleRunEngineEvent(event);
+    });
 
-  // isRunning true 전환 시 background plan을 1회만 준비한다.
-  // pause/resume은 isRunning을 바꾸지 않으므로 여기서 plan을 지우거나 다시 만들면 안 된다.
-  useEffect(() => {
-    if (!isRunning) return;
-
-    // 레이스 시작 시 per-run ref 초기화
-    finalLapFiredRef.current = false;
-    finishFiredRef.current = false;
-
-    // Background plan 저장 — locationTask callback이 이걸 single source로 사용.
-    // 앱 cold-start 복구로 이미 active race plan이 있으면 덮어쓰지 않는다.
-    const existingRacePlan = getActiveRacePlan();
-    const isResumingBackgroundRace = !!existingRacePlan?.isRunning;
-    const { activePlan } = useAppStore.getState();
-    const selectedCircuitId = useAppStore.getState().selectedCircuitId;
-    const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
-    const initialTire = useRunStore.getState().tire;
-    const intervalKmInit = activePlan
-      ? activePlan.intervals.distanceM / 1000
-      : isResumingBackgroundRace
-        ? existingRacePlan.intervalKm
-      : TIRES[initialTire].boxBoxDistKm;
-    const recoveryDurationMsInit = activePlan
-      ? activePlan.recovery.durationSec * 1000
-      : isResumingBackgroundRace
-        ? existingRacePlan.recoveryDurationMs
-        : 60 * 1000;
-    const maxRepsInit = activePlan
-      ? activePlan.intervals.reps
-      : isResumingBackgroundRace
-        ? existingRacePlan.maxReps
-        : Number.MAX_SAFE_INTEGER;
-    const expectedCycleMInit = activePlan?.totals.expectedCycleDistanceM
-      ?? Math.round(intervalKmInit * 1500);
-    // 시간 기준 box-box: work 1회 예상 시간. 예선 고정 페이스(실시간 적응 X).
-    // activePlan: intervalKm × hardPace. free-run: intervalKm × 예선 paceSecPerKm.
-    const basePaceSecPerKm = activePlan
-      ? activePlan.intervals.hardPace
-      : (useAppStore.getState().qualifyingResult?.paceSecPerKm ?? 360);
-    const predictedWorkMsInit = Math.max(10_000, Math.round(intervalKmInit * basePaceSecPerKm * 1000));
-    const nowMs = Date.now();
-    console.warn('[RaceStart] setActiveRacePlan:', JSON.stringify({
-      intervalKm: intervalKmInit,
-      lastBoxBoxAtKm: isResumingBackgroundRace ? existingRacePlan.lastBoxBoxAtKm : 0,
-      maxReps: maxRepsInit,
-      recoveryDurationMs: recoveryDurationMsInit,
-      mode: 'race',
-      resume: isResumingBackgroundRace,
-    }));
-    if (!isResumingBackgroundRace) {
-      // 묶음 2: lap log MMKV도 race 시작 시 reset (이전 race 잔재 차단).
-      clearRaceLapLog();
-      setActiveRacePlan({
-        mode: 'race',
-        isRunning: true,
-        isPaused: false,
-        startedAtMs: nowMs,
-        intervalKm: intervalKmInit,
-        recoveryDurationMs: recoveryDurationMsInit,
-        maxReps: maxRepsInit,
-        lastBoxBoxAtKm: 0,
-        completedReps: 0,
-        nextFullPushAtMs: null,
-        nextBoxBoxAtMs: nowMs + predictedWorkMsInit,
-        predictedWorkMs: predictedWorkMsInit,
-        lastFiredAt: null,
-        lastFiredAtMs: null,
-        workStartedAtMs: nowMs,
-        workStartedAtKm: 0,
-        pitStartedAtMs: null,
-        pitStartedAtKm: null,
-        circuitKm: circuit.distanceKm,
-        expectedCycleM: expectedCycleMInit,
-        finalLapFired: false,
-        finishFired: false,
-        pausedAtMs: null,
-      });
-    }
-  }, [isRunning]);
-
-  // box-box/풀푸시 예약 로컬 알림 — 잠금/suspend 중에도 OS가 정시 발화(앱 생존 불필요).
-  // 시간 기준이라 발화 시각을 미리 알 수 있어 레이스 시작·resume 시 전체 체인을 예약한다.
-  // pause/stop = 전부 취소. 권한 거부 시 locationTask가 인앱 playSound로 폴백.
-  useEffect(() => {
-    if (!isRunning || isPaused) {
-      void cancelAllIntervalNotifications();
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      await requestNotificationPermission();
-      if (cancelled) return;
-      const plan = getActiveRacePlan();
-      if (plan && plan.mode === 'race') {
-        await scheduleIntervalChain(plan, Date.now(), ALERT_MS);
-      }
-    })();
-    // running&&!paused를 떠날 때(일시정지/종료/언마운트) 예약 알림 정리.
     return () => {
-      cancelled = true;
-      void cancelAllIntervalNotifications();
+      snapshotSub?.remove();
+      eventSub?.remove();
     };
-  }, [isRunning, isPaused]);
+  }, []);
 
-  // RAF 루프 — 묶음 2 이후엔 elapsedMs 누적용으로만 사용한다.
-  // trigger 판정 / plan 업데이트 / lap log / LA push는 background task가 담당.
   useEffect(() => {
     if (!isRunning) {
+      if (!wasRunningRef.current) return;
+
+      wasRunningRef.current = false;
+      startedNativeRaceIdRef.current = null;
+      void stopRunEngine().catch(() => {});
+      void stopBackgroundLocationTask().catch(() => {});
+      void stopBackgroundActivitySession().then(() => {
+        useRunStore.setState({ gpsEnabled: false });
+      }).catch(() => {});
+      void cancelAllIntervalNotifications().catch(() => {});
+
+      const phase = useRunStore.getState().pitPhase;
+      const id = activityIdRef.current ?? getCurrentActivityId();
+      if (!id) return;
+      activityIdRef.current = id;
+      if (phase === 'completed') {
+        const idToEnd = id;
+        activityIdRef.current = null;
+        completedTimerRef.current = setTimeout(() => {
+          endLiveActivity(idToEnd).catch(() => {});
+          completedTimerRef.current = null;
+        }, 10000);
+      } else {
+        endLiveActivity(id).catch(() => {});
+        activityIdRef.current = null;
+      }
+      return;
+    }
+
+    wasRunningRef.current = true;
+    finalLapFiredRef.current = false;
+    finishFiredRef.current = false;
+    if (completedTimerRef.current) {
+      clearTimeout(completedTimerRef.current);
+      completedTimerRef.current = null;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const raceId = useRunStore.getState().raceId;
+      if (startedNativeRaceIdRef.current === raceId) return;
+
+      await cancelAllIntervalNotifications().catch(() => {});
+      await stopBackgroundLocationTask().catch(() => {});
+      clearBackgroundCoords();
+      clearRaceLapLog();
+      await prepareNativeRunEngineRuntime();
+
+      const liveActivityId = await ensureLiveActivity();
+      if (cancelled) return;
+
+      const liveActivityPush = await getLiveActivityPushRuntimeConfig().catch(() => null);
+      const config = buildRunEngineConfig(liveActivityId, liveActivityPush);
+      seedActiveRacePlan(config);
+
+      if (!nativeEngineSupported) {
+        startedNativeRaceIdRef.current = raceId;
+        return;
+      }
+
+      startedNativeRaceIdRef.current = raceId;
+      const snapshot = await startRunEngine(config);
+      if (!cancelled && snapshot) {
+        applyRunEngineSnapshot(snapshot);
+        pushForegroundLiveActivity(snapshot);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRunning, nativeEngineSupported]);
+
+  useEffect(() => {
+    if (!isRunning || !nativeEngineSupported || !startedNativeRaceIdRef.current) return;
+    if (isPaused) {
+      void pauseRunEngine().then((snapshot) => {
+        if (snapshot) applyRunEngineSnapshot(snapshot);
+      }).catch(() => {});
+      void stopBackgroundActivitySession().then(() => {
+        useRunStore.setState({ gpsEnabled: false });
+      }).catch(() => {});
+      void cancelAllIntervalNotifications().catch(() => {});
+    } else {
+      void prepareNativeRunEngineRuntime().then(() => resumeRunEngine()).then((snapshot) => {
+        if (snapshot) applyRunEngineSnapshot(snapshot);
+      }).catch(() => {});
+    }
+  }, [isRunning, isPaused, nativeEngineSupported]);
+
+  // Fallback only: used when the native iOS run engine is unavailable.
+  useEffect(() => {
+    if (!isRunning || nativeEngineSupported) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
       lastTsRef.current = null;
       return;
     }
 
     const loop = (ts: number) => {
       if (!isPaused && lastTsRef.current !== null) {
-        const dt = ts - lastTsRef.current;
-        tick(dt);
-        // 묶음 2: checkBoxBox 호출 폐기 — trigger는 background single source.
-        checkFinish();
-        // FIX 6-4: foreground RAF의 LA push 제거. LA는 background fireLAUpdate가 단일
-        // source. 두 source(background ACCUM + foreground store.distKm)에서 LA push 시
-        // timing 차이로 stale 가능. background fireLAUpdate가 일정 cadence로 push.
-        // foreground RAF는 store/UI 갱신만 담당.
+        tick(ts - lastTsRef.current);
+        checkFallbackFinish();
       }
-      if (isPaused) lastTsRef.current = null;
-      else lastTsRef.current = ts;
+      lastTsRef.current = isPaused ? null : ts;
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -284,189 +247,251 @@ export function useRunning(options: UseRunningOptions = {}) {
       rafRef.current = null;
       lastTsRef.current = null;
     };
-  }, [isRunning, isPaused, tick]);
+  }, [isRunning, isPaused, nativeEngineSupported, tick]);
 
-  // 묶음 2: plan polling — background가 갱신한 plan/lapLog를 foreground store에 sync.
-  // 1초 interval + AppState 'active' 즉시 sync.
-  useEffect(() => {
-    if (!isRunning) return;
+  async function ensureLiveActivity(): Promise<string | null> {
+    if (!isLiveActivitySupported()) return null;
+    setLiveActivityRaceId(useRunStore.getState().raceId);
+    const existing = getCurrentActivityId();
+    if (existing) {
+      activityIdRef.current = existing;
+      return existing;
+    }
+    const { profile, selectedCircuitId } = useAppStore.getState();
+    const id = await startLiveActivity(
+      profile.displayName,
+      profile.nameTagAccentColor,
+      selectedCircuitId ?? 'shanghai',
+      'race',
+    ).catch(() => null);
+    activityIdRef.current = id;
+    return id;
+  }
 
-    // FIX 15-2: AppState 'active' 전환 직후 첫 syncFromPlan에서는 boxBoxActive를
-    // 새로 켜지 않음. 잠금 중 발생한 박스박스/풀푸시는 복귀 시점엔 이미 지난 이벤트라
-    // 시트를 "몰아서" 띄우면 안 됨 — pitPhase 자체(inPit 등)는 정상 반영.
-    const suppressBoxBoxOnceRef = { current: false };
+  async function prepareNativeRunEngineRuntime(): Promise<void> {
+    if (!nativeEngineSupported) return;
 
-    const syncFromPlan = () => {
-      const plan = getActiveRacePlan();
-      if (!plan || plan.mode !== 'race') return;
+    const foregroundGranted = await requestForegroundPermission().catch(() => false);
+    gpsDiag.fgPerm = foregroundGranted;
+    useRunStore.setState({ gpsEnabled: foregroundGranted });
+    if (!foregroundGranted) return;
 
-      const derivedPhase = derivePitPhaseFromPlan(plan);
-      const lapLog = getRaceLapLog();
-      const state = useRunStore.getState();
-      const suppressBoxBox = suppressBoxBoxOnceRef.current;
-      suppressBoxBoxOnceRef.current = false;
+    await requestBackgroundPermission()
+      .then((granted) => {
+        // gpsDiag mirrors the existing useGPS diagnostics panel.
+        gpsDiag.bgPerm = granted;
+      })
+      .catch(() => {
+        gpsDiag.bgPerm = false;
+      });
 
-      const patch: Partial<{
-        pitPhase: 'none' | 'boxbox' | 'inPit' | 'fullPush' | 'completed';
-        boxBoxActive: boolean;
-        lapLog: typeof state.lapLog;
-      }> = {};
+    if (isBackgroundActivitySupported() && debugGpsConfig.useBgSession) {
+      const active = await startBackgroundActivitySession().catch(() => false);
+      gpsDiag.bgSessionActive = active;
+    }
+  }
 
-      if (plan.isPaused || state.isPaused) {
-        if (state.pitPhase !== 'none') patch.pitPhase = 'none';
-        if (state.boxBoxActive) patch.boxBoxActive = false;
-        if (lapLog.length !== state.lapLog.length) patch.lapLog = lapLog;
-        if (Object.keys(patch).length > 0) {
-          useRunStore.setState(patch);
-        }
-        return;
-      }
+  function buildRunEngineConfig(
+    activityId: string | null,
+    liveActivityPush: LiveActivityPushRuntimeConfig | null,
+  ): RunEngineConfig {
+    const run = useRunStore.getState();
+    const app = useAppStore.getState();
+    const circuit = CIRCUITS.find((c) => c.id === app.selectedCircuitId) ?? CIRCUITS[0];
+    const intervalKm = app.activePlan
+      ? app.activePlan.intervals.distanceM / 1000
+      : TIRES[run.tire].boxBoxDistKm;
+    const recoveryDurationMs = app.activePlan
+      ? app.activePlan.recovery.durationSec * 1000
+      : 60_000;
+    const maxReps = app.activePlan
+      ? Math.max(1, app.activePlan.intervals.reps)
+      : FALLBACK_MAX_REPS;
+    const expectedCycleM = app.activePlan?.totals.expectedCycleDistanceM
+      ?? Math.round(intervalKm * 1500);
+    const basePaceSecPerKm = app.activePlan
+      ? app.activePlan.intervals.hardPace
+      : (app.qualifyingResult?.paceSecPerKm ?? 360);
+    const predictedWorkMs = Math.max(10_000, Math.round(intervalKm * basePaceSecPerKm * 1000));
+    const startedAtMs = run.raceStartedAt ? new Date(run.raceStartedAt).getTime() : Date.now();
 
-      if (state.pitPhase !== derivedPhase && state.pitPhase !== 'completed') {
-        patch.pitPhase = derivedPhase;
-        // 외출② 보완: alert phase ('boxbox', 'fullPush') 4초 윈도우에만 BoxBoxSheet 표시.
-        // 회복 시간(180초) 동안 inPit phase는 트랙 + IN PIT 헤더로 별도 표시.
-        // 기존 'derivedPhase !== none'은 inPit에서도 true → 회복 내내 바텀싯 안 닫힘.
-        patch.boxBoxActive = (derivedPhase === 'boxbox' || derivedPhase === 'fullPush') && !suppressBoxBox;
-      }
-      // lapLog는 background이 길이만 늘림. 길이 비교로만 sync.
-      if (lapLog.length !== state.lapLog.length) {
-        patch.lapLog = lapLog;
-      }
-
-      if (Object.keys(patch).length > 0) {
-        useRunStore.setState(patch);
-      }
-
-      // final lap 판정 — 회복 종료 시점에 1회 (background가 fullPush 발화 후).
-      if (plan.finalLapFired && !finalLapFiredRef.current) {
-        finalLapFiredRef.current = true;
-        useRunStore.setState({ isFinalLap: true });
-      } else if (!finalLapFiredRef.current && plan.nextFullPushAtMs == null) {
-        const { selectedCircuitId, activePlan } = useAppStore.getState();
-        const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
-        const expectedCycleM = activePlan?.totals.expectedCycleDistanceM
-          ?? Math.round(plan.intervalKm * 1500);
-        if (shouldFireFinalLap({ distKm: state.distKm, circuitKm: circuit.distanceKm, expectedCycleM })) {
-          finalLapFiredRef.current = true;
-          useRunStore.setState({ isFinalLap: true });
-          onFinalLapRef.current?.();
-        } else if (
-          shouldFireFinalLapSafety({ distKm: state.distKm, circuitKm: circuit.distanceKm, intervalKm: plan.intervalKm })
-        ) {
-          finalLapFiredRef.current = true;
-          useRunStore.setState({ isFinalLap: true });
-          onFinalLapRef.current?.();
-        }
-      }
-
-      if (plan.finishFired && !finishFiredRef.current) {
-        finishFiredRef.current = true;
-        onFinishRef.current?.();
-      }
-
-      // ── 포그라운드(active) 실시간 LA 갱신 — FIX 6-4 회귀 복원 ────────────────
-      // FIX 6-4(d6ff942)가 제거한 1초 cadence foreground LA push를 polling에 복원한다.
-      // active(PIT RUN 화면 ON)일 때만 push — background(잠금/다른앱 전면)는 locationTask
-      // 의 fireLAUpdate가 담당하므로 dual-source stale을 회피한다(둘이 동시에 push하면
-      // store.distKm vs readAccum() timing 차이로 stale 가능 — FIX 6-4가 제거한 이유).
-      // 화면 ON+잠금해제는 iOS LA 렌더 throttle이 없고, nil pushType이라 APNs budget도
-      // 없으므로 1초 push가 안전하다.
-      if (AppState.currentState === 'active') {
-        const laId = activityIdRef.current ?? getCurrentActivityId();
-        if (laId) {
-          // patch 반영 후의 최신 store 값으로 push (pitPhase/prog가 위에서 바뀌었을 수 있음).
-          const s = useRunStore.getState();
-          updateLiveActivity(laId, {
-            distKm: s.distKm,
-            elapsedMs: Math.round(s.elapsedMs),
-            paceS: Math.round(s.paceS),
-            sector: 'red',
-            tire: s.tire,
-            pitPhase: s.pitPhase,
-            prog: s.prog,
-            isPaused: s.isPaused,
-            mode: 'race',
-          });
-          laDiag.fgLaPush++;
-          laDiag.lastPushAt = Date.now();
-          laDiag.lastPushDistKm = s.distKm;
-          laDiag.lastPushWasBg = false;
-        }
-      }
+    return {
+      raceId: run.raceId,
+      activityId,
+      intervalKm,
+      recoveryDurationMs,
+      maxReps,
+      circuitKm: circuit.distanceKm,
+      expectedCycleM,
+      tire: run.tire,
+      startedAtMs,
+      initialDistKm: run.distKm,
+      initialElapsedMs: run.elapsedMs,
+      triggerMode: 'distance',
+      predictedWorkMs,
+      liveActivityPush,
     };
+  }
 
-    // 1초 tick — foreground(앱 활성)에서 매초 실행:
-    //  1) runRaceTriggerTick: 시간 기준 box-box/fullPush 평가. 앱 활성 시 1초 정시,
-    //     백그라운드/잠금에선 JS suspend로 locationTask 콜백(~6초)이 평가를 담당.
-    //     동일 단일 평가기, in-flight 가드로 동시호출 안전.
-    //  2) syncFromPlan: store sync + foreground(active) LA push.
-    const tick = () => {
-      void runRaceTriggerTick();
-      syncFromPlan();
-    };
-    syncFromPlan();
-    const intervalId = setInterval(tick, PLAN_POLL_INTERVAL_MS);
-    const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        suppressBoxBoxOnceRef.current = true;
-        // syncFromPlan이 active 게이트로 LA를 즉시 push하므로 별도 1회 push 불필요
-        // (FIX 6-4 복원으로 syncFromPlan 자체가 active일 때 매 tick LA를 갱신).
-        syncFromPlan();
-      }
+  function seedActiveRacePlan(config: RunEngineConfig): void {
+    const now = Date.now();
+    setActiveRacePlan({
+      mode: 'race',
+      runtime: nativeEngineSupported ? 'native' : 'task',
+      isRunning: true,
+      isPaused: false,
+      startedAtMs: config.startedAtMs,
+      intervalKm: config.intervalKm,
+      recoveryDurationMs: config.recoveryDurationMs,
+      maxReps: config.maxReps,
+      lastBoxBoxAtKm: config.initialDistKm ?? 0,
+      completedReps: 0,
+      nextFullPushAtMs: null,
+      nextBoxBoxAtMs: null,
+      predictedWorkMs: config.predictedWorkMs ?? 0,
+      lastFiredAt: null,
+      lastFiredAtMs: null,
+      workStartedAtMs: now,
+      workStartedAtKm: config.initialDistKm ?? 0,
+      pitStartedAtMs: null,
+      pitStartedAtKm: null,
+      circuitKm: config.circuitKm,
+      expectedCycleM: config.expectedCycleM,
+      finalLapFired: false,
+      finishFired: false,
+      pausedAtMs: null,
     });
+  }
 
-    return () => {
-      clearInterval(intervalId);
-      appStateSub.remove();
+  function handleRunEngineEvent(event: RunEngineEvent): void {
+    applyRunEngineSnapshot(event.snapshot, {
+      showAlert: event.kind === 'boxbox' || event.kind === 'fullPush',
+    });
+    pushForegroundLiveActivity(event.snapshot);
+
+    if (event.kind === 'finalLap' && !finalLapFiredRef.current) {
+      finalLapFiredRef.current = true;
+      useRunStore.setState({ isFinalLap: true });
+      onFinalLapRef.current?.();
+      return;
+    }
+
+    if (event.kind === 'finish' && !finishFiredRef.current) {
+      finishFiredRef.current = true;
+      onFinishRef.current?.();
+    }
+  }
+
+  function applyRunEngineSnapshot(
+    snapshot: RunEngineSnapshot,
+    options: { showAlert?: boolean } = {},
+  ): void {
+    const lapLog = normalizeLapLog(snapshot.lapLog);
+    const state = useRunStore.getState();
+    const pitPhase = snapshot.isPaused ? 'none' : snapshot.pitPhase;
+    const showAlert = !!options.showAlert
+      && AppState.currentState === 'active'
+      && !snapshot.isPaused
+      && ALERT_PHASES.has(pitPhase);
+
+    const patch: Record<string, unknown> = {
+      isRunning: snapshot.isRunning,
+      isPaused: snapshot.isPaused,
+      distKm: snapshot.distKm,
+      elapsedMs: snapshot.elapsedMs,
+      paceS: snapshot.paceS > 0 ? snapshot.paceS : state.paceS,
+      prog: snapshot.prog,
+      gpsEnabled: snapshot.isRunning && !snapshot.isPaused,
+      pitPhase,
+      lapLog,
+      isFinalLap: snapshot.finalLapFired || state.isFinalLap,
     };
-  }, [isRunning]);
 
-  // pitPhase/isPaused 변화 → 즉시 LA update (alert UI 시각 반영).
-  // FIX 15-1A: deps에 isPaused가 있어 pause/resume 전환 시 정확히 1회 push됨 —
-  // pause 진입 시 isPaused:true로 멈춤 상태 고정, resume 시 isPaused:false로 재개.
-  // distKm/elapsedMs는 1-B(거리 누적 정지) + RAF isPaused 가드로 pause 중 동결되므로
-  // 이 push 사이 추가 갱신이 없어도 LA가 정지 상태를 그대로 유지.
-  const pitPhase = useRunStore((s) => s.pitPhase);
-  useEffect(() => {
-    const id = activityIdRef.current ?? getCurrentActivityId();
+    if (showAlert) {
+      patch.boxBoxActive = true;
+    } else if (snapshot.isPaused || !ALERT_PHASES.has(pitPhase)) {
+      patch.boxBoxActive = false;
+    }
+
+    if (snapshot.distKm - state.lastRecordDist >= PACE_RECORD_INTERVAL_KM && snapshot.paceS > 0) {
+      patch.paceHistory = [...state.paceHistory, snapshot.paceS].slice(-20);
+      patch.lastRecordDist = snapshot.distKm;
+    }
+
+    if (state.tyreLog.length > 0) {
+      const tyreLog = [...state.tyreLog];
+      tyreLog[tyreLog.length - 1] = {
+        ...tyreLog[tyreLog.length - 1],
+        endDist: snapshot.distKm,
+      };
+      patch.tyreLog = tyreLog;
+    }
+
+    useRunStore.setState(patch);
+    if (!sameLapLog(getRaceLapLog(), lapLog)) {
+      setRaceLapLog(lapLog);
+    }
+    mirrorActiveRacePlan(snapshot);
+  }
+
+  function mirrorActiveRacePlan(snapshot: RunEngineSnapshot): void {
+    if (!snapshot.isRunning) return;
+    setActiveRacePlan({
+      mode: 'race',
+      runtime: nativeEngineSupported ? 'native' : 'task',
+      isRunning: snapshot.isRunning,
+      isPaused: snapshot.isPaused,
+      startedAtMs: snapshot.startedAtMs,
+      intervalKm: snapshot.intervalKm,
+      recoveryDurationMs: snapshot.recoveryDurationMs,
+      maxReps: snapshot.maxReps,
+      lastBoxBoxAtKm: snapshot.lastBoxBoxAtKm,
+      completedReps: snapshot.completedReps,
+      nextFullPushAtMs: snapshot.nextFullPushAtMs,
+      nextBoxBoxAtMs: snapshot.nextBoxBoxAtMs,
+      predictedWorkMs: snapshot.predictedWorkMs,
+      lastFiredAt: null,
+      lastFiredAtMs: null,
+      workStartedAtMs: snapshot.workStartedAtMs,
+      workStartedAtKm: snapshot.workStartedAtKm,
+      pitStartedAtMs: snapshot.pitStartedAtMs,
+      pitStartedAtKm: snapshot.pitStartedAtKm,
+      circuitKm: snapshot.circuitKm,
+      expectedCycleM: snapshot.expectedCycleM,
+      finalLapFired: snapshot.finalLapFired,
+      finishFired: snapshot.finishFired,
+      pausedAtMs: snapshot.pausedAtMs,
+    });
+  }
+
+  function pushForegroundLiveActivity(snapshot: RunEngineSnapshot): void {
+    if (AppState.currentState !== 'active') return;
+    const id = activityIdRef.current ?? getCurrentActivityId() ?? snapshot.activityId;
     if (!id) return;
     activityIdRef.current = id;
-    const { distKm, elapsedMs, paceS, tire, prog } = useRunStore.getState();
-    const state = {
-      distKm,
-      elapsedMs: Math.round(elapsedMs),
-      paceS: Math.round(paceS),
+    updateLiveActivity(id, {
+      distKm: snapshot.distKm,
+      elapsedMs: Math.round(snapshot.elapsedMs),
+      paceS: Math.round(snapshot.paceS),
       sector: 'red',
-      tire,
-      pitPhase,
-      prog,
-      isPaused,
+      tire: normalizeTire(snapshot.tire),
+      pitPhase: snapshot.isPaused ? 'none' : snapshot.pitPhase,
+      prog: snapshot.prog,
+      isPaused: snapshot.isPaused,
       mode: 'race',
-    } as const;
-    updateLiveActivity(id, state);
-    if (isPaused) {
-      const retry = setTimeout(() => {
-        updateLiveActivity(id, state);
-      }, 1000);
-      return () => clearTimeout(retry);
-    }
-    return undefined;
-  }, [pitPhase, isPaused]);
+    });
+    laDiag.fgLaPush++;
+    laDiag.lastPushAt = Date.now();
+    laDiag.lastPushDistKm = snapshot.distKm;
+    laDiag.lastPushWasBg = false;
+  }
 
-  /**
-   * 묶음 2: 완주(서킷 총거리 도달) 안전망 — background는 trigger만 발화하고
-   * finish는 polling이 distance 기반으로 판정. final lap도 동일.
-   */
-  function checkFinish() {
+  function checkFallbackFinish() {
     const { distKm } = useRunStore.getState();
     const { selectedCircuitId } = useAppStore.getState();
     const circuit = CIRCUITS.find((c) => c.id === selectedCircuitId) ?? CIRCUITS[0];
-    const total = circuit.distanceKm;
-
-    if (!finishFiredRef.current && distKm >= total) {
+    if (!finishFiredRef.current && distKm >= circuit.distanceKm) {
       finishFiredRef.current = true;
-      stopBackgroundLocationTask().catch(() => {});
       clearActiveRacePlan();
       clearRaceLapLog();
       onFinishRef.current?.();
@@ -474,31 +499,29 @@ export function useRunning(options: UseRunningOptions = {}) {
   }
 }
 
-/**
- * 묶음 2: plan 기반 pitPhase derive.
- * - lastFiredAt 'boxbox' && 4초 이내 → 'boxbox' (alert 표시)
- * - lastFiredAt 'fullPush' && 4초 이내 → 'fullPush' (alert 표시)
- * - nextFullPushAtMs > now → 'inPit' (회복 중)
- * - 그 외 → 'none' (work)
- */
-function derivePitPhaseFromPlan(
-  plan: ActiveRacePlanLike,
-): 'none' | 'boxbox' | 'inPit' | 'fullPush' {
-  const now = Date.now();
-  if (plan.lastFiredAt === 'boxbox' && plan.lastFiredAtMs != null && now - plan.lastFiredAtMs < ALERT_MS) {
-    return 'boxbox';
-  }
-  if (plan.lastFiredAt === 'fullPush' && plan.lastFiredAtMs != null && now - plan.lastFiredAtMs < ALERT_MS) {
-    return 'fullPush';
-  }
-  if (plan.nextFullPushAtMs != null && plan.nextFullPushAtMs > now) {
-    return 'inPit';
-  }
-  return 'none';
+function normalizeLapLog(entries: RunEngineSnapshot['lapLog']): LapEntry[] {
+  return entries.map((entry) => ({
+    idx: entry.idx,
+    type: entry.type,
+    distM: entry.distM,
+    durationSec: entry.durationSec,
+    paceS: entry.paceS,
+  }));
 }
 
-type ActiveRacePlanLike = {
-  lastFiredAt: 'boxbox' | 'fullPush' | null;
-  lastFiredAtMs: number | null;
-  nextFullPushAtMs: number | null;
-};
+function sameLapLog(a: LapEntry[], b: LapEntry[]): boolean {
+  if (a.length !== b.length) return false;
+  if (a.length === 0) return true;
+  const lastA = a[a.length - 1];
+  const lastB = b[b.length - 1];
+  return lastA.idx === lastB.idx
+    && lastA.type === lastB.type
+    && lastA.distM === lastB.distM
+    && Math.round(lastA.durationSec * 10) === Math.round(lastB.durationSec * 10)
+    && lastA.paceS === lastB.paceS;
+}
+
+function normalizeTire(tire: string): 'soft' | 'medium' | 'hard' | 'wet' {
+  if (tire === 'soft' || tire === 'hard' || tire === 'wet') return tire;
+  return 'medium';
+}

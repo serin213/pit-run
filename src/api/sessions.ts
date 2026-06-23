@@ -109,9 +109,9 @@ export async function deleteSession(sessionId: string): Promise<void> {
  */
 export async function insertCompletedSession(fields: {
   /**
-   * 클라이언트 생성 UUID. 전달되면 upsert(onConflict:'id')로 처리 → 같은 id
-   * 재호출 시 INSERT 1번만 실제 행 생성, 이후는 동일 row UPDATE (idempotent).
-   * 네트워크 retry 중복, ResultScreen re-mount 중복 모두 차단.
+   * 클라이언트 생성 UUID. 전달되면 같은 id row가 이미 있는지 먼저 조회한다.
+   * 이미 저장된 race는 그대로 반환하고 업데이트하지 않는다.
+   * 네트워크 retry, pending flush, ResultScreen re-mount 모두 "first save wins".
    * 전달 안 되면 기존처럼 .insert (DB가 id 자동 생성).
    */
   id?: string;
@@ -135,6 +135,21 @@ export async function insertCompletedSession(fields: {
       throw err;
     }
 
+    if (fields.id) {
+      const { data: existingRow, error: existingError } = await supabase
+        .from('run_sessions')
+        .select('*')
+        .eq('id', fields.id)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existingRow) {
+        recordSaveSuccess('run_sessions');
+        return existingRow;
+      }
+    }
+
+    const incomingTimeMs = Math.round(fields.total_time_ms);
+
     const row = {
       user_id: userId,
       type: fields.type,
@@ -147,18 +162,18 @@ export async function insertCompletedSession(fields: {
       // (elapsedMs)이 sub-ms precision float (예: 3863267.79)이라 raw 전달 시
       // PG 22P02 (invalid input syntax for type integer) 에러로 INSERT 거부됨.
       // API 레이어에서 round → fresh save + pending queue replay 모두 안전.
-      total_time_ms: Math.round(fields.total_time_ms),
+      total_time_ms: incomingTimeMs,
       avg_pace_sec_per_km: fields.avg_pace_sec_per_km ?? null,
       best_pace_sec_per_km: fields.best_pace_sec_per_km ?? null,
       payload: fields.payload ?? {},
       ...(fields.id ? { id: fields.id } : {}),
     };
 
-    // id가 있으면 upsert (idempotent), 없으면 기존 insert
-    const query = fields.id
-      ? supabase.from('run_sessions').upsert(row, { onConflict: 'id' }).select().single()
-      : supabase.from('run_sessions').insert(row).select().single();
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from('run_sessions')
+      .insert(row)
+      .select()
+      .single();
     if (error) {
       recordSaveError('run_sessions', error);
       throw error;

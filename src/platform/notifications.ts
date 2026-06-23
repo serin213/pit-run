@@ -1,11 +1,11 @@
 /**
- * Platform notifications — 예약 로컬 알림 (box-box / 풀푸시 정시 발화).
+ * Platform notifications — legacy/fallback 예약 로컬 알림.
  *
  * Native: expo-notifications. Toss 미니앱: 이 파일만 토스 알림 SDK로 교체.
  *
- * 배경: box-box/풀푸시는 시간 기준(nextBoxBoxAtMs/nextFullPushAtMs)이라 발화 시각을
- * 미리 안다. 로컬 알림을 그 시각에 예약하면 잠금/suspend 중에도 OS가 정시에 사운드를
- * 발화한다(앱을 살려둘 필요 없음 → 엔진 keep-alive처럼 앱을 죽이지 않음).
+ * iOS race 주 경로는 pit-run-run-engine 네이티브 모듈이 AVAudioPlayer로 cue를
+ * 재생한다. 이 파일은 Android/dev fallback, stale 예약 알림 취소, 기존 테스트 호환을
+ * 위해 유지한다.
  *
  * 트레이드오프: 알림 사운드는 iOS 무음 스위치를 따른다(무음+잠금이면 진동만, 소리 X).
  * 권한 거부 시 areNotificationsGranted()=false → locationTask가 인앱 playSound로 폴백.

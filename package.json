@@ -41,6 +41,7 @@
     "pit-run-background-activity": "file:./modules/pit-run-background-activity",
     "pit-run-haptics": "file:./modules/pit-run-haptics",
     "pit-run-live-activity": "file:./modules/pit-run-live-activity",
+    "pit-run-run-engine": "file:./modules/pit-run-run-engine",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.2",
