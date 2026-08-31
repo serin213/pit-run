@@ -6,6 +6,7 @@
 node_modules/
 
 .expo/
+.expo-export-test/
 dist/
 web-build/
 expo-env.d.ts
@@ -23,6 +24,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+.tmp/
 
 .DS_Store
 *.pem
@@ -34,6 +36,9 @@ yarn-error.*
 /secrets/
 
 *.tsbuildinfo
+*.ipa
+/build-output/
+ios/build/
 
 /ios
 /android
