@@ -595,13 +595,16 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
   const [showSheet, setShowSheet]   = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const backgroundOpacity = useRef(new Animated.Value(1)).current;
 
   const openSheet = () => {
     setShowSheet(true);
     Animated.timing(sheetAnim, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+    Animated.timing(backgroundOpacity, { toValue: 0.2, duration: 300, useNativeDriver: true }).start();
   };
 
   const handleConfirm = useCallback(() => {
+    Animated.timing(backgroundOpacity, { toValue: 1.0, duration: 300, useNativeDriver: true }).start();
     Animated.timing(sheetAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setShowSheet(false);
       recordActivity();
@@ -630,7 +633,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       navigation.navigate('Home');
     });
   }, [
-    sheetAnim, resetRun, recordActivity, addDistance, distKm, elapsedMs,
+    sheetAnim, backgroundOpacity, resetRun, recordActivity, addDistance, distKm, elapsedMs,
     paceHistory, endSession, user, currentRaceEventId, setCurrentRaceEventId, navigation,
   ]);
 
@@ -675,8 +678,8 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
       )}
 
       {/* Paging content area */}
-      <View
-        style={styles.contentArea}
+      <Animated.View
+        style={[styles.contentArea, { opacity: backgroundOpacity }]}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
       >
         {pageHeight > 0 && (
@@ -950,11 +953,11 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
           </ScrollView>
         )}
-      </View>
+      </Animated.View>
 
       {/* Fixed CTA — 마지막 페이지에서만 표시 */}
       <Animated.View
-        style={[styles.ctaWrap, { height: 164 + safeBottom, opacity: ctaAnim }]}
+        style={[styles.ctaWrap, { height: 164 + safeBottom, opacity: Animated.multiply(ctaAnim, backgroundOpacity) }]}
         pointerEvents={activePage === TOTAL_PAGES - 1 ? 'box-none' : 'none'}
       >
         <Svg
@@ -996,7 +999,7 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
               styles.sheet,
               {
                 transform: [{ translateY: sheetTranslateY }],
-                paddingBottom: safeBottom + 16,
+                paddingBottom: safeBottom,
                 backgroundColor: 'transparent',
                 overflow: 'hidden',
               },
@@ -1296,7 +1299,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-    marginBottom: 32,
+    marginBottom: 36,
   },
   emojiLabelEdge: {
     fontFamily: 'Formula1-Regular',
