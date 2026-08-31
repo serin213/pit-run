@@ -4,7 +4,6 @@ import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/RootNavigator';
-import SafeAreaOverlay from './src/components/SafeAreaOverlay';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -28,8 +27,6 @@ export default function App() {
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
-      {/* iOS status bar + home indicator overlay — outside NavigationContainer to render above all screens */}
-      <SafeAreaOverlay />
     </SafeAreaProvider>
   );
 }

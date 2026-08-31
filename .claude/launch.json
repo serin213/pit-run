@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Expo Native (worktree)",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": [
+        "/Users/rena0213/pit-run/.claude/worktrees/epic-satoshi/node_modules/expo/bin/cli",
+        "start",
+        "--clear",
+        "--localhost",
+        "--port", "8083"
+      ],
+      "cwd": "/Users/rena0213/pit-run/.claude/worktrees/epic-satoshi",
+      "port": 8083
+    },
+    {
+      "name": "Expo iOS (worktree)",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": [
+        "/Users/rena0213/pit-run/.claude/worktrees/epic-satoshi/node_modules/expo/bin/cli",
+        "start",
+        "--ios",
+        "--clear",
+        "--localhost",
+        "--port", "8083"
+      ],
+      "cwd": "/Users/rena0213/pit-run/.claude/worktrees/epic-satoshi",
+      "port": 8083
+    }
+  ]
+}

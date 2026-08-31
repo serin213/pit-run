@@ -200,15 +200,33 @@ export default function CircuitCard({
     </>
   );
 
-  /* ── Selected: 빨간 테두리 유지 ── */
+  /* ── Selected: E03A3E 그라디언트 테두리 + 10% 배경 ── */
   if (isSelected) {
     return (
-      <View
-        style={{ width: cardWidth, height: cardHeight, borderRadius: 12, padding: 1.5, backgroundColor: '#E03A3E', opacity: outerOpacity }}
-      >
+      <View style={{ width: cardWidth, height: cardHeight, borderRadius: 12, opacity: outerOpacity }}>
+        <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <SvgLinearGradient id={`${gradId}_sel`} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0%" stopColor="#E03A3E" stopOpacity="1" />
+              <Stop offset="50%" stopColor="#E03A3E" stopOpacity="0" />
+              <Stop offset="100%" stopColor="#E03A3E" stopOpacity="1" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect
+            x={0.25}
+            y={0.25}
+            width={cardWidth - 0.5}
+            height={cardHeight - 0.5}
+            rx={11.75}
+            ry={11.75}
+            fill="none"
+            stroke={`url(#${gradId}_sel)`}
+            strokeWidth={0.5}
+          />
+        </Svg>
         <Pressable
           onPress={isDisabled ? undefined : onPress}
-          style={{ flex: 1, borderRadius: 10.5, backgroundColor: '#44252C', overflow: 'hidden' }}
+          style={{ flex: 1, margin: 0.5, borderRadius: 11.5, backgroundColor: 'rgba(224,58,62,0.1)', overflow: 'hidden' }}
         >
           {content}
         </Pressable>

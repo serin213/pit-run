@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
@@ -522,7 +523,8 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
       {/* BackButton rendered last so it appears above scroll content and CTA */}
       <BackButton onPress={() => navigation.goBack()} />
       {/* Safe-area blockers: inside the native screen view → reliably cover scroll content */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, backgroundColor: '#17171C', zIndex: 1000 }} />
+      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 1000 }} pointerEvents="none" />
+      <View pointerEvents="none" style={{ position: 'absolute', top: safeTop, left: 0, right: 0, height: 63, backgroundColor: '#17171C', zIndex: 1000 }} />
       <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: safeBottom, backgroundColor: '#17171C', zIndex: 1000 }} />
     </View>
   );

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   ScrollView,
   StyleSheet,
@@ -168,17 +169,15 @@ export default function NextRaceScreen({ navigation }: NextRaceScreenProps) {
       </View>
 
       <BackButton onPress={() => navigation.navigate('Home')} />
+      <BlurView
+        intensity={60}
+        tint="dark"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 1000 }}
+        pointerEvents="none"
+      />
       <View
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: safeTop + 63,
-          backgroundColor: '#17171C',
-          zIndex: 1000,
-        }}
+        style={{ position: 'absolute', top: safeTop, left: 0, right: 0, height: 63, backgroundColor: '#17171C', zIndex: 1000 }}
       />
     </View>
   );
@@ -250,8 +249,8 @@ const styles = StyleSheet.create({
   },
   tireRow: {
     position: 'absolute',
-    left: 32,
-    right: 28,
+    left: 24,
+    right: 20,
     top: TIRE_ROW_TOP,
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,4 +1,5 @@
-import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   Animated,
   Image,
@@ -10,7 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Polygon, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { useRunStore } from '../store/runStore';
 import { useAppStore } from '../store/appStore';
@@ -20,7 +21,6 @@ import { fmtTime, fmtPace } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
-import { BlurView } from 'expo-blur';
 
 
 const FASTEST_COLOR = '#8528C5';
@@ -196,9 +196,6 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
 
   // ─── Evaluation sheet ──────────────────────────────────────────────────────
 
-  const rawSheetId = useId();
-  const sheetGradId = `resultSheet${rawSheetId.replace(/[^a-zA-Z0-9]/g, '_')}`;
-  const [sheetLayout, setSheetLayout] = useState<{ w: number; h: number } | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -479,26 +476,9 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
           <Animated.View
             style={[
               styles.sheet,
-              { transform: [{ translateY: sheetTranslateY }], paddingBottom: 0 },
+              { transform: [{ translateY: sheetTranslateY }], paddingBottom: safeBottom + 16 },
             ]}
-            onLayout={(e) => setSheetLayout({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
           >
-            <View style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: 'hidden' }]}>
-              <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFillObject} />
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(23,23,28,0.30)' }]} />
-            </View>
-            {sheetLayout && (
-              <Svg width={sheetLayout.w} height={sheetLayout.h} style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                <Defs>
-                  <LinearGradient id={sheetGradId} x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
-                    <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-                    <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
-                  </LinearGradient>
-                </Defs>
-                <Rect x={0.5} y={0.5} width={sheetLayout.w - 1} height={sheetLayout.h - 1} rx={23.5} ry={23.5} fill="none" stroke={`url(#${sheetGradId})`} strokeWidth={0.5} />
-              </Svg>
-            )}
             <Text style={styles.sheetTitle}>How was it?</Text>
 
             {/* Emoji scale */}
@@ -528,32 +508,22 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
             </View>
 
             {/* Confirm */}
-            <GradientCtaButton
-              width={screenW - 80}
-              height={58}
-              label="Confirm"
-              enabled={!!selectedDiff}
-              onPress={handleConfirm}
-              gradientStart={topTheme.line}
-              gradientEnd={topTheme.text}
-              style={{ marginLeft: -8, marginBottom: 20 }}
-            />
+            <Pressable
+              style={[styles.confirmBtn, selectedDiff && styles.confirmBtnActive]}
+              onPress={selectedDiff ? handleConfirm : undefined}
+            >
+              <Text style={styles.confirmBtnText}>Confirm</Text>
+            </Pressable>
           </Animated.View>
         </Animated.View>
       )}
 
       {/* Safe area blocker top */}
-      <View
+      <BlurView
+        intensity={60}
+        tint="dark"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 1000 }}
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: safeTop,
-          backgroundColor: '#17171C',
-          zIndex: 1000,
-        }}
       />
     </View>
   );
@@ -576,7 +546,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingVertical: 14,
   },
   headerLeft: {
@@ -621,7 +591,7 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   hero: {
-    paddingLeft: 28,
+    paddingLeft: 20,
     paddingTop: 48,
     paddingBottom: 0,
     minHeight: 290,
@@ -712,7 +682,7 @@ const styles = StyleSheet.create({
 
   // ── Share ──
   shareBtn: {
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: 'flex-start',
   },
@@ -730,27 +700,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: CTA_H,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     justifyContent: 'flex-end',
   },
 
   // ── Sheet ──
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'flex-end',
     zIndex: 500,
   },
   sheet: {
-    borderRadius: 24,
-    marginHorizontal: 20,
-    marginBottom: 26,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 20,
-    paddingHorizontal: 28,
+    backgroundColor: '#202028',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
     paddingTop: 32,
   },
   sheetTitle: {
@@ -815,14 +780,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    backgroundColor: '#202028',
+    backgroundColor: '#34343F',
     opacity: 0.3,
-    marginHorizontal: -8,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   confirmBtnActive: {
     opacity: 1,
-    backgroundColor: '#202028',
+    backgroundColor: '#34343F',
   },
   confirmBtnText: {
     fontFamily: 'Formula1-Bold',
