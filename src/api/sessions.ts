@@ -32,6 +32,19 @@ export async function fetchSessions(limit = 50): Promise<SessionRow[]> {
   });
 }
 
+/** 세션 단건 조회 */
+export async function fetchSessionById(id: string): Promise<SessionRow | null> {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('run_sessions')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+}
+
 /** 세션 생성 (러닝 시작) */
 export async function insertSession(fields: {
   type: SessionType;

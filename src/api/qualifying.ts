@@ -38,6 +38,19 @@ export async function fetchQualifyingHistory(): Promise<QualifyingRow[]> {
   });
 }
 
+/** 퀄리파잉 결과 단건 조회 */
+export async function fetchQualifyingById(id: string): Promise<QualifyingRow | null> {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('qualifying_results')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+}
+
 /** 퀄리파잉 결과 저장 */
 export async function insertQualifying(fields: {
   one_km_ms: number;

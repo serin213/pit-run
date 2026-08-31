@@ -27,6 +27,7 @@ import { fmtTime, fmtPace, fmtDist } from '../utils/format';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ResultScreenProps } from '../navigation/types';
+import { fetchSessionById } from '../api/sessions';
 import { useSupabaseSession } from '../hooks/useSupabaseSessions';
 import { useAuthStore } from '../store/authStore';
 import { logRaceCompleted } from '../lib/analytics/raceEvents';
@@ -121,15 +122,15 @@ function RollingText({ target, containerStyle, textStyle }: RollingTextProps) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function ResultScreen({ navigation }: ResultScreenProps) {
+export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const safeTop    = useSafeTop();
   const safeBottom = useSafeBottom();
 
-  const { distKm, elapsedMs, paceHistory, resetRun } = useRunStore();
+  const { distKm: _distKm, elapsedMs: _elapsedMs, paceHistory: _paceHistory, resetRun } = useRunStore();
   const {
-    selectedCircuitId,
-    selectedTire,
+    selectedCircuitId: _selectedCircuitId,
+    selectedTire: _selectedTire,
     qualifyingResult,
     recordActivity,
     addDistance,
@@ -137,6 +138,37 @@ export default function ResultScreen({ navigation }: ResultScreenProps) {
     setCurrentRaceEventId,
     setSelectedCircuitId,
   } = useAppStore();
+
+  // ─── Historical session override ──────────────────────────────────────────
+  const sessionId = route.params?.sessionId;
+  const isHistorical = !!sessionId;
+
+  type SessionOverride = {
+    distKm: number; elapsedMs: number; paceHistory: number[];
+    circuitId: string | null; tire: string | null;
+  };
+  const [sessionOverride, setSessionOverride] = useState<SessionOverride | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    fetchSessionById(sessionId).then((row) => {
+      if (!row) return;
+      const payload = row.payload as Record<string, unknown>;
+      setSessionOverride({
+        distKm: row.total_dist_km,
+        elapsedMs: row.total_time_ms,
+        paceHistory: Array.isArray(payload?.paceHistory) ? (payload.paceHistory as number[]) : [],
+        circuitId: row.circuit_id ?? null,
+        tire: typeof payload?.tire === 'string' ? payload.tire : null,
+      });
+    }).catch(() => {});
+  }, [sessionId]);
+
+  const distKm          = sessionOverride?.distKm          ?? _distKm;
+  const elapsedMs       = sessionOverride?.elapsedMs       ?? _elapsedMs;
+  const paceHistory     = sessionOverride?.paceHistory     ?? _paceHistory;
+  const selectedCircuitId = sessionOverride?.circuitId     ?? _selectedCircuitId;
+  const selectedTire    = (sessionOverride?.tire as typeof _selectedTire | null) ?? _selectedTire;
   const { endSession }  = useSupabaseSession();
   const { user }        = useAuthStore();
 

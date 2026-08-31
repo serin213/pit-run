@@ -224,10 +224,11 @@ export type MonthGridProps = {
   monthOffset: number;
   onPrev: () => void;
   onNext: () => void;
+  onDayPress?: (date: string) => void;
   bare?: boolean;
 };
 
-export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset, onPrev, onNext, bare }: MonthGridProps) {
+export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset, onPrev, onNext, onDayPress, bare }: MonthGridProps) {
   const base = new Date(today);
   const year = base.getFullYear();
   const month = base.getMonth() + monthOffset;
@@ -341,6 +342,21 @@ export function MonthGrid({ today, activitySet, qualifyingSet, colX, monthOffset
                 >
                   {d}
                 </Text>
+              );
+            })}
+
+            {onDayPress && row.map((d, col) => {
+              if (!d) return null;
+              const iso = dayISO(d);
+              const hasData = activitySet.has(iso) || (qualifyingSet?.has(iso) ?? false);
+              if (!hasData) return null;
+              return (
+                <Pressable
+                  key={`mhit-${ri}-${col}`}
+                  onPress={() => onDayPress(iso)}
+                  hitSlop={4}
+                  style={{ position: 'absolute', left: colX[col] - 14, top: ry - 2, width: 36, height: 34 }}
+                />
               );
             })}
           </React.Fragment>
