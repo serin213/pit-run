@@ -18,6 +18,7 @@
  * that know objectVersion 77 but miss objectVersion 70 in their compatibility
  * map. Without that, `pod install` can fail while generating Pods.xcodeproj:
  *   [Xcodeproj] Unable to find compatibility version string for object version `70`.
+ *
  */
 const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');

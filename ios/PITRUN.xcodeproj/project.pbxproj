@@ -10,14 +10,14 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		39C22B08BFC0B4864650EE9D /* libPods-PITRUN.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9C65D92041DB7592C1E029D /* libPods-PITRUN.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		B2A6E7DEE841308CB67C0BA7 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDBEA62DC7C329342418B25 /* ExpoModulesProvider.swift */; };
+		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		CAFE0000000000000000B001 /* notif-boxbox.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F001 /* notif-boxbox.caf */; };
 		CAFE0000000000000000B002 /* notif-fullpush.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F002 /* notif-fullpush.caf */; };
 		CAFE0000000000000000B003 /* final-lap.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F003 /* final-lap.caf */; };
 		CAFE0000000000000000B004 /* chequered-flag.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F004 /* chequered-flag.caf */; };
 		CAFE0000000000000000B005 /* qualifying-ending.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F005 /* qualifying-ending.caf */; };
 		CAFE0000000000000000B006 /* race-completed.caf in Resources */ = {isa = PBXBuildFile; fileRef = CAFE0000000000000000F006 /* race-completed.caf */; };
-		B2A6E7DEE841308CB67C0BA7 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDBEA62DC7C329342418B25 /* ExpoModulesProvider.swift */; };
-		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		CC28987122C6896732297F57 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5FBDFB3EFA4DF5864BB10011 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		XX12B55A1EDABF083C3B51XX /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = XX470101BAEB8E0BBC8B0DXX /* WidgetKit.framework */; };
@@ -513,7 +513,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = PITRUN/PITRUN.entitlements;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 110;
 				DEVELOPMENT_TEAM = H2B5B8WXW6;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -538,7 +538,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "PITRUN/PITRUN-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -551,7 +551,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = PITRUN/PITRUN.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 110;
 				DEVELOPMENT_TEAM = H2B5B8WXW6;
 				INFOPLIST_FILE = PITRUN/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
@@ -571,7 +571,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "PITRUN/PITRUN-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
@@ -711,7 +711,7 @@
 				CODE_SIGN_ENTITLEMENTS = "../targets/pit-run-live-activity/generated.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = H2B5B8WXW6;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -737,7 +737,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -753,7 +753,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = "../targets/pit-run-live-activity/generated.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = H2B5B8WXW6;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -779,7 +779,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
