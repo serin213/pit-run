@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
+import { COLORS } from '../constants/colors';
 import AuthScreen from '../screens/AuthScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -87,7 +88,7 @@ export default function RootNavigator() {
         initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#17171C' },
+          contentStyle: { backgroundColor: COLORS.bg },
           animation: 'slide_from_right',
         }}
       >

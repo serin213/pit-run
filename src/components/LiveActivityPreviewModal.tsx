@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { CIRCUITS } from '../config/circuits';
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import CircuitMap from './CircuitMap';
 
 type PitPhase = 'none' | 'boxbox' | 'inPit' | 'fullPush';
@@ -140,12 +140,12 @@ function WaveChart({ teamColor, width }: { teamColor: string; width: number }) {
           <Stop offset="100%" stopColor={solid} stopOpacity={1} />
         </LinearGradient>
         <LinearGradient id="fadeL" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={fadeW} y2="0">
-          <Stop offset="0%" stopColor="#17171C" stopOpacity={1} />
-          <Stop offset="100%" stopColor="#17171C" stopOpacity={0} />
+          <Stop offset="0%" stopColor={COLORS.bg} stopOpacity={1} />
+          <Stop offset="100%" stopColor={COLORS.bg} stopOpacity={0} />
         </LinearGradient>
         <LinearGradient id="fadeR" gradientUnits="userSpaceOnUse" x1={width} y1="0" x2={width - fadeW} y2="0">
-          <Stop offset="0%" stopColor="#17171C" stopOpacity={1} />
-          <Stop offset="100%" stopColor="#17171C" stopOpacity={0} />
+          <Stop offset="0%" stopColor={COLORS.bg} stopOpacity={1} />
+          <Stop offset="100%" stopColor={COLORS.bg} stopOpacity={0} />
         </LinearGradient>
       </Defs>
       {cols.map((c, i) => (
@@ -335,7 +335,7 @@ const sel = StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'transparent' },
   chipActive: { backgroundColor: 'rgba(252,163,17,0.15)', borderColor: AMBER },
-  chipText: { color: 'rgba(255,255,255,0.5)', fontFamily: 'Formula1-Regular', fontSize: 11 },
+  chipText: { color: COLORS.text.secondary, fontFamily: 'Formula1-Regular', fontSize: 11 },
   chipTextActive: { color: PALETTE.white },
 });
 

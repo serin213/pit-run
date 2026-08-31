@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 interface ScreenHeaderProps {
   safeTop: number;
@@ -53,7 +54,7 @@ export default function ScreenHeader({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
     zIndex: 100,
   },
   row: {

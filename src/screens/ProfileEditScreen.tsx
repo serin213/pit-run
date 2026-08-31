@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { BlurView } from '../platform/blur';
+import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
   Pressable,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLG, Rect, Stop } from 'react-native-svg';
 import GradientCtaButton from '../components/GradientCtaButton';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
 import BackButton from '../components/BackButton';
 import { getDriverCode } from '../utils/driverCode';
 import { useAppStore } from '../store/appStore';
@@ -21,7 +22,8 @@ import { useSafeBottom } from '../hooks/useSafeBottom';
 import type { ProfileEditScreenProps } from '../navigation/types';
 import GradientCardBorder from '../components/GradientCardBorder';
 import { useProfileValidation } from '../hooks/useProfileValidation';
-import { COLORS, PALETTE} from '../constants/colors';
+import { COLORS, PALETTE, PREVIEW_DEFAULT_COLOR } from '../constants/colors';
+import { radius } from '../constants/radius';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -29,7 +31,6 @@ const TEAM_COLORS = [
   PALETTE.pink, PALETTE.red, PALETTE.orange, PALETTE.yellow,
   PALETTE.green, PALETTE.teal, PALETTE.blue, PALETTE.purple, PALETTE.white,
 ] as const;
-const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 
 // ─── ProfileEditScreen ────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
   const safeBottom = useSafeBottom();
 
   const contentWidth = Math.max(0, windowW - 56);
-  const ctaContainerH = 164;
+  const ctaContainerH = CTA_AREA_HEIGHT;
   const ctaHeight = 58;
 
   const nameRef = useRef<TextInput | null>(null);
@@ -185,7 +186,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
           {/* Preview nametag */}
           <View style={styles.previewSection}>
             <Text style={styles.previewLabel}>Preview</Text>
-            <GradientCardBorder style={[styles.previewBoxOuter, { width: contentWidth }]} innerStyle={styles.previewBoxInner}>
+            <GradientCardBorder style={[styles.previewBoxOuter, { width: contentWidth }]} innerStyle={styles.previewBoxInner} borderRadius={radius.sm.borderRadius}>
               <View style={styles.previewRow}>
                 <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
                 <Text style={styles.previewName}>{previewCode}</Text>
@@ -197,25 +198,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
       </ScrollView>
 
       {/* Bottom CTA */}
-      <View
-        style={[styles.ctaContainer, { height: ctaContainerH, paddingBottom: safeBottom + 16 }]}
-        pointerEvents="box-none"
-      >
-        <Svg
-          width={windowW}
-          height={ctaContainerH}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLG id="editFade" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-            </SvgLG>
-          </Defs>
-          <Rect x={0} y={0} width={windowW} height={ctaContainerH} fill="url(#editFade)" />
-        </Svg>
+      <CtaFadeBackground height={ctaContainerH} style={{ paddingBottom: safeBottom + 16, justifyContent: 'flex-end', alignItems: 'center' }}>
         <GradientCtaButton
           height={ctaHeight}
           label="Confirm"
@@ -235,11 +218,11 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
             navigation.goBack();
           }}
         />
-      </View>
+      </CtaFadeBackground>
 
       {/* BackButton — 다른 화면과 동일하게 절대위치, 마지막에 렌더해 최상단에 표시 */}
       <BackButton onPress={() => navigation.goBack()} />
-      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
+      <TopSafeBlurOverlay safeTop={safeTop} />
     </View>
   );
 }
@@ -249,7 +232,7 @@ export default function ProfileEditScreen({ navigation }: ProfileEditScreenProps
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -272,7 +255,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   fieldLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20,
@@ -344,7 +327,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   previewLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
@@ -352,7 +335,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   previewBoxOuter: {
-    borderRadius: 16,
+    ...radius.sm,
   },
   previewBoxInner: {
     paddingHorizontal: 20,
@@ -379,17 +362,10 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   previewNumber: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
     includeFontPadding: false,
-  },
-  ctaContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 20,
-    right: 20,
-    justifyContent: 'flex-end',
   },
 });

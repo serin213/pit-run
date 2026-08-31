@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useRef, useCallback, RefObject, useState, useEffect } from 'react';
 import {
   View,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontFamily: 'Formula1-Regular',
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     marginBottom: 4,
   },
   row: {

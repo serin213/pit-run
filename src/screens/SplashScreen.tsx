@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { COLORS } from '../constants/colors';
 import type { QualifyingGrade } from '../types';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -98,6 +99,6 @@ export default function SplashScreen({ grade }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
 });

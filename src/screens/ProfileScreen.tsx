@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -157,7 +157,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.bg, opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: tabH + 24 }}
@@ -223,7 +223,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         pointerEvents="none"
       >
         {Array.from({ length: 8 }, (_, i) => (
-          <Rect key={i} x={0} y={i * 6} width={windowW} height={6} fill="#17171C" fillOpacity={i / 7} />
+          <Rect key={i} x={0} y={i * 6} width={windowW} height={6} fill={COLORS.bg} fillOpacity={i / 7} />
         ))}
       </Svg>
     </Animated.View>

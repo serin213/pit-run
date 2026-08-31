@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import TextChevronButton from '../components/TextChevronButton';
+import { COLORS } from '../constants/colors';
 import type { CountdownScreenProps } from '../navigation/types';
 
 const COUNTDOWN_PAGE_MS = 1000;
@@ -86,6 +87,6 @@ export default function CountdownScreen({ navigation }: CountdownScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#17171C', overflow: 'hidden' },
+  container: { flex: 1, backgroundColor: COLORS.bg, overflow: 'hidden' },
   skipButton: { position: 'absolute', left: 0, right: 0, zIndex: 50, elevation: 50 },
 });

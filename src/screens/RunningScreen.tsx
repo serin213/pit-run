@@ -501,7 +501,7 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   distCenterWrap: {
     position: 'absolute',
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   lbl: {
     position: 'absolute',
     fontFamily: 'Formula1-Regular',
-    color: 'rgba(255,255,255,0.3)',
+    color: COLORS.text.dim,
     letterSpacing: -0.26,
     includeFontPadding: false,
   },
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
   },
   debugSectorTxt: {
-    color: '#17171C',
+    color: COLORS.bg,
     fontFamily: 'Formula1-Bold',
     fontSize: 11,
     lineHeight: 12,

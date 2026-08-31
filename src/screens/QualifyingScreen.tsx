@@ -1,6 +1,7 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { BlurView } from '../platform/blur';
+import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
 import {
   Animated,
   Easing,
@@ -21,6 +22,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import GradientCtaButton from '../components/GradientCtaButton';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
 import GradientCardBorder, { CARD_FILL } from '../components/GradientCardBorder';
 import TextChevronButton from '../components/TextChevronButton';
 import BackButton from '../components/BackButton';
@@ -269,7 +271,7 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         />
         {/* BackButton rendered last so it appears above content */}
         <BackButton onPress={() => navigation.goBack()} />
-        <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
+        <TopSafeBlurOverlay safeTop={safeTop} />
       </View>
     );
   }
@@ -409,7 +411,7 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
   const cardPaddingHEnd = 18;
   const cardPaddingHStart = 16;
   const hPad = 20;
-  const ctaContainerH = 164;
+  const ctaContainerH = CTA_AREA_HEIGHT;
   const ctaWidth = windowW - hPad * 2;
   const ctaHeight = 58;
 
@@ -468,29 +470,8 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
         />
       </View>
 
-      {/* Bottom CTA area — absolute, fade gradient + GradientCtaButton (has its own glow) */}
-      <View
-        style={[styles.ctaContainer, { height: ctaContainerH }]}
-        pointerEvents="box-none"
-      >
-        {/* Fade gradient: solid #17171C at bottom, transparent at top */}
-        <Svg
-          width={windowW}
-          height={ctaContainerH}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLinearGradient id="introFade" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={windowW} height={ctaContainerH} fill="url(#introFade)" />
-        </Svg>
-
-        {/* GradientCtaButton — already includes glow internally */}
+      {/* Bottom CTA area — fade gradient + GradientCtaButton (has its own glow) */}
+      <CtaFadeBackground height={ctaContainerH}>
         <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
             width={ctaWidth}
@@ -500,7 +481,7 @@ function IntroScreen({ windowW, insetsTop, onStart }: IntroScreenProps) {
             onPress={onStart}
           />
         </View>
-      </View>
+      </CtaFadeBackground>
     </View>
   );
 }
@@ -522,45 +503,30 @@ function StepCard({
   icon, iconW, iconH, label, meta,
   borderRadius, paddingV, paddingHStart, paddingHEnd, width,
 }: StepCardProps) {
-  const rawId = useId();
-  const gradId = rawId.replace(/[^a-zA-Z0-9]/g, '_');
   const cardH = paddingV * 2 + 24;
 
   return (
-    <View style={{ width, height: cardH, borderRadius }}>
-      <Svg width={width} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Defs>
-          <SvgLinearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={width} y2={cardH}>
-            <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-            <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-            <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-            <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-          </SvgLinearGradient>
-        </Defs>
-        <Rect x={0.25} y={0.25} width={width - 0.5} height={cardH - 0.5} rx={borderRadius - 0.25} ry={borderRadius - 0.25} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} />
-      </Svg>
-      <View style={{
-        position: 'absolute', top: 0.5, left: 0.5, right: 0.5, bottom: 0.5,
-        borderRadius: borderRadius - 0.5,
-        backgroundColor: CARD_FILL,
-        overflow: 'hidden',
+    <GradientCardBorder
+      style={{ width, height: cardH }}
+      innerStyle={{
         flexDirection: 'row',
         alignItems: 'center',
         paddingLeft: paddingHStart,
         paddingRight: paddingHEnd,
         gap: 10,
-      }}>
-        <Image source={icon} style={{ width: iconW, height: iconH }} resizeMode="contain" />
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={styles.stepCardLabel} allowFontScaling={false}>
-            {label}
-          </Text>
-          <Text style={styles.stepCardMeta} allowFontScaling={false}>
-            {meta}
-          </Text>
-        </View>
+      }}
+      borderRadius={borderRadius}
+    >
+      <Image source={icon} style={{ width: iconW, height: iconH }} resizeMode="contain" />
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={styles.stepCardLabel} allowFontScaling={false}>
+          {label}
+        </Text>
+        <Text style={styles.stepCardMeta} allowFontScaling={false}>
+          {meta}
+        </Text>
       </View>
-    </View>
+    </GradientCardBorder>
   );
 }
 
@@ -621,7 +587,7 @@ function RetireConfirmOverlay({ onRetire, onContinue }: RetireConfirmProps) {
         ]}
       >
         <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(32,32,40,0.35)' }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: CARD_FILL }]} />
         {/* Title — paddingTop:32 은 retireCard에 */}
         <Text style={[styles.retireTitleText, { paddingHorizontal: innerPad }]} allowFontScaling={false}>
           Are you sure?
@@ -678,7 +644,7 @@ function fmtQualTime(ms: number): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
 
   // ── Intro ──

@@ -1,4 +1,4 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
@@ -58,7 +58,7 @@ export default function PracticeResultScreen({ navigation, route }: PracticeResu
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   topContent: {
     paddingLeft: 20,

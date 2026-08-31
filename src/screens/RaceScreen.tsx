@@ -3,29 +3,23 @@
  * Practice / Qualifying / Grand Prix 세 가지 모드 선택
  */
 
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
+import { radius } from '../constants/radius';
 import React, { useCallback, useId, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   Image,
-  Pressable,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import Svg, {
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Rect,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Rect } from 'react-native-svg';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useSafeBottom } from '../hooks/useSafeBottom';
-import { CARD_FILL } from '../components/GradientCardBorder';
+import GradientCardBorder from '../components/GradientCardBorder';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import type { RaceScreenProps } from '../navigation/types';
 import { useLocationPermission } from '../hooks/useLocationPermission';
@@ -86,102 +80,66 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
   );
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#17171C', opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.bg, opacity: fadeAnim, transform: [{ translateX: slideAnim }] }]}>
 
       {/* ── "Race" 타이틀 ── */}
       <Text style={[styles.title, { left: 24, top: py(86) }]}>Race</Text>
 
       {/* ── Practice 카드 ── */}
-      <View style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138, borderRadius: 16 }}>
-        <Svg key={svgKey} width={cardW} height={138} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Defs>
-            <SvgLinearGradient id={`rbg1_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={138}>
-              <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-              <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={137.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg1_${idBase}_${svgKey})`} strokeWidth={0.5} />
-        </Svg>
-        <Pressable
-          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={async () => {
-            const granted = await ensurePermission();
-            if (!granted) return;
-            if (user?.id) logModeSelected({ userId: user.id, mode: 'practice' }).catch(() => {});
-            navigation.navigate('Practice');
-          }}
-        >
-          <Image
-            source={STOPWATCH_ICON}
-            style={{ position: 'absolute', left: 20, top: 20, width: 29, height: 33 }}
-            resizeMode="contain"
-          />
-          <Text style={[styles.cardTitle, { top: 63 }]}>Practice</Text>
-          <Text style={[styles.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
-        </Pressable>
-      </View>
+      <GradientCardBorder
+        style={{ position: 'absolute', left: cardLeft, top: py(153), width: cardW, height: 138 }}
+        borderRadius={radius.sm.borderRadius}
+        onPress={async () => {
+          const granted = await ensurePermission();
+          if (!granted) return;
+          if (user?.id) logModeSelected({ userId: user.id, mode: 'practice' }).catch(() => {});
+          navigation.navigate('Practice');
+        }}
+      >
+        <Image
+          source={STOPWATCH_ICON}
+          style={{ position: 'absolute', left: 24, top: 20, width: 29, height: 33 }}
+          resizeMode="contain"
+        />
+        <Text style={[styles.cardTitle, { top: 63 }]}>Practice</Text>
+        <Text style={[styles.cardSub,   { top: 98 }]}>Free run, pace not tracked</Text>
+      </GradientCardBorder>
 
       {/* ── Qualifying 카드 ── */}
-      <View style={{ position: 'absolute', left: cardLeft, top: py(303), width: cardW, height: 137, borderRadius: 16 }}>
-        <Svg key={svgKey} width={cardW} height={137} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Defs>
-            <SvgLinearGradient id={`rbg2_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={137}>
-              <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-              <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={136.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg2_${idBase}_${svgKey})`} strokeWidth={0.5} />
-        </Svg>
-        <Pressable
-          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => {
-            if (user?.id) logModeSelected({ userId: user.id, mode: 'qualifying' }).catch(() => {});
-            navigation.navigate('Qualifying');
-          }}
-        >
-          <Image
-            source={TROPHY_ICON}
-            style={{ position: 'absolute', left: 20, top: 20, width: 31, height: 32 }}
-            resizeMode="contain"
-          />
-          <Text style={[styles.cardTitle, { top: 62 }]}>Qualifying</Text>
-          <Text style={[styles.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
-        </Pressable>
-      </View>
+      <GradientCardBorder
+        style={{ position: 'absolute', left: cardLeft, top: py(303), width: cardW, height: 137 }}
+        borderRadius={radius.sm.borderRadius}
+        onPress={() => {
+          if (user?.id) logModeSelected({ userId: user.id, mode: 'qualifying' }).catch(() => {});
+          navigation.navigate('Qualifying');
+        }}
+      >
+        <Image
+          source={TROPHY_ICON}
+          style={{ position: 'absolute', left: 24, top: 20, width: 31, height: 32 }}
+          resizeMode="contain"
+        />
+        <Text style={[styles.cardTitle, { top: 62 }]}>Qualifying</Text>
+        <Text style={[styles.cardSub,   { top: 97 }]}>1km test to earn your license</Text>
+      </GradientCardBorder>
 
       {/* ── Grand Prix 카드 ── */}
-      <View style={{ position: 'absolute', left: cardLeft, top: py(452), width: cardW, height: 141, borderRadius: 16 }}>
-        <Svg key={svgKey} width={cardW} height={141} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Defs>
-            <SvgLinearGradient id={`rbg3_${idBase}_${svgKey}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={cardW} y2={141}>
-              <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-              <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-              <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0.25} y={0.25} width={cardW - 0.5} height={140.5} rx={15.75} ry={15.75} fill="none" stroke={`url(#rbg3_${idBase}_${svgKey})`} strokeWidth={0.5} />
-        </Svg>
-        <Pressable
-          style={[styles.cardInner, { flex: 1, margin: 0.5 }]}
-          onPress={() => {
-            if (user?.id) logModeSelected({ userId: user.id, mode: 'grand_prix' }).catch(() => {});
-            navigation.navigate('Setup');
-          }}
-        >
-          <Image
-            source={FLAG_ICON}
-            style={{ position: 'absolute', left: 20, top: 20, width: 36, height: 36 }}
-            resizeMode="contain"
-          />
-          <Text style={[styles.cardTitle, { top: 66 }]}>Grand Prix</Text>
-          <Text style={[styles.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
-        </Pressable>
-      </View>
+      <GradientCardBorder
+        style={{ position: 'absolute', left: cardLeft, top: py(452), width: cardW, height: 141 }}
+        borderRadius={radius.sm.borderRadius}
+        onPress={() => {
+          if (user?.id) logModeSelected({ userId: user.id, mode: 'grand_prix' }).catch(() => {});
+          navigation.navigate('Setup');
+        }}
+      >
+        <Image
+          source={FLAG_ICON}
+          style={{ position: 'absolute', left: 24, top: 20, width: 36, height: 36 }}
+          resizeMode="contain"
+        />
+        <Text style={[styles.cardTitle, { top: 66 }]}>Grand Prix</Text>
+        <Text style={[styles.cardSub,   { top: 101 }]}>Interval on a real circuit</Text>
+      </GradientCardBorder>
 
       {/* ── 그라데이션 페이드 — Defs 없이 Rect 단계별 렌더 ── */}
       <Svg
@@ -194,7 +152,7 @@ export default function RaceScreen({ navigation }: RaceScreenProps) {
           <Rect
             key={i}
             x={0} y={i * 6} width={windowW} height={6}
-            fill="#17171C"
+            fill={COLORS.bg}
             fillOpacity={i / 7}
           />
         ))}
@@ -217,14 +175,9 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     includeFontPadding: false,
   },
-  cardInner: {
-    borderRadius: 15.5,
-    backgroundColor: CARD_FILL,
-    overflow: 'hidden',
-  },
   cardTitle: {
     position: 'absolute',
-    left: 20,
+    left: 24,
     fontFamily: 'Formula1-Bold',
     fontSize: 24,
     lineHeight: 29,
@@ -233,7 +186,7 @@ const styles = StyleSheet.create({
   },
   cardSub: {
     position: 'absolute',
-    left: 20,
+    left: 24,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20,

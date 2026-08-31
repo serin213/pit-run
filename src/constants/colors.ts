@@ -11,6 +11,9 @@ export const PALETTE = {
   white:  '#FFFFFF',
 } as const;
 
+/** Preview/placeholder accent fallback (when user hasn't picked a team color). */
+export const PREVIEW_DEFAULT_COLOR = '#7C7C88';
+
 export const COLORS = {
   bg: '#17171C',
   sector: {

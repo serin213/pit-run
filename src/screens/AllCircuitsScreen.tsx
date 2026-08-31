@@ -1,6 +1,7 @@
-import { PALETTE } from '../constants/colors';
+import { COLORS, PALETTE } from '../constants/colors';
 import React from 'react';
-import { BlurView } from '../platform/blur';
+import TopSafeBlurOverlay from '../components/TopSafeBlurOverlay';
+import TopSafeSpacer from '../components/TopSafeSpacer';
 import {
   ScrollView,
   StyleSheet,
@@ -9,7 +10,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeTop } from '../hooks/useSafeTop';
-import { useSafeBottom } from '../hooks/useSafeBottom';
 import CircuitCard from '../components/CircuitCard';
 import BackButton from '../components/BackButton';
 import { CIRCUITS } from '../config/circuits';
@@ -25,7 +25,6 @@ const SORTED_CIRCUITS = [...CIRCUITS].sort((a, b) => a.distanceKm - b.distanceKm
 export default function AllCircuitsScreen({ navigation, route }: AllCircuitsScreenProps) {
   const { width: windowW } = useWindowDimensions();
   const safeTop = useSafeTop();
-  const safeBottom = useSafeBottom();
   const { setSelectedCircuitId } = useAppStore();
 
   // currentCircuitId passed from SetupScreen — null means no circuit was selected yet
@@ -41,7 +40,7 @@ export default function AllCircuitsScreen({ navigation, route }: AllCircuitsScre
   return (
     <View style={styles.root}>
       {/* Status bar blocker */}
-      <View style={{ height: safeTop, backgroundColor: '#17171C' }} />
+      <TopSafeSpacer safeTop={safeTop} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -73,9 +72,7 @@ export default function AllCircuitsScreen({ navigation, route }: AllCircuitsScre
       </ScrollView>
       {/* BackButton rendered last so it appears above scroll content */}
       <BackButton />
-      {/* Safe-area blockers: inside the native screen view → reliably cover scroll content */}
-      <BlurView intensity={60} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 63, zIndex: 1000 }} pointerEvents="none" />
-      <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: safeBottom, backgroundColor: '#17171C', zIndex: 1000 }} />
+      <TopSafeBlurOverlay safeTop={safeTop} />
     </View>
   );
 }
@@ -83,7 +80,7 @@ export default function AllCircuitsScreen({ navigation, route }: AllCircuitsScre
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,

@@ -1,20 +1,19 @@
 import React, { useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
-
 import { getDriverCode } from '../utils/driverCode';
 import { radius } from '../constants/radius';
 import GradientCtaButton from '../components/GradientCtaButton';
+import CtaFadeBackground, { CTA_AREA_HEIGHT } from '../components/CtaFadeBackground';
+import GradientCardBorder from '../components/GradientCardBorder';
 import { useAppStore } from '../store/appStore';
 import { useSupabaseProfile } from '../hooks/useSupabaseProfile';
 import { getCurrentUser } from '../platform/auth';
 import { logOnboardingCompleted } from '../lib/analytics/raceEvents';
 import type { ProfileSetupScreenProps } from '../navigation/types';
 import { useProfileValidation } from '../hooks/useProfileValidation';
-import { COLORS, PALETTE} from '../constants/colors';
+import { COLORS, PALETTE, PREVIEW_DEFAULT_COLOR } from '../constants/colors';
 
 const TEAM_COLORS = [PALETTE.pink, PALETTE.red, PALETTE.orange, PALETTE.yellow, PALETTE.green, PALETTE.teal, PALETTE.blue, PALETTE.purple, PALETTE.white] as const;
-const PREVIEW_DEFAULT_COLOR = '#7C7C88';
 const PREVIEW_CARD_H = 83; // previewSection(119) - label(24) - gap(12)
 
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
@@ -22,7 +21,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
   const { save } = useSupabaseProfile();
   const { width: windowW } = useWindowDimensions();
   const contentWidth = Math.max(0, windowW - 40);
-  const ctaContainerH = 164;
+  const ctaContainerH = CTA_AREA_HEIGHT;
   const ctaHeight = 54;
   const nameRef = useRef<TextInput | null>(null);
   const numberRef = useRef<TextInput | null>(null);
@@ -136,58 +135,22 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
         <View style={styles.previewSection}>
           <Text style={styles.previewLabel}>Preview</Text>
-          <View style={[styles.previewCard, { width: contentWidth }]}>
-            <Svg
-              width={contentWidth}
-              height={PREVIEW_CARD_H}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            >
-              <Defs>
-                <SvgLinearGradient id="previewCardBorder" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={contentWidth} y2={PREVIEW_CARD_H}>
-                  <Stop offset="0%" stopColor={PALETTE.white} stopOpacity="0.18" />
-                  <Stop offset="25%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                  <Stop offset="75%" stopColor={PALETTE.white} stopOpacity="0.06" />
-                  <Stop offset="100%" stopColor={PALETTE.white} stopOpacity="0.12" />
-                </SvgLinearGradient>
-              </Defs>
-              <Rect
-                x={0.5} y={0.5}
-                width={contentWidth - 1} height={PREVIEW_CARD_H - 1}
-                rx={11.5} ry={11.5}
-                fill="none"
-                stroke="url(#previewCardBorder)"
-                strokeWidth={0.5}
-              />
-            </Svg>
-            <View style={styles.previewCardInner}>
-              <View style={styles.previewRow}>
-                <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
-                <Text style={styles.previewName}>{previewCode}</Text>
-              </View>
-              <Text style={styles.previewNumber}>#{previewNumber}</Text>
+          <GradientCardBorder
+            style={[styles.previewCard, { width: contentWidth }]}
+            innerStyle={styles.previewCardInner}
+            borderRadius={radius.sm.borderRadius}
+          >
+            <View style={styles.previewRow}>
+              <View style={[styles.previewAccent, { backgroundColor: previewColor }]} />
+              <Text style={styles.previewName}>{previewCode}</Text>
             </View>
-          </View>
+            <Text style={styles.previewNumber}>#{previewNumber}</Text>
+          </GradientCardBorder>
         </View>
       </View>
 
       {/* Bottom CTA area — absolute overlay with fade gradient */}
-      <View style={[styles.ctaContainer, { height: ctaContainerH }]} pointerEvents="box-none">
-        <Svg
-          width={windowW}
-          height={ctaContainerH}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <SvgLinearGradient id="profileFade" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="66%" stopColor="#17171C" stopOpacity="1" />
-              <Stop offset="100%" stopColor="#17171C" stopOpacity="0" />
-            </SvgLinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={windowW} height={ctaContainerH} fill="url(#profileFade)" />
-        </Svg>
+      <CtaFadeBackground height={ctaContainerH}>
         <View style={[styles.ctaBtnWrap, { bottom: 40 }]}>
           <GradientCtaButton
             width={contentWidth}
@@ -214,7 +177,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             }}
           />
         </View>
-      </View>
+      </CtaFadeBackground>
     </View>
   );
 }
@@ -222,16 +185,10 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: COLORS.bg,
     paddingTop: 100,
     paddingHorizontal: 20,
     justifyContent: 'space-between',
-  },
-  ctaContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   ctaBtnWrap: {
     position: 'absolute',
@@ -245,6 +202,7 @@ const styles = StyleSheet.create({
     color: PALETTE.white,
     letterSpacing: -0.36,
     includeFontPadding: false,
+    marginLeft: 4,
   },
   formWrap: {
     width: '100%',
@@ -256,7 +214,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   fieldLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 17,
     lineHeight: 20.4,
@@ -331,7 +289,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   previewLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
@@ -339,17 +297,8 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     height: PREVIEW_CARD_H,
-    ...radius.sm,
   },
   previewCardInner: {
-    position: 'absolute',
-    top: 1,
-    left: 1,
-    right: 1,
-    bottom: 1,
-    ...radius.sm,
-    borderRadius: radius.sm.borderRadius - 1,
-    backgroundColor: 'rgba(32,32,40,0.4)',
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -372,7 +321,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   previewNumber: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.text.secondary,
     fontFamily: 'Formula1-Regular',
     fontSize: 20,
     lineHeight: 24,
