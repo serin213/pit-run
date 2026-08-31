@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name           = 'PitRunActivityBridge'
+  s.name           = 'PitRunLiveActivity'
   s.version        = '1.0.0'
   s.summary        = 'ActivityKit Live Activity bridge for Pit Run'
   s.description    = 'Native module that wraps ActivityKit to start/update/end Live Activities from React Native.'
