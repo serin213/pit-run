@@ -13,10 +13,9 @@ import {
 } from 'react-native';
 import { Image } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
-import DigitColumn from '../components/result/DigitColumn';
 import RollingPNumber from '../components/result/RollingPNumber';
 import BarItem from '../components/result/BarItem';
-import { hexToRgb, bottomRoundedRect, makeLinePaths } from '../lib/utils/svgPath';
+import { hexToRgb, makeLinePaths } from '../lib/utils/svgPath';
 import GradientCtaButton from '../components/GradientCtaButton';
 import { CARD_FILL } from '../components/GradientCardBorder';
 import ResultSharePage from './ResultSharePage';
@@ -42,6 +41,7 @@ import { GRADE_COLORS, GRADE_DISPLAY_NAME } from '../constants/grade';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
 import { useSessionHistory } from '../hooks/useSessionHistory';
 import { useEndLiveActivityWhenActive } from '../hooks/useEndLiveActivityWhenActive';
+import { buildResultPaceMetrics, getPaceChartDomain } from '../core/resultMetrics';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -398,48 +398,18 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionsReady]);
 
-  // ─── Lap-based paces (lapLog) or sector fallback ──────────────────────────
+  // ─── Work laps / pit-stop metrics ─────────────────────────────────────────
 
-  // lapLog 기반 lap별 페이스 막대. work lap만 표시, pit은 구분 색상.
-  // lapLog 없거나 1개 이하면 기존 sectorPaces(균등 분할) 폴백.
-  // 히스토리도 payload.lapLog가 복원되면 사용. 구버전(랩 없음)은 rawLapLog=[] → fallback.
-  const useLapLog = rawLapLog.length > 1;
-
-  const sectorCount = useLapLog
-    ? rawLapLog.length
-    : Math.max(1, paceHistory.length, Math.ceil(distKm));
-
-  const sectorPaces = useMemo(() => {
-    const fallback = totalPaceS > 0 ? totalPaceS : 300;
-    if (useLapLog) {
-      return rawLapLog.map((lap) =>
-        lap.paceS != null && lap.paceS > 0 ? lap.paceS : fallback
-      );
-    }
-    if (paceHistory.length === 0) return Array<number>(sectorCount).fill(fallback);
-    return Array.from({ length: sectorCount }, (_, i) =>
-      paceHistory[i] ?? paceHistory[paceHistory.length - 1] ?? fallback,
-    );
-  }, [useLapLog, rawLapLog, paceHistory, sectorCount, totalPaceS]);
-
-  // Fastest Lap: lapLog 모드에선 work lap 중 fastest만 하이라이트(보라색).
-  // 폴백 모드는 기존 로직 그대로.
-  const fastestSectorIdx = useMemo(() => {
-    if (useLapLog) {
-      let bestIdx = 0;
-      let bestPace = Infinity;
-      rawLapLog.forEach((lap, i) => {
-        if (lap.type === 'lap' && lap.paceS != null && lap.paceS < bestPace) {
-          bestPace = lap.paceS;
-          bestIdx = i;
-        }
-      });
-      return bestIdx;
-    }
-    return sectorPaces.length > 0 ? sectorPaces.indexOf(Math.min(...sectorPaces)) : 0;
-  }, [useLapLog, rawLapLog, sectorPaces]);
-
-  const fastestPaceS = sectorPaces[fastestSectorIdx] ?? totalPaceS;
+  const paceMetrics = useMemo(
+    () => buildResultPaceMetrics(rawLapLog, paceHistory, totalPaceS),
+    [rawLapLog, paceHistory, totalPaceS],
+  );
+  const sectorPaces = paceMetrics.workPaces;
+  const sectorCount = sectorPaces.length;
+  const workAvgPaceS = paceMetrics.workAvgPaceS;
+  const fastestPaceS = paceMetrics.fastestPaceS;
+  const pitStopPaceS = paceMetrics.pitStopPaceS;
+  const fastestSectorIdx = sectorPaces.indexOf(fastestPaceS);
 
   // ─── Selected sector (default = fastest) ──────────────────────────────────
 
@@ -453,6 +423,8 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
 
   // Tooltip slide position (JS driver — layout property)
   const tooltipXAnim = useRef(new Animated.Value(0)).current;
+  // Tail follows the selected bar independently so a clamped tooltip still points at its centre.
+  const tooltipTailXAnim = useRef(new Animated.Value(0)).current;
   // Tooltip content cross-fade (native driver)
   const tooltipFadeAnim = useRef(new Animated.Value(1)).current;
   // Skip spring on first mount so tooltip doesn't animate from 0 → correct pos
@@ -463,23 +435,25 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   const graphW = screenW - GRAPH_SIDE_PAD * 2;
   const barW   = Math.max(1, (graphW - BAR_GAP * (sectorCount - 1)) / sectorCount);
 
-  const minPace  = Math.min(...sectorPaces);
-  const maxPace  = Math.max(...sectorPaces);
-  const paceRange = maxPace - minPace || 1;
+  const { minPace, paceRange } = useMemo(
+    () => getPaceChartDomain(sectorPaces),
+    [sectorPaces],
+  );
 
-  const { linePath, areaPath, ys: lineYs } = useMemo(
+  const { linePath, areaPath } = useMemo(
     () => makeLinePaths(sectorPaces, graphW, GRAPH_BAR_H, minPace, paceRange),
     [sectorPaces, graphW, minPace, paceRange],
   );
 
   // AVG pace dashed-line Y position (within GRAPH_BAR_H coordinate space)
-  const avgNorm  = paceRange > 0 ? (totalPaceS - minPace) / paceRange : 0.5;
+  const avgNorm  = paceRange > 0 ? (workAvgPaceS - minPace) / paceRange : 0.5;
   const avgLineY = GRAPH_BAR_H * 0.1 + GRAPH_BAR_H * 0.8 * Math.max(0, Math.min(1, avgNorm));
 
   // Tooltip horizontal centre (bar-row coordinates)
   const [tooltipW, setTooltipW] = useState(80);
   const barCenterX  = selectedSector * (barW + BAR_GAP) + barW / 2;
   const tooltipLeft = Math.max(0, Math.min(graphW - tooltipW, barCenterX - tooltipW / 2));
+  const tooltipTailLeft = barCenterX - 7;
 
   // ─── Page height & active page ────────────────────────────────────────────
 
@@ -513,16 +487,25 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
   useEffect(() => {
     if (!tooltipXMountedRef.current) {
       tooltipXAnim.setValue(tooltipLeft);
+      tooltipTailXAnim.setValue(tooltipTailLeft);
       tooltipXMountedRef.current = true;
       return;
     }
-    Animated.spring(tooltipXAnim, {
-      toValue: tooltipLeft,
-      useNativeDriver: false,
-      tension: 180,
-      friction: 26,
-    }).start();
-  }, [tooltipLeft, tooltipXAnim]);
+    Animated.parallel([
+      Animated.spring(tooltipXAnim, {
+        toValue: tooltipLeft,
+        useNativeDriver: false,
+        tension: 180,
+        friction: 26,
+      }),
+      Animated.spring(tooltipTailXAnim, {
+        toValue: tooltipTailLeft,
+        useNativeDriver: false,
+        tension: 180,
+        friction: 26,
+      }),
+    ]).start();
+  }, [tooltipLeft, tooltipTailLeft, tooltipXAnim, tooltipTailXAnim]);
 
   // Tooltip content: cross-fade when switching between fastest / regular
   useEffect(() => {
@@ -689,6 +672,9 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                             : null
                         }
                         color={topTheme.text}
+                        fontSize={72}
+                        digitH={80}
+                        digitSpacing={-3}
                       />
                       {checkerFlagImage && <View style={{ width: 12 }} />}
                     </>
@@ -696,7 +682,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   {checkerFlagImage && (
                     <Image
                       source={checkerFlagImage}
-                      style={[styles.checkerFlag, { marginTop: -1 }]}
+                      style={styles.checkerFlag}
                       resizeMode="contain"
                     />
                   )}
@@ -707,6 +693,29 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   <Text style={styles.summaryText}>
                     {commentary.message}
                   </Text>
+                </View>
+
+                <View style={styles.page1Stats}>
+                  <Text style={styles.label}>DISTANCE</Text>
+                  <RollingText
+                    target={fmtDist(distKm)}
+                    containerStyle={{ marginTop: 8 }}
+                    textStyle={styles.statValue}
+                  />
+
+                  <Text style={[styles.label, { marginTop: 24 }]}>TIME</Text>
+                  <RollingText
+                    target={fmtTime(elapsedMs)}
+                    containerStyle={{ marginTop: 8 }}
+                    textStyle={styles.statValue}
+                  />
+
+                  <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
+                  {selectedTire && (
+                    <View style={{ marginTop: 12, alignSelf: 'flex-start', marginLeft: 2, marginRight: 24 }}>
+                      <TireIcon type={selectedTire} width={44} height={41} />
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -734,25 +743,29 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   <Text style={styles.distUnit}>km</Text>
                 </View>
 
-                <Text style={[styles.label, { marginTop: 32 }]}>TIME</Text>
+                <Text style={[styles.label, { marginTop: 32 }]}>AVG PACE</Text>
                 <RollingText
-                  target={fmtTime(elapsedMs)}
+                  target={fmtPace(workAvgPaceS)}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: PALETTE.white }}
+                  textStyle={styles.statValue}
                 />
 
-                <Text style={[styles.label, { marginTop: 24 }]}>AVG PACE</Text>
+                <Text style={[styles.label, { marginTop: 24 }]}>FASTEST PACE</Text>
                 <RollingText
-                  target={fmtPace(totalPaceS)}
+                  target={fmtPace(fastestPaceS)}
                   containerStyle={{ marginTop: 8 }}
-                  textStyle={{ fontFamily: 'Formula1-Bold', fontSize: 30, color: PALETTE.white }}
+                  textStyle={styles.statValue}
                 />
 
-                <Text style={[styles.label, { marginTop: 24 }]}>TYRE</Text>
-                {selectedTire && (
-                  <View style={{ marginTop: 12, alignSelf: 'flex-start', marginLeft: 2, marginRight: 24 }}>
-                    <TireIcon type={selectedTire} width={44} height={41} />
-                  </View>
+                {pitStopPaceS != null && (
+                  <>
+                    <Text style={[styles.label, { marginTop: 24 }]}>PIT-STOP PACE</Text>
+                    <RollingText
+                      target={fmtPace(pitStopPaceS)}
+                      containerStyle={{ marginTop: 8 }}
+                      textStyle={styles.statValue}
+                    />
+                  </>
                 )}
 
               </View>
@@ -772,48 +785,52 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                       ? 'rgba(133,40,197,0.15)'
                       : `rgba(${themeRgb},0.15)`;
                     return (
-                      <Animated.View
-                        style={[styles.tooltipWrap, { left: tooltipXAnim }]}
-                        onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
-                      >
-                        {/* Cross-fade wrapper */}
-                        <Animated.View style={{ opacity: tooltipFadeAnim, alignItems: 'center' }}>
-                          {/* Bubble */}
-                          <View style={[
-                            styles.tooltipBubble,
-                            { backgroundColor: tooltipBg },
-                            isFastest && { paddingTop: 0, paddingBottom: 0 },
-                          ]}>
-                            {isFastest && (
-                              <>
-                                {/* Purple icon box */}
-                                <View style={styles.fastestIconBox}>
-                                  <Image
-                                    source={require('../../assets/icons/fastest-lap.png')}
-                                    style={{ width: 20, height: 23 }}
-                                    resizeMode="contain"
-                                  />
-                                </View>
-                                <View style={{ width: 10 }} />
-                                <Text style={styles.fastestLabel}>Fastest Lap</Text>
-                                <View style={{ width: 10 }} />
-                              </>
+                      <>
+                        <Animated.View
+                          style={[styles.tooltipWrap, { left: tooltipXAnim }]}
+                          onLayout={(e) => setTooltipW(e.nativeEvent.layout.width)}
+                        >
+                          <Animated.View style={{ opacity: tooltipFadeAnim }}>
+                            <View style={[
+                              styles.tooltipBubble,
+                              { backgroundColor: tooltipBg },
+                              isFastest && { paddingTop: 0, paddingBottom: 0 },
+                            ]}>
+                              {isFastest && (
+                                <>
+                                  <View style={styles.fastestIconBox}>
+                                    <Image
+                                      source={require('../../assets/icons/fastest-lap.png')}
+                                      style={{ width: 20, height: 23 }}
+                                      resizeMode="contain"
+                                    />
+                                  </View>
+                                  <View style={{ width: 10 }} />
+                                  <Text style={styles.fastestLabel}>Fastest Lap</Text>
+                                  <View style={{ width: 10 }} />
+                                </>
                             )}
                             <View style={{ opacity: 0.7 }}>
                               <Text style={styles.tooltipPace}>
-                                {fmtPace(sectorPaces[shownSector] ?? totalPaceS)}
+                                {fmtPace(sectorPaces[shownSector] ?? workAvgPaceS)}
                               </Text>
                             </View>
-                          </View>
-                          {/* Tail — same color as bubble */}
-                          <Svg width={14} height={10} viewBox="0 0 14 10">
-                            <Path
-                              d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
-                              fill={tooltipBg}
-                            />
-                          </Svg>
+                            </View>
+                          </Animated.View>
                         </Animated.View>
-                      </Animated.View>
+                        <Animated.View
+                          style={[styles.tooltipTail, { left: tooltipTailXAnim }]}
+                        >
+                          <Animated.View style={{ opacity: tooltipFadeAnim }}>
+                            <Svg width={14} height={10} viewBox="0 0 14 10">
+                              <Path
+                                d="M 0 0 H 14 L 9.42 6.05 A 3 3 0 0 1 4.58 6.05 L 0 0 Z"
+                                fill={tooltipBg}
+                              />
+                            </Svg>
+                          </Animated.View>
+                        </Animated.View>
+                      </>
                     );
                   })()}
                 </View>
@@ -823,21 +840,13 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   {/* Bars — BarItem handles Reanimated reveal per bar */}
                   <View style={styles.barsRow}>
                     {sectorPaces.map((_, i) => {
-                      const lap = useLapLog ? rawLapLog[i] : null;
-                      const isPit = lap?.type === 'pit';
-                      const isFastest = useLapLog && i === fastestSectorIdx && !isPit;
-                      const barColor = isFastest
-                        ? PALETTE.purple
-                        : isPit
-                        ? COLORS.bg  // pit lap: 배경색으로 거의 안 보이게
-                        : topTheme.line;
                       return (
                         <BarItem
                           key={i}
                           index={i}
                           barW={barW}
                           isSelected={i === selectedSector}
-                          themeColor={barColor}
+                          themeColor={topTheme.line}
                           onPress={() => setSelectedSector(i)}
                         />
                       );
@@ -906,7 +915,7 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                   pointerEvents="none"
                 >
                   <Text style={[styles.avgLabelText, { color: `rgba(${themeRgb},0.7)` }]}>
-                    {fmtPace(totalPaceS)}
+                    AVG {fmtPace(workAvgPaceS)}
                   </Text>
                 </View>
 
@@ -919,9 +928,15 @@ export default function ResultScreen({ navigation, route }: ResultScreenProps) {
                       onPress={() => setSelectedSector(i)}
                       hitSlop={4}
                     >
-                      <View style={{ opacity: 0.5 }}>
-                        <Text style={[styles.sectorLabel, { color: topTheme.text }]}>
-                          S{i + 1}
+                      <View style={{ width: barW, opacity: 0.5 }}>
+                        <Text
+                          allowFontScaling={false}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.55}
+                          numberOfLines={1}
+                          style={[styles.sectorLabel, { color: topTheme.text }]}
+                        >
+                          Lap {i + 1}
                         </Text>
                       </View>
                     </Pressable>
@@ -1079,7 +1094,7 @@ const styles = StyleSheet.create({
   // ── Page 1 ──
   page1Content: {
     paddingLeft: 20,
-    paddingTop: PAGE_CONTENT_TOP,
+    paddingTop: 59,
   },
   rankRow: {
     flexDirection: 'row',
@@ -1087,24 +1102,28 @@ const styles = StyleSheet.create({
   },
   rankText: {
     fontFamily: 'Formula1-Black',
-    fontSize: 100,
-    lineHeight: 110,
-    letterSpacing: LETTER_SPACING.display(100),
+    fontSize: 72,
+    lineHeight: 80,
+    letterSpacing: LETTER_SPACING.display(72),
     color: PALETTE.white,
     includeFontPadding: false,
   },
   checkerFlag: {
-    width: 92,
-    height: 92,
+    width: 68,
+    height: 68,
+    transform: [{ translateY: -2 }],
   },
   summaryText: {
-    marginTop: 24,
+    marginTop: 8,
     fontFamily: 'Formula1-Italic',
     fontSize: 24,
     lineHeight: 24 * 1.3,   // 130%
     letterSpacing: LETTER_SPACING.display(24),
     color: PALETTE.white,
     paddingRight: 20,
+  },
+  page1Stats: {
+    marginTop: 42,
   },
   circuitWrap: {
     position: 'absolute',
@@ -1152,6 +1171,11 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     letterSpacing: LETTER_SPACING.display(13),
   },
+  statValue: {
+    fontFamily: 'Formula1-Bold',
+    fontSize: 30,
+    color: PALETTE.white,
+  },
 
   // ── Graph section ──
   graphSection: {
@@ -1163,8 +1187,13 @@ const styles = StyleSheet.create({
   // Tooltip (HistoryScreen 동일 스타일)
   tooltipWrap: {
     position: 'absolute',
-    bottom: 0,           // zone 하단 기준 정렬 → 항상 chart 바로 위에 붙음
-    alignItems: 'center',
+    bottom: 10,
+  },
+  tooltipTail: {
+    position: 'absolute',
+    bottom: 0,
+    width: 14,
+    height: 10,
   },
   tooltipBubble: {
     flexDirection: 'row',
@@ -1237,7 +1266,8 @@ const styles = StyleSheet.create({
   },
   sectorLabel: {
     fontFamily: 'Formula1-Regular',
-    fontSize: 14,
+    fontSize: 12,
+    textAlign: 'center',
   },
 
   // ── CTA ──

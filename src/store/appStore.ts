@@ -17,9 +17,9 @@ function getStorage() {
   if (!_storage) {
     try {
       _storage = createMMKV({ id: 'app-store' });
-      console.warn('[PROFILE-DIAG] createMMKV OK');
+      if (__DEV__) console.warn('[PROFILE-DIAG] createMMKV OK');
     } catch (e) {
-      console.warn('[PROFILE-DIAG] createMMKV THREW:', String(e));
+      if (__DEV__) console.warn('[PROFILE-DIAG] createMMKV THREW:', String(e));
       throw e;
     }
   }
@@ -31,7 +31,7 @@ type PersistedState = {
   qualifyingResult: QualifyingResult | null;
   activityDates: string[];
   totalDistanceKm: number;
-  paceRecords: { bestEver: number; todayBest: number };
+  paceRecords: { bestEver: number | null; todayBest: number | null };
   /** circuitId → last raced timestamp (ms). 홈 추천 서킷 로테이션용. */
   lastRaceByCircuit: Record<string, number>;
 };
@@ -40,14 +40,14 @@ function loadPersisted(): Partial<PersistedState> {
   try {
     const raw = getStorage().getString('state');
     if (!raw) {
-      console.warn('[PROFILE-DIAG] loadPersisted: getString("state") returned null/undefined');
+      if (__DEV__) console.warn('[PROFILE-DIAG] loadPersisted: getString("state") returned null/undefined');
       return {};
     }
     const parsed = JSON.parse(raw) as Partial<PersistedState>;
-    console.warn('[PROFILE-DIAG] loadPersisted OK. profile=', JSON.stringify(parsed.profile));
+    if (__DEV__) console.warn('[PROFILE-DIAG] loadPersisted OK. profile=', JSON.stringify(parsed.profile));
     return parsed;
   } catch (e) {
-    console.warn('[PROFILE-DIAG] loadPersisted THREW:', String(e));
+    if (__DEV__) console.warn('[PROFILE-DIAG] loadPersisted THREW:', String(e));
     return {};
   }
 }
@@ -55,9 +55,9 @@ function loadPersisted(): Partial<PersistedState> {
 function persist(state: PersistedState) {
   try {
     getStorage().set('state', JSON.stringify(state));
-    console.warn('[PROFILE-DIAG] persist OK. profile.displayName=', state.profile.displayName);
+    if (__DEV__) console.warn('[PROFILE-DIAG] persist OK. profile.displayName=', state.profile.displayName);
   } catch (e) {
-    console.warn('[PROFILE-DIAG] persist THREW:', String(e));
+    if (__DEV__) console.warn('[PROFILE-DIAG] persist THREW:', String(e));
   }
 }
 
@@ -76,6 +76,30 @@ const DEFAULT_PACE_RECORDS = {
   todayBest: Number.POSITIVE_INFINITY,
 };
 
+type PaceRecords = typeof DEFAULT_PACE_RECORDS;
+
+function normalizePaceRecord(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : Number.POSITIVE_INFINITY;
+}
+
+function hydratePaceRecords(value: unknown): PaceRecords {
+  if (!value || typeof value !== 'object') return DEFAULT_PACE_RECORDS;
+  const raw = value as Partial<Record<keyof PaceRecords, unknown>>;
+  return {
+    bestEver: normalizePaceRecord(raw.bestEver),
+    todayBest: normalizePaceRecord(raw.todayBest),
+  };
+}
+
+function serializePaceRecords(records: PaceRecords): PersistedState['paceRecords'] {
+  return {
+    bestEver: Number.isFinite(records.bestEver) ? records.bestEver : null,
+    todayBest: Number.isFinite(records.todayBest) ? records.todayBest : null,
+  };
+}
+
 interface AppState {
   profile: UserProfile;
   setProfile: (profile: UserProfile) => void;
@@ -89,7 +113,7 @@ interface AppState {
   qualifyingResult: QualifyingResult | null;
   setQualifyingResult: (result: QualifyingResult | null) => void;
 
-  paceRecords: { bestEver: number; todayBest: number };
+  paceRecords: PaceRecords;
   updatePaceRecord: (pace: number) => void;
 
   activityDates: string[];
@@ -115,6 +139,9 @@ interface AppState {
   /** circuitId → 마지막 완주 시각(ms). 홈 추천 서킷 로테이션용. */
   lastRaceByCircuit: Record<string, number>;
   recordCircuitRace: (circuitId: string) => void;
+
+  /** 계정 삭제/로그아웃성 로컬 초기화. 저장소 clear 이후 메모리 상태를 기본값으로 되돌림. */
+  resetAppState: () => void;
 }
 
 /** persist할 필드만 추출 */
@@ -124,7 +151,7 @@ function extractPersisted(state: AppState): PersistedState {
     qualifyingResult: state.qualifyingResult,
     activityDates: state.activityDates,
     totalDistanceKm: state.totalDistanceKm,
-    paceRecords: state.paceRecords,
+    paceRecords: serializePaceRecords(state.paceRecords),
     lastRaceByCircuit: state.lastRaceByCircuit,
   };
 }
@@ -148,8 +175,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     persist(extractPersisted({ ...get(), qualifyingResult: result }));
   },
 
-  paceRecords: saved.paceRecords ?? DEFAULT_PACE_RECORDS,
+  paceRecords: hydratePaceRecords(saved.paceRecords),
   updatePaceRecord: (pace) => {
+    if (!Number.isFinite(pace) || pace <= 0) return;
     const prev = get().paceRecords;
     const bestEver = Math.min(prev.bestEver, pace);
     const todayBest = Math.min(prev.todayBest, pace);
@@ -201,5 +229,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     const lastRaceByCircuit = { ...get().lastRaceByCircuit, [circuitId]: Date.now() };
     set({ lastRaceByCircuit });
     persist(extractPersisted({ ...get(), lastRaceByCircuit }));
+  },
+
+  resetAppState: () => {
+    set({
+      profile: DEFAULT_PROFILE,
+      selectedCircuitId: null,
+      selectedTire: 'soft',
+      qualifyingResult: null,
+      paceRecords: DEFAULT_PACE_RECORDS,
+      activityDates: [],
+      qualifyingDates: [],
+      totalDistanceKm: 0,
+      currentRaceEventId: null,
+      activePlan: null,
+      lastRaceByCircuit: {},
+    });
   },
 }));

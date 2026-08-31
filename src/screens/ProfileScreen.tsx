@@ -24,6 +24,8 @@ import Svg, {
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeTop } from '../hooks/useSafeTop';
 import { useAppStore } from '../store/appStore';
+import { useAuthStore } from '../store/authStore';
+import { useRunStore } from '../store/runStore';
 import { useTabBarTotalHeight } from '../components/TabBar';
 import { signOut } from '../platform/auth';
 import { dismissInAppBrowser, openInAppBrowser } from '../platform/webBrowser';
@@ -130,6 +132,9 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
     try {
       await deleteAccount();
       clearAllStorage();
+      useAppStore.getState().resetAppState();
+      useRunStore.getState().resetRun();
+      useAuthStore.getState().setSession(null);
       navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
     } catch (e) {
       Alert.alert(
@@ -176,11 +181,11 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         </Pressable>
 
         {/* ── 3. 설정 리스트 ── */}
-        <View style={{ marginTop: 28 }}>
+        <View style={{ marginTop: 26 }}>
 
           {/* Terms of Service */}
           <Pressable
-            style={[styles.listRow, { marginTop: 24 }]}
+            style={styles.listRow}
             onPress={() => openInAppBrowser(TERMS_URL)}
           >
             <Text style={styles.listLabel}>Terms of Service</Text>

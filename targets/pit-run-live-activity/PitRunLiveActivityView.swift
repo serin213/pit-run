@@ -783,7 +783,6 @@ struct PitRunLiveActivity: Widget {
             PitRunLiveActivityView(context: context)
         } dynamicIsland: { context in
             let state   = context.state
-            let teamClr = Color(hex: context.attributes.teamColor)
             let pitMode = state.pitPhase == "inPit"
             let isPaused = state.isPaused
             // warmup과 qualifying은 동일한 red 테마 사용 (텍스트 흰색 + 빨강 버튼).

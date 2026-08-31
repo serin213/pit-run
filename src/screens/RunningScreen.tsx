@@ -611,10 +611,10 @@ export default function RunningScreen({ navigation }: NavRunningScreenProps) {
         onVisibilityChange={handleVisibilityChange}
       />
 
-      {/* ── BG event 진단 패널 — TestFlight에서도 표시 (출시 직전 제거 예정) ──
+      {/* ── BG event 진단 패널 — dev build 전용 ──
        *  카운터는 module-level mutable이라 RN re-render를 트리거 안 함.
        *  diagTick state를 1초마다 갱신해 최신 값 표시 강제. */}
-      <BgEventDiagPanel />
+      {__DEV__ && <BgEventDiagPanel />}
     </View>
   );
 }

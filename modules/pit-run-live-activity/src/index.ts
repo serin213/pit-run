@@ -47,7 +47,7 @@ const MODULE_NAME = 'PitRunLiveActivityBridge';
 function getNativeModule(): PitRunLiveActivityNative | null {
   if (Platform.OS !== 'ios') return null;
   const mod = requireOptionalNativeModule<PitRunLiveActivityNative>(MODULE_NAME);
-  if (!mod) {
+  if (!mod && __DEV__) {
     console.error(
       `[PitRunLA-DIAG] requireOptionalNativeModule('${MODULE_NAME}') returned null. ` +
       `Module is NOT registered at this call time.`
@@ -59,11 +59,11 @@ function getNativeModule(): PitRunLiveActivityNative | null {
 export function isSupported(): boolean {
   const mod = getNativeModule();
   if (!mod) {
-    console.error('[PitRunLA-DIAG] isSupported: module missing, returning false');
+    if (__DEV__) console.error('[PitRunLA-DIAG] isSupported: module missing, returning false');
     return false;
   }
   const result = mod.isSupported();
-  console.warn(`[PitRunLA-DIAG] isSupported() → ${result}`);
+  if (__DEV__) console.warn(`[PitRunLA-DIAG] isSupported() → ${result}`);
   return result;
 }
 
@@ -75,16 +75,16 @@ export async function startActivity(
 ): Promise<string | null> {
   const mod = getNativeModule();
   if (!mod) {
-    console.error('[PitRunLA-DIAG] startActivity: module missing, returning null');
+    if (__DEV__) console.error('[PitRunLA-DIAG] startActivity: module missing, returning null');
     return null;
   }
-  console.warn('[PitRunLA-DIAG] startActivity: calling native', { driverName, teamColor, circuitId, mode });
+  if (__DEV__) console.warn('[PitRunLA-DIAG] startActivity: calling native', { driverName, teamColor, circuitId, mode });
   try {
     const id = await mod.startActivity(driverName, teamColor, circuitId, mode);
-    console.warn(`[PitRunLA-DIAG] startActivity: native returned id=${id}`);
+    if (__DEV__) console.warn(`[PitRunLA-DIAG] startActivity: native returned id=${id}`);
     return id;
   } catch (e) {
-    console.error('[PitRunLA-DIAG] startActivity: native THREW', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] startActivity: native THREW', String(e));
     throw e;
   }
 }
@@ -110,7 +110,7 @@ export async function updateActivity(
   try {
     return await mod.updateActivity(activityId, state);
   } catch (e) {
-    console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] updateActivity threw', String(e));
     return false;
   }
 }
@@ -121,7 +121,7 @@ export async function endActivity(activityId: string): Promise<void> {
   try {
     await mod.endActivity(activityId);
   } catch (e) {
-    console.error('[PitRunLA-DIAG] endActivity threw', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] endActivity threw', String(e));
   }
 }
 
@@ -131,7 +131,7 @@ export async function endAllActivities(): Promise<void> {
   try {
     await mod.endAllActivities();
   } catch (e) {
-    console.error('[PitRunLA-DIAG] endAllActivities threw', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] endAllActivities threw', String(e));
   }
 }
 
@@ -148,7 +148,7 @@ export function addPushTokenListener(
   try {
     return mod.addListener('onLiveActivityPushToken', listener);
   } catch (e) {
-    console.error('[PitRunLA-DIAG] addPushTokenListener threw', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] addPushTokenListener threw', String(e));
     return null;
   }
 }
@@ -160,7 +160,7 @@ export async function getPushToken(activityId: string): Promise<string | null> {
   try {
     return await mod.getPushToken(activityId);
   } catch (e) {
-    console.error('[PitRunLA-DIAG] getPushToken threw', String(e));
+    if (__DEV__) console.error('[PitRunLA-DIAG] getPushToken threw', String(e));
     return null;
   }
 }

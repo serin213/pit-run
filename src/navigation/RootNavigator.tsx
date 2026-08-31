@@ -145,7 +145,11 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Result"
           component={ResultScreen}
-          options={{ animation: 'fade', animationDuration: 150, gestureEnabled: false }}
+          options={({ route }) => ({
+            animation: route.params?.history ? 'slide_from_right' : 'fade',
+            animationDuration: 150,
+            gestureEnabled: Boolean(route.params?.history),
+          })}
         />
         <Stack.Screen
           name="Practice"

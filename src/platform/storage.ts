@@ -7,11 +7,19 @@
 
 import { createMMKV, type MMKV } from 'react-native-mmkv';
 
+const DEFAULT_STORAGE_ID = 'pitrun-default';
+const ALL_STORAGE_IDS = [
+  DEFAULT_STORAGE_ID,
+  'app-store',
+  'supabase-auth',
+  'devmode',
+] as const;
+
 let storage: MMKV | null = null;
 
 function getStorage(): MMKV {
   if (!storage) {
-    storage = createMMKV({ id: 'pitrun-default' });
+    storage = createMMKV({ id: DEFAULT_STORAGE_ID });
   }
   return storage;
 }
@@ -44,5 +52,12 @@ export function clearAll(): void {
  * 모든 로컬 저장소 데이터 삭제. 계정 삭제 시 호출.
  */
 export function clearAllStorage(): void {
-  getStorage().clearAll();
+  for (const id of ALL_STORAGE_IDS) {
+    try {
+      const store = id === DEFAULT_STORAGE_ID ? getStorage() : createMMKV({ id });
+      store.clearAll();
+    } catch {
+      // Best-effort cleanup. Individual MMKV init failures should not block logout UX.
+    }
+  }
 }

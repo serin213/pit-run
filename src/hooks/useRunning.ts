@@ -298,9 +298,10 @@ export function useRunning(options: UseRunningOptions = {}) {
     const run = useRunStore.getState();
     const app = useAppStore.getState();
     const circuit = CIRCUITS.find((c) => c.id === app.selectedCircuitId) ?? CIRCUITS[0];
+    const runtimeTire = app.selectedTire ?? run.tire;
     const intervalKm = app.activePlan
       ? app.activePlan.intervals.distanceM / 1000
-      : TIRES[run.tire].boxBoxDistKm;
+      : TIRES[runtimeTire].boxBoxDistKm;
     const recoveryDurationMs = app.activePlan
       ? app.activePlan.recovery.durationSec * 1000
       : 60_000;
@@ -323,7 +324,7 @@ export function useRunning(options: UseRunningOptions = {}) {
       maxReps,
       circuitKm: circuit.distanceKm,
       expectedCycleM,
-      tire: run.tire,
+      tire: runtimeTire,
       startedAtMs,
       initialDistKm: run.distKm,
       initialElapsedMs: run.elapsedMs,

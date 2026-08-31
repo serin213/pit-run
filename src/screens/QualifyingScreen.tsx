@@ -615,8 +615,8 @@ export default function QualifyingScreen({ navigation, route }: QualifyingScreen
         </Pressable>
       )}
 
-      {/* GPS diag panel — qualifying phase only */}
-      {phase === 'qualifying' && <GpsDiagPanel />}
+      {/* GPS diag panel — dev build only */}
+      {__DEV__ && phase === 'qualifying' && <GpsDiagPanel />}
 
       {/* Retire confirm overlay */}
       {showRetireConfirm && (

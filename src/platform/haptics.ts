@@ -18,6 +18,7 @@ import PitRunHaptics from 'pit-run-haptics';
 
 let _hapticsDiagLogged = false;
 function logDiagOnce(msg: string) {
+  if (!__DEV__) return;
   if (_hapticsDiagLogged) return;
   _hapticsDiagLogged = true;
   console.warn(msg);

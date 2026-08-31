@@ -1,6 +1,6 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Matches SafeAreaOverlay's DEFAULT_HOME_H fallback.
+// iPhone home indicator reference fallback for simulator / edge cases.
 const FALLBACK_HOME_H = 34;
 
 export function useSafeBottom(): number {

@@ -49,6 +49,7 @@ import {
 } from '../components/MonthCalendar';
 import { useLocationPermission } from '../hooks/useLocationPermission';
 import { useAuthStore } from '../store/authStore';
+import { useRunStore } from '../store/runStore';
 import { logRaceStarted, logSessionStarted } from '../lib/analytics/raceEvents';
 import { buildProgram, type Tire } from '../lib/training/buildProgram';
 import { GRADE_TIERS } from '../lib/grading/calcGrade';
@@ -445,7 +446,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // ── Race time: 퀄리파잉 pace 우선, 없으면 bestEver ────────────────────────
   const paceSec = useMemo(() => {
     if (qualifyingResult) return qualifyingResult.paceSecPerKm;
-    if (isFinite(paceRecords.bestEver)) return paceRecords.bestEver;
+    if (Number.isFinite(paceRecords.bestEver) && paceRecords.bestEver > 0) return paceRecords.bestEver;
     return null;
   }, [qualifyingResult, paceRecords.bestEver]);
 
@@ -659,6 +660,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               const granted = await ensurePermission();
               if (!granted) return;
               setSelectedCircuitId(circuit.id);
+              useRunStore.getState().setTire(selectedTire);
               if (qualifyingResult) {
                 try {
                   const appUser = {

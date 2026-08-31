@@ -26,6 +26,7 @@ import { CIRCUITS } from '../config/circuits';
 import type { CircuitCardConfig } from '../config/circuitCardConfig';
 import { CIRCUIT_CARD_CONFIG } from '../config/circuitCardConfig';
 import { useAppStore } from '../store/appStore';
+import { useRunStore } from '../store/runStore';
 import type { TireType } from '../constants/colors';
 import type { SetupScreenProps } from '../navigation/types';
 import { useLocationPermission } from '../hooks/useLocationPermission';
@@ -318,7 +319,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
 
   return (
     <View style={styles.root}>
-      {/* Status bar blocker — height matches SafeAreaOverlay's statusH */}
+      {/* Status bar blocker */}
       <TopSafeSpacer safeTop={safeTop} />
       <ScrollView
         style={styles.scroll}
@@ -453,6 +454,7 @@ export default function SetupScreen({ navigation }: SetupScreenProps) {
                 const granted = await ensurePermission();
                 if (!granted) return;
                 storeSetTire(selectedTire!);
+                useRunStore.getState().setTire(selectedTire!);
                 storeSetCircuit(selectedCircuitId!);
                 // race_started 로그: buildProgram으로 프로그램 생성 후 기록.
                 // 분석/로깅 실패가 navigation을 막으면 안 되므로 try/catch.
