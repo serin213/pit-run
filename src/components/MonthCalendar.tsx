@@ -75,9 +75,10 @@ export function findRunGroups(
 }
 
 export function pillGeometry(colX: number[], startCol: number, endCol: number) {
+  const extend = endCol > startCol ? 2 : 0;
   return {
-    left: colX[startCol] - 2,
-    width: colX[endCol] - colX[startCol] + 28,
+    left: colX[startCol] - 2 - extend,
+    width: colX[endCol] - colX[startCol] + 28 + extend * 2,
   };
 }
 
